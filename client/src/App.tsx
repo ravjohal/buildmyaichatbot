@@ -7,16 +7,30 @@ import Dashboard from "@/pages/Dashboard";
 import CreateChatbot from "@/pages/CreateChatbot";
 import ChatWidget from "@/pages/ChatWidget";
 import TestWidget from "@/pages/TestWidget";
+import Landing from "@/pages/Landing";
 import NotFound from "@/pages/not-found";
+import { useAuth } from "@/hooks/useAuth";
 
 function Router() {
+  const { isAuthenticated, isLoading } = useAuth();
+
   return (
     <Switch>
-      <Route path="/" component={Dashboard} />
-      <Route path="/create" component={CreateChatbot} />
-      <Route path="/widget/:id" component={ChatWidget} />
-      <Route path="/test-widget" component={TestWidget} />
-      <Route component={NotFound} />
+      {isLoading || !isAuthenticated ? (
+        <>
+          <Route path="/" component={Landing} />
+          <Route path="/widget/:id" component={ChatWidget} />
+          <Route component={Landing} />
+        </>
+      ) : (
+        <>
+          <Route path="/" component={Dashboard} />
+          <Route path="/create" component={CreateChatbot} />
+          <Route path="/widget/:id" component={ChatWidget} />
+          <Route path="/test-widget" component={TestWidget} />
+          <Route component={NotFound} />
+        </>
+      )}
     </Switch>
   );
 }

@@ -1,20 +1,41 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertChatbotSchema, type ChatRequest, type ChatResponse } from "@shared/schema";
+import { insertChatbotSchema, type ChatRequest, type ChatResponse, chatbots } from "@shared/schema";
 import { ZodError } from "zod";
 import { GoogleGenAI } from "@google/genai";
 import multer from "multer";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
+import { isAuthenticated } from "./replitAuth";
+import { db } from "./db";
+import { eq } from "drizzle-orm";
 
 const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
 const upload = multer({ storage: multer.memoryStorage() });
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Get all chatbots
-  app.get("/api/chatbots", async (_req, res) => {
+  // Get authenticated user (NOT protected - returns null if not authenticated)
+  app.get('/api/auth/user', async (req: any, res) => {
     try {
-      const chatbots = await storage.getAllChatbots();
+      // Check if user is authenticated
+      if (!req.isAuthenticated() || !req.user?.claims?.sub) {
+        return res.json(null); // Return null for unauthenticated users (200 OK)
+      }
+      
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      res.json(user);
+    } catch (error) {
+      console.error("Error fetching user:", error);
+      res.status(500).json({ message: "Failed to fetch user" });
+    }
+  });
+
+  // Get all chatbots (protected)
+  app.get("/api/chatbots", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const chatbots = await storage.getAllChatbots(userId);
       res.json(chatbots);
     } catch (error) {
       console.error("Error fetching chatbots:", error);
@@ -22,10 +43,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get single chatbot
-  app.get("/api/chatbots/:id", async (req, res) => {
+  // Get single chatbot (protected)
+  app.get("/api/chatbots/:id", isAuthenticated, async (req: any, res) => {
     try {
-      const chatbot = await storage.getChatbot(req.params.id);
+      const userId = req.user.claims.sub;
+      const chatbot = await storage.getChatbot(req.params.id, userId);
       if (!chatbot) {
         return res.status(404).json({ error: "Chatbot not found" });
       }
@@ -36,11 +58,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Create chatbot
-  app.post("/api/chatbots", async (req, res) => {
+  // Create chatbot (protected)
+  app.post("/api/chatbots", isAuthenticated, async (req: any, res) => {
     try {
+      const userId = req.user.claims.sub;
       const validatedData = insertChatbotSchema.parse(req.body);
-      const chatbot = await storage.createChatbot(validatedData);
+      const chatbot = await storage.createChatbot(validatedData, userId);
       res.status(201).json(chatbot);
     } catch (error) {
       if (error instanceof ZodError) {
@@ -51,11 +74,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Update chatbot
-  app.put("/api/chatbots/:id", async (req, res) => {
+  // Update chatbot (protected)
+  app.put("/api/chatbots/:id", isAuthenticated, async (req: any, res) => {
     try {
+      const userId = req.user.claims.sub;
       const validatedData = insertChatbotSchema.partial().parse(req.body);
-      const chatbot = await storage.updateChatbot(req.params.id, validatedData);
+      const chatbot = await storage.updateChatbot(req.params.id, userId, validatedData);
       if (!chatbot) {
         return res.status(404).json({ error: "Chatbot not found" });
       }
@@ -69,10 +93,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Delete chatbot
-  app.delete("/api/chatbots/:id", async (req, res) => {
+  // Delete chatbot (protected)
+  app.delete("/api/chatbots/:id", isAuthenticated, async (req: any, res) => {
     try {
-      const deleted = await storage.deleteChatbot(req.params.id);
+      const userId = req.user.claims.sub;
+      const deleted = await storage.deleteChatbot(req.params.id, userId);
       if (!deleted) {
         return res.status(404).json({ error: "Chatbot not found" });
       }
@@ -110,9 +135,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Update chatbot with uploaded logo URL
-  app.put("/api/chatbots/:id/logo", async (req, res) => {
+  // Update chatbot with uploaded logo URL (protected)
+  app.put("/api/chatbots/:id/logo", isAuthenticated, async (req: any, res) => {
     try {
+      const userId = req.user.claims.sub;
       if (!req.body.logoURL) {
         return res.status(400).json({ error: "logoURL is required" });
       }
@@ -120,7 +146,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const objectStorageService = new ObjectStorageService();
       const objectPath = objectStorageService.normalizeObjectEntityPath(req.body.logoURL);
 
-      const chatbot = await storage.updateChatbot(req.params.id, { logoUrl: objectPath });
+      const chatbot = await storage.updateChatbot(req.params.id, userId, { logoUrl: objectPath });
       if (!chatbot) {
         return res.status(404).json({ error: "Chatbot not found" });
       }
@@ -132,7 +158,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Chat endpoint - handle conversation with Gemini AI
+  // Chat endpoint - handle conversation with Gemini AI (public for widget embedding)
   app.post("/api/chat", async (req, res) => {
     try {
       const { chatbotId, message, conversationHistory } = req.body as ChatRequest;
@@ -141,7 +167,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Missing required fields" });
       }
 
-      const chatbot = await storage.getChatbot(chatbotId);
+      // For public chat widget, we need to get chatbot without userId check
+      // This allows the widget to be embedded on any website
+      const chatbotResult = await db.select().from(chatbots).where(eq(chatbots.id, chatbotId)).limit(1);
+      const chatbot = chatbotResult[0];
+      
       if (!chatbot) {
         return res.status(404).json({ error: "Chatbot not found" });
       }
