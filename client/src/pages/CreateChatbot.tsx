@@ -31,8 +31,7 @@ export default function CreateChatbot() {
   
   const [formData, setFormData] = useState<Partial<InsertChatbot>>({
     name: "",
-    websiteUrl: "",
-    websiteContent: "",
+    websiteUrls: [],
     documents: [],
     systemPrompt: "",
     primaryColor: "#0EA5E9",
@@ -84,9 +83,10 @@ export default function CreateChatbot() {
 
     setIsSubmitting(true);
     try {
-      const response = await apiRequest<{ id: string }>("POST", "/api/chatbots", formData as InsertChatbot);
+      const res = await apiRequest("POST", "/api/chatbots", formData as InsertChatbot);
+      const chatbot = await res.json();
       await queryClient.invalidateQueries({ queryKey: ["/api/chatbots"] });
-      setCreatedChatbotId(response.id);
+      setCreatedChatbotId(chatbot.id);
       toast({
         title: "Chatbot created!",
         description: "Your AI assistant is ready to deploy.",

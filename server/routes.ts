@@ -106,24 +106,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.claims.sub;
       const validatedData = insertChatbotSchema.partial().parse(req.body);
       
-      // If websiteUrls are being updated, re-crawl them
+      // If websiteUrls are being updated, re-crawl them or clear content
       let updateData = { ...validatedData };
-      if (validatedData.websiteUrls && validatedData.websiteUrls.length > 0) {
-        console.log(`Re-crawling ${validatedData.websiteUrls.length} website(s)...`);
-        const crawlResults = await crawlMultipleWebsites(validatedData.websiteUrls);
-        
-        // Combine all successfully crawled content
-        updateData.websiteContent = crawlResults
-          .filter(result => !result.error && result.content)
-          .map(result => `URL: ${result.url}\nTitle: ${result.title || 'N/A'}\n\n${result.content}`)
-          .join('\n\n---\n\n');
-        
-        // Log any errors
-        crawlResults
-          .filter(result => result.error)
-          .forEach(result => {
-            console.error(`Failed to crawl ${result.url}: ${result.error}`);
-          });
+      if (validatedData.websiteUrls !== undefined) {
+        if (validatedData.websiteUrls.length > 0) {
+          console.log(`Re-crawling ${validatedData.websiteUrls.length} website(s)...`);
+          const crawlResults = await crawlMultipleWebsites(validatedData.websiteUrls);
+          
+          // Combine all successfully crawled content
+          updateData.websiteContent = crawlResults
+            .filter(result => !result.error && result.content)
+            .map(result => `URL: ${result.url}\nTitle: ${result.title || 'N/A'}\n\n${result.content}`)
+            .join('\n\n---\n\n');
+          
+          // Log any errors
+          crawlResults
+            .filter(result => result.error)
+            .forEach(result => {
+              console.error(`Failed to crawl ${result.url}: ${result.error}`);
+            });
+        } else {
+          // Clear websiteContent when all URLs are removed
+          updateData.websiteContent = '';
+        }
       }
       
       const chatbot = await storage.updateChatbot(req.params.id, userId, updateData);

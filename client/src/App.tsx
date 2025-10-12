@@ -14,23 +14,23 @@ import { useAuth } from "@/hooks/useAuth";
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
 
+  if (isLoading || !isAuthenticated) {
+    return (
+      <Switch>
+        <Route path="/" component={Landing} />
+        <Route path="/widget/:id" component={ChatWidget} />
+        <Route component={Landing} />
+      </Switch>
+    );
+  }
+
   return (
     <Switch>
-      {isLoading || !isAuthenticated ? (
-        <>
-          <Route path="/" component={Landing} />
-          <Route path="/widget/:id" component={ChatWidget} />
-          <Route component={Landing} />
-        </>
-      ) : (
-        <>
-          <Route path="/" component={Dashboard} />
-          <Route path="/create" component={CreateChatbot} />
-          <Route path="/widget/:id" component={ChatWidget} />
-          <Route path="/test-widget" component={TestWidget} />
-          <Route component={NotFound} />
-        </>
-      )}
+      <Route path="/" component={Dashboard} />
+      <Route path="/create" component={CreateChatbot} />
+      <Route path="/widget/:id" component={ChatWidget} />
+      <Route path="/test-widget" component={TestWidget} />
+      <Route component={NotFound} />
     </Switch>
   );
 }

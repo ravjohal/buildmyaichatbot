@@ -180,16 +180,23 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+**2025-10-12 - Website Crawling Feature:**
+- ✅ Implemented automatic website crawling for chatbot knowledge base
+- ✅ Users can add multiple URLs in wizard - content is automatically crawled
+- ✅ Uses cheerio library for HTML text extraction
+- ✅ Stores URLs in websiteUrls array (text[]) in database
+- ✅ Stores crawled content in websiteContent field
+- ✅ Backend crawls URLs on chatbot creation and update
+- ✅ Basic SSRF protection added (blocks localhost, private IPs, metadata endpoints)
+- ✅ Fixed routing bug (removed fragment wrappers in Switch)
+- ⚠️ Note: For production, implement DNS-level SSRF protection or use sandboxed crawling service
+
 **2025-10-12 - User Authentication & Database Migration:**
 - ✅ Migrated from in-memory storage to PostgreSQL with Drizzle ORM
 - ✅ Implemented Replit Auth user authentication (OIDC with Google, GitHub, X, Apple, email/password)
 - ✅ Added multi-tenant architecture with user-scoped chatbots
 - ✅ Created Landing page for unauthenticated users
-- ✅ Fixed critical authentication bugs:
-  - Moved setupAuth() before route registration in server/index.ts
-  - Changed /api/auth/user to return null (200 OK) for unauthenticated users
-  - Updated useAuth hook to handle null response properly (no 401 errors)
-  - Removed isAuthenticated guard from /api/auth/user endpoint
+- ✅ Fixed critical authentication bugs
 - ✅ Session management with PostgreSQL storage and 1-week TTL
 - ✅ Multi-tenant data isolation enforced (userId scoping on all chatbot CRUD)
 
@@ -200,6 +207,7 @@ Preferred communication style: Simple, everyday language.
 - ✅ Object storage integration complete
 
 **Testing Status:**
+- Website Crawling: ✅ PASSED (successfully crawled example.com)
 - User Authentication Flow: ✅ PASSED
 - Multi-Tenant Data Isolation: ✅ PASSED
 - Dashboard Creation Flow: ✅ PASSED
