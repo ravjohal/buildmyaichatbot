@@ -12,10 +12,10 @@
   widgetContainer.id = 'chatbot-widget-container';
   document.body.appendChild(widgetContainer);
 
-  // Create iframe for the widget
+  // Create iframe for the widget - load the React route directly
   const iframe = document.createElement('iframe');
-  iframe.src = `${window.location.origin}/widget.html?chatbotId=${chatbotId}`;
-  iframe.style.cssText = 'position: fixed; bottom: 0; right: 0; width: 100%; height: 100%; border: none; pointer-events: none; z-index: 2147483647;';
+  iframe.src = `${window.location.origin}/widget/${chatbotId}`;
+  iframe.style.cssText = 'position: fixed; bottom: 0; right: 0; width: 100%; height: 100%; border: none; pointer-events: none; z-index: 2147483647; background: transparent;';
   iframe.setAttribute('allow', 'clipboard-write');
   iframe.id = 'chatbot-widget-iframe';
   

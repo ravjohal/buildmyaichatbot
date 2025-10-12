@@ -206,14 +206,22 @@ Preferred communication style: Simple, everyday language.
 - ✅ Escalation logic with phone number display operational
 - ✅ Object storage integration complete
 
+**2025-10-12 - Widget Loading Fix:**
+- ✅ Fixed widget loading error ("Unexpected token '<'")
+- ✅ Moved widget.js and widget.html from /public to /client/public
+- ✅ Widget now loads correctly because Vite's root is set to /client directory
+- ✅ Widget creates iframe pointing to /widget/:id React route
+- ✅ All widget functionality tested and working
+
 **Testing Status:**
 - Website Crawling: ✅ PASSED (successfully crawled example.com)
 - User Authentication Flow: ✅ PASSED
 - Multi-Tenant Data Isolation: ✅ PASSED
 - Dashboard Creation Flow: ✅ PASSED
-- Chat Widget Functionality: ✅ PASSED  
+- Chat Widget Functionality: ✅ PASSED (fixed and working)
 - AI Response Generation: ✅ PASSED
 - Escalation Logic: ✅ PASSED
+- Widget Embed & Loading: ✅ PASSED (iframe loads correctly)
 
 ## Application Features
 
