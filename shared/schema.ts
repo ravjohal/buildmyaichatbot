@@ -32,7 +32,7 @@ export const chatbots = pgTable("chatbots", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
-  websiteUrl: text("website_url"),
+  websiteUrls: text("website_urls").array().default(sql`ARRAY[]::text[]`),
   websiteContent: text("website_content"),
   documents: text("documents").array().default(sql`ARRAY[]::text[]`),
   systemPrompt: text("system_prompt").notNull(),
@@ -52,7 +52,7 @@ export const insertChatbotSchema = createInsertSchema(chatbots).omit({
   userId: true, // userId will be added by the server from authenticated user
 }).extend({
   name: z.string().min(1, "Chatbot name is required"),
-  websiteUrl: z.string().url().optional().or(z.literal("")),
+  websiteUrls: z.array(z.string().url()).optional(),
   websiteContent: z.string().optional(),
   documents: z.array(z.string()).optional(),
   systemPrompt: z.string().min(1, "System prompt is required"),
