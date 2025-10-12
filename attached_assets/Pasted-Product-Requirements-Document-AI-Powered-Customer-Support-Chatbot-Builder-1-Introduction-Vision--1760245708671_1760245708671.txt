@@ -1,0 +1,127 @@
+Product Requirements Document: AI-Powered Customer Support Chatbot Builder
+1. Introduction & Vision
+1.1. Product Overview
+This document outlines the requirements for a web application that enables non-technical business owners to create, customize, and deploy a conversational AI chatbot on their own websites. The chatbot will act as an intelligent customer support assistant, trained on the business's specific content (website data, PDFs, text documents).
+
+1.2. Problem Statement
+Many small to medium-sized businesses (SMBs) are overwhelmed by repetitive customer inquiries that could be answered with existing information. This leads to high call volumes, increased operational costs, and diverted focus from core business activities. These businesses need a simple, self-service tool to deploy an AI assistant that can handle front-line support, answer common questions accurately, and provide a positive, conversational user experience, thereby reducing the need for direct phone support.
+
+1.3. Vision
+To empower any business to build and launch a custom, AI-powered support chatbot in minutes, without needing a developer. The end product will be a seamless, embeddable widget that integrates perfectly with the client's website, providing instant, accurate answers from their own knowledge base and offering a clear escalation path when human support is needed.
+
+2. Target Audience
+The primary users of this application are business owners and marketing managers of SMBs (e.g., homebuilders, service providers, e-commerce shops). These users are generally not technical and require a simple, intuitive, and guided experience to build and deploy their chatbot.
+
+3. Core Features & Functionality
+The product is divided into two main components: the Chatbot Builder Application (the platform where clients build their assistant) and the Client-Side Chatbot Widget (the final product that runs on the client's website).
+
+3.1. The Chatbot Builder Application (Admin Interface)
+3.1.1. User Account Management
+Secure user registration and login system.
+
+Password reset functionality.
+
+A user dashboard to view and manage all created chatbots.
+
+3.1.2. Chatbot Creation & Configuration Wizard
+A step-by-step guided process for creating a new chatbot:
+
+Step 1: Naming: Give the chatbot a name for internal identification.
+
+Step 2: Knowledge Base Setup:
+
+Website Scraping: Ability to input a website URL (e.g., https://www.mybusiness.com). The system will crawl and index the text content from the site.
+
+Document Upload: An interface to upload files (.pdf, .txt, .md) that will be included in the knowledge base. Support for multiple file uploads.
+
+Step 3: Personality & Instructions:
+
+A text area for the user to define the chatbot's persona and core instructions.
+
+System Prompt: "You are a friendly and helpful customer service assistant for [Business Name]. Your goal is to answer questions based ONLY on the provided information from the website and documents. Be conversational and professional. Do not make up information you don't know."
+
+Step 4: Customization & Appearance:
+
+An interface to customize the chatbot widget's colors (primary color for the header, accent color for buttons) to match the client's website branding.
+
+Upload a company logo to display in the chat header.
+
+Customize the welcome message (e.g., "Hello! How can I help you today?").
+
+Option to add "suggested questions" that appear when the user first opens the chat, guiding them to common topics.
+
+Step 5: Support Escalation:
+
+A dedicated field to enter a support phone number.
+
+A customizable message that the chatbot will use when providing the phone number. For example: "If you need more help, you can reach our team at [Phone Number]." The chatbot should be instructed to provide this when it cannot find an answer or when the user explicitly asks to speak to a person.
+
+3.2. The Client-Side Chatbot Widget
+This is the embeddable component that will appear on the client's website.
+
+Floating Button: A clean, unobtrusive circular icon that floats in the bottom-right corner of the webpage.
+
+Chat Interface:
+
+When clicked, the button opens a clean, modern chat window.
+
+The interface will display the customized header (logo, colors) and the welcome message.
+
+If configured, it will show clickable "suggested question" buttons.
+
+A text input field for the user to type their questions.
+
+The conversation history should be visible as the user chats.
+
+Conversational Engine (LLM-Powered):
+
+When a user asks a question, the query is sent to a backend LLM.
+
+The LLM generates a response based strictly on the indexed content from the client's knowledge base (website + documents). This is critical to prevent hallucinations and ensure accuracy.
+
+Responses should be streamed back to the user to feel interactive and fast.
+
+Escalation Logic:
+
+If the LLM cannot find a relevant answer in the knowledge base, it should respond with a message like, "I'm sorry, I couldn't find an answer to that. For more specific questions, please contact our support team." It will then provide the pre-configured phone number.
+
+It should also provide the phone number if the user's intent is clearly to speak with a human (e.g., "I want to talk to a representative").
+
+4. Integration & Deployment
+This is a critical feature and must be as simple as possible.
+
+4.1. Simple Embed Method (Primary)
+After configuring a chatbot, the application will generate a single, self-contained HTML <script> tag.
+
+The client simply needs to copy this one line of code and paste it into their website's HTML, ideally just before the closing </body> tag.
+
+Instructions: The app must provide crystal-clear, non-technical instructions: "Copy the code snippet below and paste it onto every page of your website right before the </body> tag. If you use a platform like WordPress or Squarespace, you can often add this to a 'Custom Code' or 'Footer Scripts' section in your site settings."
+
+4.2. Developer Instructions (Secondary)
+For more complex integrations, provide a clear, developer-focused guide that includes:
+
+The script tag.
+
+An explanation of what the script does (asynchronously loads the chatbot widget).
+
+A note about ensuring the client's website Content Security Policy (CSP) allows scripts from our domain.
+
+5. Non-Functional Requirements
+Performance: The embedded widget must load asynchronously and not block the rendering of the client's website. It should have a minimal impact on page load speed.
+
+Security: All communication between the widget and the backend must be over HTTPS. User data and uploaded documents must be stored securely.
+
+Scalability: The backend infrastructure should handle numerous concurrent chat sessions from multiple client websites.
+
+Usability: The Chatbot Builder Application must be extremely intuitive for a non-technical user.
+
+6. Technical Stack (Suggestions)
+Frontend: A modern JavaScript framework like React or Vue.js for a responsive and interactive builder interface.
+
+Backend: Node.js (with Express) or Python (with FastAPI/Django) for handling API requests, user data, and LLM orchestration.
+
+Database: PostgreSQL for user data and chatbot configurations.
+
+Vector Database: A specialized database like Pinecone, Weaviate, or Chroma for storing text embeddings from the knowledge base. This is essential for performing efficient similarity searches to find relevant context for the LLM.
+
+LLM Provider: Integration with a major LLM API like the Gemini API for conversational AI and text generation.
