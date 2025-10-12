@@ -1,37 +1,56 @@
-import { type User, type InsertUser } from "@shared/schema";
+import { type Chatbot, type InsertChatbot } from "@shared/schema";
 import { randomUUID } from "crypto";
 
-// modify the interface with any CRUD methods
-// you might need
-
 export interface IStorage {
-  getUser(id: string): Promise<User | undefined>;
-  getUserByUsername(username: string): Promise<User | undefined>;
-  createUser(user: InsertUser): Promise<User>;
+  // Chatbot operations
+  getAllChatbots(): Promise<Chatbot[]>;
+  getChatbot(id: string): Promise<Chatbot | undefined>;
+  createChatbot(chatbot: InsertChatbot): Promise<Chatbot>;
+  updateChatbot(id: string, chatbot: Partial<InsertChatbot>): Promise<Chatbot | undefined>;
+  deleteChatbot(id: string): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
-  private users: Map<string, User>;
+  private chatbots: Map<string, Chatbot>;
 
   constructor() {
-    this.users = new Map();
+    this.chatbots = new Map();
   }
 
-  async getUser(id: string): Promise<User | undefined> {
-    return this.users.get(id);
-  }
-
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
+  async getAllChatbots(): Promise<Chatbot[]> {
+    return Array.from(this.chatbots.values()).sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
   }
 
-  async createUser(insertUser: InsertUser): Promise<User> {
+  async getChatbot(id: string): Promise<Chatbot | undefined> {
+    return this.chatbots.get(id);
+  }
+
+  async createChatbot(insertChatbot: InsertChatbot): Promise<Chatbot> {
     const id = randomUUID();
-    const user: User = { ...insertUser, id };
-    this.users.set(id, user);
-    return user;
+    const chatbot: Chatbot = {
+      ...insertChatbot,
+      id,
+      createdAt: new Date(),
+      documents: insertChatbot.documents || [],
+      suggestedQuestions: insertChatbot.suggestedQuestions || [],
+    };
+    this.chatbots.set(id, chatbot);
+    return chatbot;
+  }
+
+  async updateChatbot(id: string, updates: Partial<InsertChatbot>): Promise<Chatbot | undefined> {
+    const chatbot = this.chatbots.get(id);
+    if (!chatbot) return undefined;
+
+    const updated: Chatbot = { ...chatbot, ...updates };
+    this.chatbots.set(id, updated);
+    return updated;
+  }
+
+  async deleteChatbot(id: string): Promise<boolean> {
+    return this.chatbots.delete(id);
   }
 }
 

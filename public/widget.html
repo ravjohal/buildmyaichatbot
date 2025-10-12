@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chat Widget</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      pointer-events: none;
+    }
+    #widget-root {
+      pointer-events: all;
+    }
+  </style>
+</head>
+<body>
+  <div id="widget-root"></div>
+  <script type="module">
+    import ChatWidget from '/src/pages/ChatWidget.tsx';
+    import { createRoot } from 'react-dom/client';
+    import { QueryClientProvider } from '@tanstack/react-query';
+    import { queryClient } from '/src/lib/queryClient';
+    import '/src/index.css';
+
+    const params = new URLSearchParams(window.location.search);
+    const chatbotId = params.get('chatbotId');
+
+    if (chatbotId) {
+      const root = createRoot(document.getElementById('widget-root'));
+      root.render(
+        <QueryClientProvider client={queryClient}>
+          <ChatWidget chatbotId={chatbotId} />
+        </QueryClientProvider>
+      );
+    }
+  </script>
+</body>
+</html>
