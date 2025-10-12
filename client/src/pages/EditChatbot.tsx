@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import type { Chatbot } from "@shared/schema";
+import type { Chatbot, InsertChatbot } from "@shared/schema";
 
 import { StepName } from "@/components/wizard/StepName";
 import { StepKnowledgeBase } from "@/components/wizard/StepKnowledgeBase";
@@ -31,7 +31,7 @@ export default function EditChatbot() {
   const { toast } = useToast();
 
   const [currentStep, setCurrentStep] = useState<WizardStep>("name");
-  const [formData, setFormData] = useState<Partial<Chatbot>>({});
+  const [formData, setFormData] = useState<Partial<InsertChatbot>>({});
 
   const { data: chatbot, isLoading } = useQuery<Chatbot>({
     queryKey: [`/api/chatbots/${chatbotId}`],
@@ -40,12 +40,26 @@ export default function EditChatbot() {
 
   useEffect(() => {
     if (chatbot) {
-      setFormData(chatbot);
+      // Normalize null values to undefined/arrays for InsertChatbot schema compatibility
+      setFormData({
+        name: chatbot.name,
+        websiteUrls: chatbot.websiteUrls || [],
+        websiteContent: chatbot.websiteContent || undefined,
+        documents: chatbot.documents || [],
+        systemPrompt: chatbot.systemPrompt,
+        primaryColor: chatbot.primaryColor,
+        accentColor: chatbot.accentColor,
+        logoUrl: chatbot.logoUrl || undefined,
+        welcomeMessage: chatbot.welcomeMessage,
+        suggestedQuestions: chatbot.suggestedQuestions || [],
+        supportPhoneNumber: chatbot.supportPhoneNumber || undefined,
+        escalationMessage: chatbot.escalationMessage || undefined,
+      });
     }
   }, [chatbot]);
 
   const updateMutation = useMutation({
-    mutationFn: async (data: Partial<Chatbot>) => {
+    mutationFn: async (data: Partial<InsertChatbot>) => {
       const response = await apiRequest("PUT", `/api/chatbots/${chatbotId}`, data);
       return response.json();
     },
@@ -67,7 +81,7 @@ export default function EditChatbot() {
     },
   });
 
-  const handleUpdateData = (data: Partial<Chatbot>) => {
+  const handleUpdateData = (data: Partial<InsertChatbot>) => {
     setFormData((prev) => ({ ...prev, ...data }));
   };
 
