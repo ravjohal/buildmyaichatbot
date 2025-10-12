@@ -1,8 +1,8 @@
-import { type Chatbot, type InsertChatbot } from "@shared/schema";
-import { randomUUID } from "crypto";
+import { type Chatbot, type InsertChatbot, chatbots } from "@shared/schema";
+import { db } from "./db";
+import { eq, desc } from "drizzle-orm";
 
 export interface IStorage {
-  // Chatbot operations
   getAllChatbots(): Promise<Chatbot[]>;
   getChatbot(id: string): Promise<Chatbot | undefined>;
   createChatbot(chatbot: InsertChatbot): Promise<Chatbot>;
@@ -10,48 +10,47 @@ export interface IStorage {
   deleteChatbot(id: string): Promise<boolean>;
 }
 
-export class MemStorage implements IStorage {
-  private chatbots: Map<string, Chatbot>;
-
-  constructor() {
-    this.chatbots = new Map();
-  }
-
+export class DbStorage implements IStorage {
   async getAllChatbots(): Promise<Chatbot[]> {
-    return Array.from(this.chatbots.values()).sort(
-      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    );
+    return await db
+      .select()
+      .from(chatbots)
+      .orderBy(desc(chatbots.createdAt));
   }
 
   async getChatbot(id: string): Promise<Chatbot | undefined> {
-    return this.chatbots.get(id);
+    const result = await db
+      .select()
+      .from(chatbots)
+      .where(eq(chatbots.id, id))
+      .limit(1);
+    return result[0];
   }
 
   async createChatbot(insertChatbot: InsertChatbot): Promise<Chatbot> {
-    const id = randomUUID();
-    const chatbot: Chatbot = {
-      ...insertChatbot,
-      id,
-      createdAt: new Date(),
-      documents: insertChatbot.documents || [],
-      suggestedQuestions: insertChatbot.suggestedQuestions || [],
-    };
-    this.chatbots.set(id, chatbot);
-    return chatbot;
+    const result = await db
+      .insert(chatbots)
+      .values(insertChatbot)
+      .returning();
+    return result[0];
   }
 
   async updateChatbot(id: string, updates: Partial<InsertChatbot>): Promise<Chatbot | undefined> {
-    const chatbot = this.chatbots.get(id);
-    if (!chatbot) return undefined;
-
-    const updated: Chatbot = { ...chatbot, ...updates };
-    this.chatbots.set(id, updated);
-    return updated;
+    const result = await db
+      .update(chatbots)
+      .set(updates)
+      .where(eq(chatbots.id, id))
+      .returning();
+    return result[0];
   }
 
   async deleteChatbot(id: string): Promise<boolean> {
-    return this.chatbots.delete(id);
+    const result = await db
+      .delete(chatbots)
+      .where(eq(chatbots.id, id))
+      .returning();
+    return result.length > 0;
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DbStorage();
