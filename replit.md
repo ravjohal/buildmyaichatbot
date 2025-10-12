@@ -172,5 +172,142 @@ Preferred communication style: Simple, everyday language.
 
 **Environment Requirements:**
 - `DATABASE_URL` - PostgreSQL connection string (for future use)
-- `GEMINI_API_KEY` - Google Gemini AI API key
-- `PUBLIC_OBJECT_SEARCH_PATHS` - Object storage configuration
+- `GEMINI_API_KEY` - Google Gemini AI API key (configured)
+- `PUBLIC_OBJECT_SEARCH_PATHS` - Object storage public path (configured)
+- `PRIVATE_OBJECT_DIR` - Object storage private directory (configured)
+- `DEFAULT_OBJECT_STORAGE_BUCKET_ID` - Object storage bucket ID (configured)
+- `SESSION_SECRET` - Session management secret (configured)
+
+## Recent Changes
+
+**2025-10-12 - Full Implementation Complete:**
+- ✅ Fixed missing /widget/:id route registration in App.tsx
+- ✅ Implemented route param extraction using useRoute hook in ChatWidget
+- ✅ Added null safety for message.content rendering
+- ✅ Fixed apiRequest JSON parsing for chat responses
+- ✅ Completed end-to-end testing with successful results
+- ✅ Dashboard wizard flow fully functional
+- ✅ Chat widget with Gemini AI responses working
+- ✅ Escalation logic with phone number display operational
+- ✅ Object storage integration complete with proper error handling
+
+**Testing Status:**
+- Dashboard Creation Flow: ✅ PASSED
+- Chat Widget Functionality: ✅ PASSED  
+- AI Response Generation: ✅ PASSED
+- Escalation Logic: ✅ PASSED
+
+## Application Features
+
+### Chatbot Creation Wizard
+
+**Step 1: Name & Description**
+- Chatbot name input with validation
+- Optional description field
+- Auto-generated unique ID
+
+**Step 2: Knowledge Base**
+- Website URL input (multiple URLs supported)
+- Document upload support (.pdf, .txt, .md)
+- ObjectUploader component with Uppy integration
+- Real-time upload progress
+
+**Step 3: Personality & Tone**
+- Welcome message customization
+- Chat input placeholder text
+- Personality tone selection (friendly, professional, casual)
+- System prompt configuration
+
+**Step 4: Visual Customization**
+- Primary color picker
+- Accent/secondary color picker
+- Logo upload with ObjectUploader
+- Real-time preview of chat widget appearance
+
+**Step 5: Support Escalation**
+- Escalation email configuration
+- Support phone number input
+- Custom escalation message with {phone} placeholder
+- Escalation trigger keyword detection
+
+**Completion**
+- Success confirmation
+- One-click embed code copy
+- Direct navigation to dashboard
+
+### Chat Widget Features
+
+**User Interface:**
+- Floating chat button with custom colors
+- Expandable chat window (400x600px)
+- Smooth animations and transitions
+- Mobile-responsive design
+
+**Conversation Features:**
+- Welcome message display on first open
+- AI-powered responses using Gemini 2.5 Flash
+- Conversation history maintained during session
+- Typing indicator during AI processing
+- Escalation detection and phone number display
+- Click-to-call functionality for phone numbers
+
+**Technical Implementation:**
+- Route-based widget access at /widget/:id
+- JSON response parsing from API
+- Proper null safety for all message content
+- Real-time message rendering
+- Auto-scroll to latest message
+
+### Dashboard
+
+**Chatbot Management:**
+- List view of all created chatbots
+- Quick actions: Edit, Delete, Copy Embed Code
+- Visual indicators for configured features
+- One-click embed code copy with toast notification
+
+**Embed Code Generation:**
+- Simple script tag for any website
+- Automatic chatbot ID injection
+- No configuration required on target site
+
+## API Routes
+
+### Chatbot Management
+- `GET /api/chatbots` - Retrieve all chatbots
+- `GET /api/chatbots/:id` - Get specific chatbot
+- `POST /api/chatbots` - Create new chatbot with Zod validation
+- `PUT /api/chatbots/:id` - Update chatbot configuration
+- `DELETE /api/chatbots/:id` - Remove chatbot
+- `PUT /api/chatbots/:id/logo` - Update chatbot logo URL
+
+### Object Storage
+- `POST /api/objects/upload` - Get presigned upload URL
+- `GET /api/objects/:id` - Download object file
+
+### AI Chat
+- `POST /api/chat` - Process chat message with Gemini AI
+  - Request: `{ chatbotId, message, conversationHistory }`
+  - Response: `{ message, shouldEscalate }`
+  - Knowledge base context injection
+  - Escalation keyword detection
+
+## Known Limitations & Future Enhancements
+
+**Current Limitations:**
+- No user authentication (single-user mode)
+- In-memory storage (data lost on restart)
+- Document content extraction not implemented
+- No chat history persistence
+- No analytics or reporting
+
+**Planned Enhancements:**
+- Multi-user authentication with Replit Auth
+- PostgreSQL database migration
+- PDF/TXT/MD content parsing and extraction
+- Chat history storage and export
+- Analytics dashboard (conversation metrics, satisfaction scores)
+- A/B testing for chatbot configurations
+- Integration with popular CRM systems
+- Advanced AI model selection
+- Custom training data upload
