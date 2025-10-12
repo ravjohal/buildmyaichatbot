@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { MessageCircle, X, Send, Bot, Phone } from "lucide-react";
+import { useRoute } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -8,11 +9,9 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import type { Chatbot, ChatMessage } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 
-interface ChatWidgetProps {
-  chatbotId: string;
-}
-
-export default function ChatWidget({ chatbotId }: ChatWidgetProps) {
+export default function ChatWidget() {
+  const [, params] = useRoute("/widget/:id");
+  const chatbotId = params?.id || "";
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState("");
@@ -25,7 +24,7 @@ export default function ChatWidget({ chatbotId }: ChatWidgetProps) {
 
   const chatMutation = useMutation({
     mutationFn: async (message: string) => {
-      const response = await apiRequest<{ message: string; shouldEscalate: boolean }>(
+      const response = await apiRequest(
         "POST",
         "/api/chat",
         {
@@ -34,7 +33,8 @@ export default function ChatWidget({ chatbotId }: ChatWidgetProps) {
           conversationHistory: messages,
         }
       );
-      return response;
+      const data = await response.json() as { message: string; shouldEscalate: boolean };
+      return data;
     },
     onSuccess: (data) => {
       const assistantMessage: ChatMessage = {
@@ -168,10 +168,10 @@ export default function ChatWidget({ chatbotId }: ChatWidgetProps) {
                     }
                   >
                     <p className="text-sm whitespace-pre-wrap" data-testid={`message-${message.id}`}>
-                      {message.content}
+                      {message.content || ""}
                     </p>
-                    {message.content.includes(chatbot.supportPhoneNumber || "") &&
-                      chatbot.supportPhoneNumber && (
+                    {message.content && chatbot.supportPhoneNumber && 
+                      message.content.includes(chatbot.supportPhoneNumber) && (
                         <Button
                           variant="outline"
                           size="sm"

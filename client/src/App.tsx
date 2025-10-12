@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import Dashboard from "@/pages/Dashboard";
 import CreateChatbot from "@/pages/CreateChatbot";
+import ChatWidget from "@/pages/ChatWidget";
 import TestWidget from "@/pages/TestWidget";
 import NotFound from "@/pages/not-found";
 
@@ -13,6 +14,7 @@ function Router() {
     <Switch>
       <Route path="/" component={Dashboard} />
       <Route path="/create" component={CreateChatbot} />
+      <Route path="/widget/:id" component={ChatWidget} />
       <Route path="/test-widget" component={TestWidget} />
       <Route component={NotFound} />
     </Switch>
