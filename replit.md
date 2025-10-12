@@ -180,18 +180,28 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
-**2025-10-12 - Full Implementation Complete:**
-- ✅ Fixed missing /widget/:id route registration in App.tsx
-- ✅ Implemented route param extraction using useRoute hook in ChatWidget
-- ✅ Added null safety for message.content rendering
-- ✅ Fixed apiRequest JSON parsing for chat responses
-- ✅ Completed end-to-end testing with successful results
+**2025-10-12 - User Authentication & Database Migration:**
+- ✅ Migrated from in-memory storage to PostgreSQL with Drizzle ORM
+- ✅ Implemented Replit Auth user authentication (OIDC with Google, GitHub, X, Apple, email/password)
+- ✅ Added multi-tenant architecture with user-scoped chatbots
+- ✅ Created Landing page for unauthenticated users
+- ✅ Fixed critical authentication bugs:
+  - Moved setupAuth() before route registration in server/index.ts
+  - Changed /api/auth/user to return null (200 OK) for unauthenticated users
+  - Updated useAuth hook to handle null response properly (no 401 errors)
+  - Removed isAuthenticated guard from /api/auth/user endpoint
+- ✅ Session management with PostgreSQL storage and 1-week TTL
+- ✅ Multi-tenant data isolation enforced (userId scoping on all chatbot CRUD)
+
+**Previous Implementation:**
 - ✅ Dashboard wizard flow fully functional
 - ✅ Chat widget with Gemini AI responses working
 - ✅ Escalation logic with phone number display operational
-- ✅ Object storage integration complete with proper error handling
+- ✅ Object storage integration complete
 
 **Testing Status:**
+- User Authentication Flow: ✅ PASSED
+- Multi-Tenant Data Isolation: ✅ PASSED
 - Dashboard Creation Flow: ✅ PASSED
 - Chat Widget Functionality: ✅ PASSED  
 - AI Response Generation: ✅ PASSED
