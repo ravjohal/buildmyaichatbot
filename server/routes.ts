@@ -9,6 +9,7 @@ import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import { isAuthenticated } from "./replitAuth";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
+import { crawlMultipleWebsites } from "./crawler";
 
 const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
 const upload = multer({ storage: multer.memoryStorage() });
@@ -63,7 +64,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user.claims.sub;
       const validatedData = insertChatbotSchema.parse(req.body);
-      const chatbot = await storage.createChatbot(validatedData, userId);
+      
+      // Crawl websites if URLs are provided
+      let websiteContent = "";
+      if (validatedData.websiteUrls && validatedData.websiteUrls.length > 0) {
+        console.log(`Crawling ${validatedData.websiteUrls.length} website(s)...`);
+        const crawlResults = await crawlMultipleWebsites(validatedData.websiteUrls);
+        
+        // Combine all successfully crawled content
+        websiteContent = crawlResults
+          .filter(result => !result.error && result.content)
+          .map(result => `URL: ${result.url}\nTitle: ${result.title || 'N/A'}\n\n${result.content}`)
+          .join('\n\n---\n\n');
+        
+        // Log any errors
+        crawlResults
+          .filter(result => result.error)
+          .forEach(result => {
+            console.error(`Failed to crawl ${result.url}: ${result.error}`);
+          });
+      }
+      
+      const chatbot = await storage.createChatbot({
+        ...validatedData,
+        websiteContent,
+      }, userId);
+      
       res.status(201).json(chatbot);
     } catch (error) {
       if (error instanceof ZodError) {
@@ -79,7 +105,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user.claims.sub;
       const validatedData = insertChatbotSchema.partial().parse(req.body);
-      const chatbot = await storage.updateChatbot(req.params.id, userId, validatedData);
+      
+      // If websiteUrls are being updated, re-crawl them
+      let updateData = { ...validatedData };
+      if (validatedData.websiteUrls && validatedData.websiteUrls.length > 0) {
+        console.log(`Re-crawling ${validatedData.websiteUrls.length} website(s)...`);
+        const crawlResults = await crawlMultipleWebsites(validatedData.websiteUrls);
+        
+        // Combine all successfully crawled content
+        updateData.websiteContent = crawlResults
+          .filter(result => !result.error && result.content)
+          .map(result => `URL: ${result.url}\nTitle: ${result.title || 'N/A'}\n\n${result.content}`)
+          .join('\n\n---\n\n');
+        
+        // Log any errors
+        crawlResults
+          .filter(result => result.error)
+          .forEach(result => {
+            console.error(`Failed to crawl ${result.url}: ${result.error}`);
+          });
+      }
+      
+      const chatbot = await storage.updateChatbot(req.params.id, userId, updateData);
       if (!chatbot) {
         return res.status(404).json({ error: "Chatbot not found" });
       }
