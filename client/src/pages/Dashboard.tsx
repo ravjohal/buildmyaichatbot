@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { Plus, Bot, Trash2, ExternalLink, Copy, LogOut, Pencil } from "lucide-react";
+import { Plus, Bot, Trash2, ExternalLink, Copy, LogOut, Pencil, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -179,9 +179,20 @@ export default function Dashboard() {
                   )}
                 </CardContent>
                 <CardFooter className="flex gap-2 flex-wrap">
-                  <Link href={`/edit/${chatbot.id}`}>
+                  <Link href={`/test/${chatbot.id}`}>
                     <Button
                       variant="default"
+                      size="sm"
+                      data-testid={`button-test-${chatbot.id}`}
+                      className="flex-1"
+                    >
+                      <MessageSquare className="w-4 h-4 mr-2" />
+                      Test
+                    </Button>
+                  </Link>
+                  <Link href={`/edit/${chatbot.id}`}>
+                    <Button
+                      variant="outline"
                       size="sm"
                       data-testid={`button-edit-${chatbot.id}`}
                       className="flex-1"
@@ -198,7 +209,7 @@ export default function Dashboard() {
                     className="flex-1"
                   >
                     <Copy className="w-4 h-4 mr-2" />
-                    Copy Embed
+                    Embed
                   </Button>
                   <Button
                     variant="outline"
