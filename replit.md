@@ -4,6 +4,21 @@
 
 This SaaS web application enables non-technical business owners to create, customize, and deploy AI-powered customer support chatbots for their websites. It features a guided wizard for chatbot creation based on website content and uploaded documents, with extensive customization options. The project consists of an Admin Builder Application (React-based dashboard) and an Embeddable Widget for website integration. The business vision is to empower businesses with efficient, AI-driven customer support, reducing operational costs and improving customer satisfaction.
 
+## Recent Changes (October 2025)
+
+### Analytics Feature (Completed)
+- Implemented comprehensive conversation tracking and analytics system
+- Added database tables for conversations and conversation_messages
+- Created Analytics dashboard page with metrics and conversation history
+- Integrated sessionId tracking across both ChatWidget and TestChatbot
+- Added analytics link to Dashboard for easy access
+- All chat interactions are now logged and available for analysis
+
+### Optimizations
+- Optimized recursive website crawler to eliminate double-fetching
+- Improved URL normalization for better crawling performance
+- Added AI-generated suggested questions after each chatbot response
+
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
@@ -20,7 +35,10 @@ The backend uses Express.js with Node.js and TypeScript. It follows a RESTful AP
 
 ### Data Storage
 
-Currently utilizes an in-memory Map-based storage (`MemStorage`). A migration path to PostgreSQL with Drizzle ORM and Neon serverless PostgreSQL is prepared, with schemas defined for chatbot configurations including name, URLs, content, styling, and behavior.
+Currently utilizes an in-memory Map-based storage (`MemStorage`) for chatbot configurations. The application now uses PostgreSQL with Drizzle ORM for analytics data storage. Database tables include:
+- `chatbots`: Core chatbot configurations (name, URLs, content, styling, behavior)
+- `conversations`: Conversation session metadata (sessionId, chatbotId, messageCount, escalation status)
+- `conversation_messages`: Individual chat messages (user/assistant content, role, suggested questions, timestamps)
 
 ### AI Integration
 
@@ -32,7 +50,7 @@ Google Cloud Storage (via Replit Object Storage) is integrated for storing compa
 
 ### Authentication & Security
 
-The MVP currently assumes a single user with no authentication. CSRF protection is implemented, and input validation is enforced with Zod schemas. The architecture is designed for future integration of session-based authentication.
+Multi-tenant authentication is implemented using Replit Auth with OpenID Connect. Users can sign in with their Replit accounts, and chatbots are scoped to user accounts. CSRF protection is implemented, and input validation is enforced with Zod schemas. Session management uses express-session with PostgreSQL-backed session storage.
 
 ### Deployment Architecture
 
@@ -44,7 +62,14 @@ Frontend assets are built with Vite, and server code is bundled with esbuild. Th
 
 **Chat Widget:** An embeddable, customizable, and mobile-responsive chat interface featuring AI-powered responses, conversation history, typing indicators, and escalation detection.
 
-**Dashboard:** Provides chatbot management capabilities, including listing all chatbots, quick actions (edit, delete, copy embed code), visual feature indicators, and simplified embed code generation.
+**Dashboard:** Provides chatbot management capabilities, including listing all chatbots, quick actions (edit, delete, copy embed code, view analytics), visual feature indicators, and simplified embed code generation.
+
+**Analytics Dashboard:** Comprehensive analytics for each chatbot, including:
+- Key metrics: total conversations, total messages, escalations, average messages per conversation
+- Conversation history with detailed transcripts
+- Message-level tracking with user/assistant messages and suggested questions
+- Session-based conversation grouping with unique sessionIds
+- Real-time tracking of all chat interactions (both test and widget conversations)
 
 ## External Dependencies
 
