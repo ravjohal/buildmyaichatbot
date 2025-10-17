@@ -72,20 +72,7 @@ export default function ChatWidget() {
   useEffect(() => {
     document.body.style.background = 'transparent';
     document.documentElement.style.background = 'transparent';
-    // Make body have pointer-events-none so only the widget itself captures clicks
-    document.body.style.pointerEvents = 'none';
-    
-    // Notify parent window about widget state for pointer events
-    const notifyParent = (type: string) => {
-      window.parent.postMessage({ type }, '*');
-    };
-
-    if (isOpen) {
-      notifyParent('chatbot-widget-open');
-    } else {
-      notifyParent('chatbot-widget-close');
-    }
-  }, [isOpen]);
+  }, []);
 
   const handleSend = () => {
     if (!inputValue.trim() || chatMutation.isPending) return;
