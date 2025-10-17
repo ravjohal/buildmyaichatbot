@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { Plus, Bot, Trash2, ExternalLink, Copy, LogOut, Pencil, MessageSquare } from "lucide-react";
+import { Plus, Bot, Trash2, ExternalLink, Copy, LogOut, Pencil, MessageSquare, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -18,10 +18,19 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 export default function Dashboard() {
   const { toast } = useToast();
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [viewKnowledgeBase, setViewKnowledgeBase] = useState<Chatbot | null>(null);
 
   const { data: chatbots, isLoading } = useQuery<Chatbot[]>({
     queryKey: ["/api/chatbots"],
@@ -177,6 +186,18 @@ export default function Dashboard() {
                       {chatbot.suggestedQuestions.length} suggested question{chatbot.suggestedQuestions.length !== 1 ? 's' : ''}
                     </div>
                   )}
+                  {chatbot.websiteContent && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setViewKnowledgeBase(chatbot)}
+                      className="w-full justify-start text-sm text-muted-foreground hover:text-foreground"
+                      data-testid={`button-view-knowledge-${chatbot.id}`}
+                    >
+                      <FileText className="w-4 h-4 mr-2" />
+                      View indexed content ({Math.round(chatbot.websiteContent.length / 1000)}k characters)
+                    </Button>
+                  )}
                 </CardContent>
                 <CardFooter className="flex gap-2 flex-wrap">
                   <Link href={`/test/${chatbot.id}`}>
@@ -246,6 +267,60 @@ export default function Dashboard() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={!!viewKnowledgeBase} onOpenChange={(open) => !open && setViewKnowledgeBase(null)}>
+        <DialogContent className="max-w-3xl max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle>Knowledge Base Content</DialogTitle>
+            <DialogDescription>
+              Content indexed from your website URLs
+            </DialogDescription>
+          </DialogHeader>
+          
+          {viewKnowledgeBase && (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <h4 className="text-sm font-semibold">Crawled URLs</h4>
+                <div className="space-y-1">
+                  {viewKnowledgeBase.websiteUrls?.map((url, index) => (
+                    <a
+                      key={index}
+                      href={url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm text-primary hover:underline flex items-center gap-2"
+                      data-testid={`link-crawled-url-${index}`}
+                    >
+                      <ExternalLink className="w-3 h-3" />
+                      {url}
+                    </a>
+                  )) || <p className="text-sm text-muted-foreground">No URLs indexed</p>}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-sm font-semibold">Indexed Text Content</h4>
+                  {viewKnowledgeBase.websiteContent && (
+                    <Badge variant="secondary" className="text-xs">
+                      {viewKnowledgeBase.websiteContent.split(/\s+/).length.toLocaleString()} words
+                    </Badge>
+                  )}
+                </div>
+                <ScrollArea className="h-[400px] w-full rounded-md border p-4">
+                  {viewKnowledgeBase.websiteContent ? (
+                    <div className="text-sm whitespace-pre-wrap font-mono text-muted-foreground" data-testid="text-indexed-content">
+                      {viewKnowledgeBase.websiteContent}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground italic">No content has been indexed yet</p>
+                  )}
+                </ScrollArea>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

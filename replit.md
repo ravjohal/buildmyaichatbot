@@ -232,6 +232,14 @@ Preferred communication style: Simple, everyday language.
 - ✅ Back to dashboard navigation
 - ✅ Allows users to test their chatbot without embedding on a website
 
+**2025-10-17 - Knowledge Base Viewer:**
+- ✅ Added "View indexed content" button on dashboard cards
+- ✅ Shows character count of indexed content at a glance
+- ✅ Dialog displays all crawled URLs with external links
+- ✅ Full text content viewer with word count
+- ✅ Scrollable content area for easy browsing
+- ✅ Provides visibility into what the AI has learned from website URLs
+
 **Testing Status:**
 - Website Crawling: ✅ PASSED (successfully crawled example.com)
 - User Authentication Flow: ✅ PASSED
@@ -244,6 +252,7 @@ Preferred communication style: Simple, everyday language.
 - Edit Chatbot Flow: ✅ PASSED (all fields editable, null handling working)
 - Edit with Null Fields: ✅ PASSED (chatbots with null optional fields save correctly)
 - Test Chatbot Feature: ✅ PASSED (full-screen test interface with AI responses)
+- Knowledge Base Viewer: ✅ PASSED (displays indexed content, URLs, and word count)
 
 ## Application Features
 
