@@ -72,6 +72,8 @@ export default function ChatWidget() {
   useEffect(() => {
     document.body.style.background = 'transparent';
     document.documentElement.style.background = 'transparent';
+    // Make body have pointer-events-none so only the widget itself captures clicks
+    document.body.style.pointerEvents = 'none';
     
     // Notify parent window about widget state for pointer events
     const notifyParent = (type: string) => {
@@ -131,7 +133,7 @@ export default function ChatWidget() {
   const displayedSuggestions = getDisplayedSuggestions();
 
   return (
-    <div className="fixed bottom-6 right-6 z-50" data-testid="chat-widget">
+    <div className="fixed bottom-6 right-6 z-50 pointer-events-auto" data-testid="chat-widget">
       {isOpen && (
         <div
           className="w-[400px] h-[600px] bg-background rounded-2xl shadow-2xl flex flex-col overflow-hidden border mb-4 animate-in slide-in-from-bottom-4"
