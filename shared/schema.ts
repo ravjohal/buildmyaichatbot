@@ -74,6 +74,7 @@ export interface ChatMessage {
   role: "user" | "assistant";
   content: string;
   timestamp: number;
+  suggestedQuestions?: string[];
 }
 
 export interface ChatRequest {
@@ -85,4 +86,5 @@ export interface ChatRequest {
 export interface ChatResponse {
   message: string;
   shouldEscalate: boolean;
+  suggestedQuestions?: string[];
 }

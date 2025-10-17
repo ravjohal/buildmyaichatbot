@@ -33,7 +33,7 @@ export default function ChatWidget() {
           conversationHistory: messages,
         }
       );
-      const data = await response.json() as { message: string; shouldEscalate: boolean };
+      const data = await response.json() as { message: string; shouldEscalate: boolean; suggestedQuestions?: string[] };
       return data;
     },
     onSuccess: (data) => {
@@ -42,6 +42,7 @@ export default function ChatWidget() {
         role: "assistant",
         content: data.message,
         timestamp: Date.now(),
+        suggestedQuestions: data.suggestedQuestions,
       };
       setMessages((prev) => [...prev, assistantMessage]);
     },
@@ -96,8 +97,19 @@ export default function ChatWidget() {
     return null;
   }
 
-  const showSuggestedQuestions =
-    messages.length === 1 && chatbot.suggestedQuestions && chatbot.suggestedQuestions.length > 0;
+  // Show static suggested questions after welcome message, or AI-generated ones after any assistant message
+  const getDisplayedSuggestions = () => {
+    if (messages.length === 1 && chatbot.suggestedQuestions && chatbot.suggestedQuestions.length > 0) {
+      return chatbot.suggestedQuestions;
+    }
+    const lastMessage = messages[messages.length - 1];
+    if (lastMessage?.role === "assistant" && lastMessage.suggestedQuestions && lastMessage.suggestedQuestions.length > 0) {
+      return lastMessage.suggestedQuestions;
+    }
+    return null;
+  };
+
+  const displayedSuggestions = getDisplayedSuggestions();
 
   return (
     <div className="fixed bottom-6 right-6 z-50" data-testid="chat-widget">
@@ -186,9 +198,9 @@ export default function ChatWidget() {
                 </div>
               ))}
 
-              {showSuggestedQuestions && (
+              {displayedSuggestions && !chatMutation.isPending && (
                 <div className="flex flex-wrap gap-2 ml-11">
-                  {chatbot.suggestedQuestions!.map((question, i) => (
+                  {displayedSuggestions.map((question, i) => (
                     <Badge
                       key={i}
                       variant="outline"

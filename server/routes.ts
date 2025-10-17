@@ -254,7 +254,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .map((msg) => `${msg.role === "user" ? "User" : "Assistant"}: ${msg.content}`)
         .join("\n");
 
-      // Create the full prompt
+      // Create the full prompt for the main response
       const fullPrompt = `${chatbot.systemPrompt}
 
 Knowledge Base:
@@ -267,12 +267,40 @@ User Question: ${message}
 
 Please answer based on the knowledge base provided. If you cannot find the answer in the knowledge base, politely let the user know and suggest they contact support${chatbot.supportPhoneNumber ? ` at ${chatbot.supportPhoneNumber}` : ""}.`;
 
-      // Call Gemini AI
+      // Call Gemini AI for the main response
       const result = await genAI.models.generateContent({
         model: "gemini-2.5-flash",
         contents: fullPrompt,
       });
       const aiMessage = result.text || "I apologize, but I couldn't generate a response.";
+
+      // Generate suggested follow-up questions
+      const suggestionsPrompt = `Based on this conversation context and the user's question, suggest 3-5 relevant follow-up questions that the user might want to ask next.
+
+Knowledge Base Topics:
+${knowledgeContext ? knowledgeContext.substring(0, 2000) : "General customer support"}
+
+User's Question: ${message}
+Assistant's Response: ${aiMessage}
+
+Generate 3-5 short, natural follow-up questions (each under 60 characters) that would help the user learn more. Return only the questions, one per line, without numbering or bullets.`;
+
+      let suggestedQuestions: string[] = [];
+      try {
+        const suggestionsResult = await genAI.models.generateContent({
+          model: "gemini-2.5-flash",
+          contents: suggestionsPrompt,
+        });
+        const suggestionsText = suggestionsResult.text || "";
+        suggestedQuestions = suggestionsText
+          .split('\n')
+          .map(q => q.trim())
+          .filter(q => q.length > 0 && q.length < 100)
+          .slice(0, 5);
+      } catch (error) {
+        console.error("Error generating suggested questions:", error);
+        // Continue without suggestions if this fails
+      }
 
       // Check if we should escalate (basic heuristic)
       const shouldEscalate =
@@ -298,6 +326,7 @@ Please answer based on the knowledge base provided. If you cannot find the answe
       const chatResponse: ChatResponse = {
         message: finalMessage,
         shouldEscalate,
+        suggestedQuestions,
       };
 
       res.json(chatResponse);

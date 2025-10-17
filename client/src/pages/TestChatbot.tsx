@@ -32,7 +32,7 @@ export default function TestChatbot() {
           conversationHistory: messages,
         }
       );
-      const data = await response.json() as { message: string; shouldEscalate: boolean };
+      const data = await response.json() as { message: string; shouldEscalate: boolean; suggestedQuestions?: string[] };
       return data;
     },
     onSuccess: (data) => {
@@ -41,6 +41,7 @@ export default function TestChatbot() {
         role: "assistant",
         content: data.message,
         timestamp: Date.now(),
+        suggestedQuestions: data.suggestedQuestions,
       };
       setMessages((prev) => [...prev, assistantMessage]);
     },
@@ -116,8 +117,19 @@ export default function TestChatbot() {
     );
   }
 
-  const showSuggestedQuestions =
-    messages.length === 1 && chatbot.suggestedQuestions && chatbot.suggestedQuestions.length > 0;
+  // Show static suggested questions after welcome message, or AI-generated ones after any assistant message
+  const getDisplayedSuggestions = () => {
+    if (messages.length === 1 && chatbot.suggestedQuestions && chatbot.suggestedQuestions.length > 0) {
+      return chatbot.suggestedQuestions;
+    }
+    const lastMessage = messages[messages.length - 1];
+    if (lastMessage?.role === "assistant" && lastMessage.suggestedQuestions && lastMessage.suggestedQuestions.length > 0) {
+      return lastMessage.suggestedQuestions;
+    }
+    return null;
+  };
+
+  const displayedSuggestions = getDisplayedSuggestions();
 
   return (
     <div className="min-h-screen bg-background">
@@ -209,11 +221,11 @@ export default function TestChatbot() {
               </div>
             ))}
 
-            {showSuggestedQuestions && (
+            {displayedSuggestions && !chatMutation.isPending && (
               <div className="space-y-2 py-4">
                 <p className="text-sm text-muted-foreground">Suggested questions:</p>
                 <div className="flex flex-wrap gap-2">
-                  {chatbot.suggestedQuestions?.map((question, index) => (
+                  {displayedSuggestions.map((question, index) => (
                     <Button
                       key={index}
                       variant="outline"
