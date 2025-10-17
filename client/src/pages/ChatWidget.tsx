@@ -19,7 +19,7 @@ export default function ChatWidget() {
   const [sessionId] = useState(() => `widget-${Date.now()}-${Math.random().toString(36).slice(2)}`);
 
   const { data: chatbot, isLoading } = useQuery<Chatbot>({
-    queryKey: [`/api/chatbots/${chatbotId}`],
+    queryKey: [`/api/public/chatbots/${chatbotId}`],
     enabled: !!chatbotId,
   });
 

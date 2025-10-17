@@ -59,6 +59,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get chatbot configuration for public widget (no auth required)
+  app.get("/api/public/chatbots/:id", async (req, res) => {
+    try {
+      // Get chatbot without userId check - this is for public widget embedding
+      const chatbotResult = await db.select().from(chatbots).where(eq(chatbots.id, req.params.id)).limit(1);
+      const chatbot = chatbotResult[0];
+      
+      if (!chatbot) {
+        return res.status(404).json({ error: "Chatbot not found" });
+      }
+      
+      // Return only public-facing configuration (exclude sensitive data like userId, websiteContent, documents)
+      const publicConfig = {
+        id: chatbot.id,
+        name: chatbot.name,
+        welcomeMessage: chatbot.welcomeMessage,
+        primaryColor: chatbot.primaryColor,
+        accentColor: chatbot.accentColor,
+        logoUrl: chatbot.logoUrl,
+        suggestedQuestions: chatbot.suggestedQuestions,
+        supportPhoneNumber: chatbot.supportPhoneNumber,
+        escalationMessage: chatbot.escalationMessage,
+        systemPrompt: chatbot.systemPrompt,
+      };
+      
+      res.json(publicConfig);
+    } catch (error) {
+      console.error("Error fetching public chatbot:", error);
+      res.status(500).json({ error: "Failed to fetch chatbot" });
+    }
+  });
+
   // Create chatbot (protected)
   app.post("/api/chatbots", isAuthenticated, async (req: any, res) => {
     try {
