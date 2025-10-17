@@ -9,7 +9,7 @@ import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import { isAuthenticated } from "./replitAuth";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
-import { crawlMultipleWebsites } from "./crawler";
+import { crawlMultipleWebsitesRecursive } from "./crawler";
 
 const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
 const upload = multer({ storage: multer.memoryStorage() });
@@ -65,11 +65,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.claims.sub;
       const validatedData = insertChatbotSchema.parse(req.body);
       
-      // Crawl websites if URLs are provided
+      // Crawl websites if URLs are provided (recursive crawling)
       let websiteContent = "";
       if (validatedData.websiteUrls && validatedData.websiteUrls.length > 0) {
-        console.log(`Crawling ${validatedData.websiteUrls.length} website(s)...`);
-        const crawlResults = await crawlMultipleWebsites(validatedData.websiteUrls);
+        console.log(`Recursively crawling ${validatedData.websiteUrls.length} website(s) (max depth: 2, max pages: 50 per site)...`);
+        const crawlResults = await crawlMultipleWebsitesRecursive(validatedData.websiteUrls, {
+          maxDepth: 2,
+          maxPages: 50,
+          sameDomainOnly: true,
+        });
+        
+        console.log(`Successfully crawled ${crawlResults.filter(r => !r.error).length} pages`);
         
         // Combine all successfully crawled content
         websiteContent = crawlResults
@@ -110,8 +116,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let updateData = { ...validatedData };
       if (validatedData.websiteUrls !== undefined) {
         if (validatedData.websiteUrls.length > 0) {
-          console.log(`Re-crawling ${validatedData.websiteUrls.length} website(s)...`);
-          const crawlResults = await crawlMultipleWebsites(validatedData.websiteUrls);
+          console.log(`Recursively re-crawling ${validatedData.websiteUrls.length} website(s) (max depth: 2, max pages: 50 per site)...`);
+          const crawlResults = await crawlMultipleWebsitesRecursive(validatedData.websiteUrls, {
+            maxDepth: 2,
+            maxPages: 50,
+            sameDomainOnly: true,
+          });
+          
+          console.log(`Successfully crawled ${crawlResults.filter(r => !r.error).length} pages`);
           
           // Combine all successfully crawled content
           updateData.websiteContent = crawlResults

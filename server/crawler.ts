@@ -7,6 +7,12 @@ export interface CrawlResult {
   error?: string;
 }
 
+export interface RecursiveCrawlOptions {
+  maxDepth?: number;
+  maxPages?: number;
+  sameDomainOnly?: boolean;
+}
+
 function isValidPublicUrl(urlString: string): { valid: boolean; error?: string } {
   try {
     const url = new URL(urlString);
@@ -49,7 +55,7 @@ function isValidPublicUrl(urlString: string): { valid: boolean; error?: string }
   }
 }
 
-export async function crawlWebsite(url: string): Promise<CrawlResult> {
+export async function crawlWebsite(url: string): Promise<CrawlResult & { html?: string }> {
   try {
     // Validate URL to prevent SSRF attacks
     const validation = isValidPublicUrl(url);
@@ -115,6 +121,7 @@ export async function crawlWebsite(url: string): Promise<CrawlResult> {
       url,
       content,
       title,
+      html, // Return HTML for link extraction in recursive crawling
     };
   } catch (error) {
     return {
@@ -125,9 +132,128 @@ export async function crawlWebsite(url: string): Promise<CrawlResult> {
   }
 }
 
+function normalizeUrl(url: string): string {
+  try {
+    const parsed = new URL(url);
+    // Remove trailing slash for consistency
+    parsed.pathname = parsed.pathname.replace(/\/$/, '') || '/';
+    // Remove hash
+    parsed.hash = '';
+    // Sort search params for consistency
+    parsed.searchParams.sort();
+    return parsed.toString();
+  } catch {
+    return url;
+  }
+}
+
 export async function crawlMultipleWebsites(urls: string[]): Promise<CrawlResult[]> {
   const results = await Promise.all(
     urls.map(url => crawlWebsite(url))
   );
   return results;
+}
+
+function extractLinks(html: string, baseUrl: string): string[] {
+  const $ = cheerio.load(html);
+  const links: string[] = [];
+  
+  $('a[href]').each((_, element) => {
+    const href = $(element).attr('href');
+    if (!href) return;
+    
+    try {
+      // Convert relative URLs to absolute
+      const absoluteUrl = new URL(href, baseUrl);
+      
+      // Only include http/https links
+      if (absoluteUrl.protocol === 'http:' || absoluteUrl.protocol === 'https:') {
+        // Remove hash fragments
+        absoluteUrl.hash = '';
+        links.push(absoluteUrl.toString());
+      }
+    } catch {
+      // Ignore invalid URLs
+    }
+  });
+  
+  return [...new Set(links)]; // Remove duplicates
+}
+
+function isSameDomain(url1: string, url2: string): boolean {
+  try {
+    const domain1 = new URL(url1).hostname;
+    const domain2 = new URL(url2).hostname;
+    return domain1 === domain2;
+  } catch {
+    return false;
+  }
+}
+
+export async function crawlWebsiteRecursive(
+  startUrl: string,
+  options: RecursiveCrawlOptions = {}
+): Promise<CrawlResult[]> {
+  const {
+    maxDepth = 2,
+    maxPages = 50,
+    sameDomainOnly = true,
+  } = options;
+
+  const visited = new Set<string>();
+  const results: CrawlResult[] = [];
+  const queue: { url: string; depth: number }[] = [{ url: normalizeUrl(startUrl), depth: 0 }];
+
+  while (queue.length > 0 && results.length < maxPages) {
+    const { url, depth } = queue.shift()!;
+
+    // Skip if already visited
+    if (visited.has(url)) continue;
+    visited.add(url);
+
+    // Skip if exceeded max depth
+    if (depth > maxDepth) continue;
+
+    // Crawl the page (returns HTML along with content)
+    const result = await crawlWebsite(url);
+    
+    // Store result without HTML
+    const { html, ...resultWithoutHtml } = result;
+    results.push(resultWithoutHtml);
+
+    // If successful and not at max depth, extract and queue links using the HTML we already fetched
+    if (!result.error && result.html && depth < maxDepth) {
+      const links = extractLinks(result.html, url);
+
+      // Queue new links
+      for (const link of links) {
+        const normalizedLink = normalizeUrl(link);
+        if (!visited.has(normalizedLink) && results.length < maxPages) {
+          // Check if same domain if required
+          if (!sameDomainOnly || isSameDomain(startUrl, normalizedLink)) {
+            queue.push({ url: normalizedLink, depth: depth + 1 });
+          }
+        }
+      }
+    }
+
+    // Add small delay to avoid overwhelming the server
+    await new Promise(resolve => setTimeout(resolve, 100));
+  }
+
+  return results;
+}
+
+export async function crawlMultipleWebsitesRecursive(
+  urls: string[],
+  options: RecursiveCrawlOptions = {}
+): Promise<CrawlResult[]> {
+  const allResults: CrawlResult[] = [];
+  
+  for (const url of urls) {
+    const results = await crawlWebsiteRecursive(url, options);
+    allResults.push(...results);
+  }
+  
+  return allResults;
 }
