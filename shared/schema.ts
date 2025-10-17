@@ -68,7 +68,40 @@ export const insertChatbotSchema = createInsertSchema(chatbots).omit({
 export type InsertChatbot = z.infer<typeof insertChatbotSchema>;
 export type Chatbot = typeof chatbots.$inferSelect;
 
-// Chat message types (not persisted to database in MVP)
+// Conversations table - tracks conversation sessions
+export const conversations = pgTable("conversations", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  chatbotId: varchar("chatbot_id").notNull().references(() => chatbots.id, { onDelete: "cascade" }),
+  sessionId: varchar("session_id"), // For tracking widget sessions
+  startedAt: timestamp("started_at").defaultNow().notNull(),
+  lastMessageAt: timestamp("last_message_at").defaultNow().notNull(),
+  messageCount: text("message_count").notNull().default("0"),
+  wasEscalated: text("was_escalated").notNull().default("false"),
+});
+
+export type Conversation = typeof conversations.$inferSelect;
+
+// Conversation messages table - stores individual messages
+export const conversationMessages = pgTable("conversation_messages", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  conversationId: varchar("conversation_id").notNull().references(() => conversations.id, { onDelete: "cascade" }),
+  role: varchar("role", { enum: ["user", "assistant"] }).notNull(),
+  content: text("content").notNull(),
+  suggestedQuestions: text("suggested_questions").array().default(sql`ARRAY[]::text[]`),
+  wasEscalated: text("was_escalated").notNull().default("false"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export type ConversationMessage = typeof conversationMessages.$inferSelect;
+
+export const insertConversationMessageSchema = createInsertSchema(conversationMessages).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertConversationMessage = z.infer<typeof insertConversationMessageSchema>;
+
+// Chat message types (for real-time chat, not persisted directly)
 export interface ChatMessage {
   id: string;
   role: "user" | "assistant";
@@ -81,6 +114,7 @@ export interface ChatRequest {
   chatbotId: string;
   message: string;
   conversationHistory: ChatMessage[];
+  sessionId?: string; // Track widget sessions
 }
 
 export interface ChatResponse {

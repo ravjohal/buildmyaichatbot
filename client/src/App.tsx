@@ -8,6 +8,7 @@ import CreateChatbot from "@/pages/CreateChatbot";
 import EditChatbot from "@/pages/EditChatbot";
 import ChatWidget from "@/pages/ChatWidget";
 import TestChatbot from "@/pages/TestChatbot";
+import Analytics from "@/pages/Analytics";
 import Landing from "@/pages/Landing";
 import NotFound from "@/pages/not-found";
 import { useAuth } from "@/hooks/useAuth";
@@ -31,6 +32,7 @@ function Router() {
       <Route path="/create" component={CreateChatbot} />
       <Route path="/edit/:id" component={EditChatbot} />
       <Route path="/test/:id" component={TestChatbot} />
+      <Route path="/analytics/:id" component={Analytics} />
       <Route path="/widget/:id" component={ChatWidget} />
       <Route component={NotFound} />
     </Switch>

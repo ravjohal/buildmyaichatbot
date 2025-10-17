@@ -15,6 +15,7 @@ export default function TestChatbot() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [sessionId] = useState(() => `test-${Date.now()}-${Math.random().toString(36).slice(2)}`);
 
   const { data: chatbot, isLoading } = useQuery<Chatbot>({
     queryKey: [`/api/chatbots/${chatbotId}`],
@@ -30,6 +31,7 @@ export default function TestChatbot() {
           chatbotId,
           message,
           conversationHistory: messages,
+          sessionId,
         }
       );
       const data = await response.json() as { message: string; shouldEscalate: boolean; suggestedQuestions?: string[] };

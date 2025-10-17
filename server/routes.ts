@@ -1,14 +1,14 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertChatbotSchema, type ChatRequest, type ChatResponse, chatbots } from "@shared/schema";
+import { insertChatbotSchema, type ChatRequest, type ChatResponse, chatbots, conversations, conversationMessages } from "@shared/schema";
 import { ZodError } from "zod";
 import { GoogleGenAI } from "@google/genai";
 import multer from "multer";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import { isAuthenticated } from "./replitAuth";
 import { db } from "./db";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { crawlMultipleWebsitesRecursive } from "./crawler";
 
 const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
@@ -225,7 +225,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Chat endpoint - handle conversation with Gemini AI (public for widget embedding)
   app.post("/api/chat", async (req, res) => {
     try {
-      const { chatbotId, message, conversationHistory } = req.body as ChatRequest;
+      const { chatbotId, message, conversationHistory, sessionId } = req.body as ChatRequest;
 
       if (!chatbotId || !message) {
         return res.status(400).json({ error: "Missing required fields" });
@@ -238,6 +238,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (!chatbot) {
         return res.status(404).json({ error: "Chatbot not found" });
+      }
+
+      // Find or create conversation for this session
+      let conversation;
+      if (sessionId) {
+        const existingConv = await db.select().from(conversations)
+          .where(eq(conversations.sessionId, sessionId))
+          .limit(1);
+        conversation = existingConv[0];
+      }
+      
+      if (!conversation) {
+        const newConv = await db.insert(conversations).values({
+          chatbotId,
+          sessionId: sessionId || `session-${Date.now()}`,
+          messageCount: "0",
+          wasEscalated: "false",
+        }).returning();
+        conversation = newConv[0];
       }
 
       // Build knowledge base context
@@ -323,6 +342,33 @@ Generate 3-5 short, natural follow-up questions (each under 60 characters) that 
         }
       }
 
+      // Save user message to database
+      await db.insert(conversationMessages).values({
+        conversationId: conversation.id,
+        role: "user",
+        content: message,
+        wasEscalated: "false",
+      });
+
+      // Save assistant message to database
+      await db.insert(conversationMessages).values({
+        conversationId: conversation.id,
+        role: "assistant",
+        content: finalMessage,
+        suggestedQuestions: suggestedQuestions.length > 0 ? suggestedQuestions : [],
+        wasEscalated: shouldEscalate ? "true" : "false",
+      });
+
+      // Update conversation metadata
+      const newMessageCount = (parseInt(conversation.messageCount) + 2).toString();
+      await db.update(conversations)
+        .set({
+          messageCount: newMessageCount,
+          lastMessageAt: new Date(),
+          wasEscalated: shouldEscalate ? "true" : conversation.wasEscalated,
+        })
+        .where(eq(conversations.id, conversation.id));
+
       const chatResponse: ChatResponse = {
         message: finalMessage,
         shouldEscalate,
@@ -336,6 +382,120 @@ Generate 3-5 short, natural follow-up questions (each under 60 characters) that 
         error: "Failed to process chat message",
         message: "I apologize, but I'm having trouble processing your request right now. Please try again later."
       });
+    }
+  });
+
+  // Analytics routes (protected - only for chatbot owners)
+  
+  // Get analytics overview for a chatbot
+  app.get("/api/chatbots/:id/analytics", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const chatbotId = req.params.id;
+
+      // Verify user owns this chatbot
+      const chatbot = await storage.getChatbot(chatbotId, userId);
+      if (!chatbot) {
+        return res.status(404).json({ error: "Chatbot not found" });
+      }
+
+      // Get all conversations for this chatbot
+      const allConversations = await db.select()
+        .from(conversations)
+        .where(eq(conversations.chatbotId, chatbotId));
+
+      // Calculate metrics
+      const totalConversations = allConversations.length;
+      const totalMessages = allConversations.reduce((sum, conv) => sum + parseInt(conv.messageCount), 0);
+      const escalatedConversations = allConversations.filter(conv => conv.wasEscalated === "true").length;
+
+      // Get recent conversations with message previews
+      const recentConversations = await db.select()
+        .from(conversations)
+        .where(eq(conversations.chatbotId, chatbotId))
+        .orderBy(sql`${conversations.lastMessageAt} DESC`)
+        .limit(10);
+
+      res.json({
+        metrics: {
+          totalConversations,
+          totalMessages,
+          escalatedConversations,
+          escalationRate: totalConversations > 0 ? (escalatedConversations / totalConversations * 100).toFixed(1) : "0",
+        },
+        recentConversations,
+      });
+    } catch (error) {
+      console.error("Error fetching analytics:", error);
+      res.status(500).json({ error: "Failed to fetch analytics" });
+    }
+  });
+
+  // Get conversation details with all messages
+  app.get("/api/conversations/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const conversationId = req.params.id;
+
+      // Get conversation
+      const convResult = await db.select()
+        .from(conversations)
+        .where(eq(conversations.id, conversationId))
+        .limit(1);
+      
+      const conversation = convResult[0];
+      if (!conversation) {
+        return res.status(404).json({ error: "Conversation not found" });
+      }
+
+      // Verify user owns the chatbot for this conversation
+      const chatbot = await storage.getChatbot(conversation.chatbotId, userId);
+      if (!chatbot) {
+        return res.status(403).json({ error: "Unauthorized" });
+      }
+
+      // Get all messages for this conversation
+      const messages = await db.select()
+        .from(conversationMessages)
+        .where(eq(conversationMessages.conversationId, conversationId))
+        .orderBy(sql`${conversationMessages.createdAt} ASC`);
+
+      res.json({
+        conversation,
+        messages,
+      });
+    } catch (error) {
+      console.error("Error fetching conversation:", error);
+      res.status(500).json({ error: "Failed to fetch conversation" });
+    }
+  });
+
+  // Get all conversations for a chatbot (with pagination)
+  app.get("/api/chatbots/:id/conversations", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const chatbotId = req.params.id;
+      const limit = parseInt(req.query.limit as string) || 50;
+      const offset = parseInt(req.query.offset as string) || 0;
+
+      // Verify user owns this chatbot
+      const chatbot = await storage.getChatbot(chatbotId, userId);
+      if (!chatbot) {
+        return res.status(404).json({ error: "Chatbot not found" });
+      }
+
+      // Get conversations with pagination
+      const conversationsList = await db.select()
+        .from(conversations)
+        .where(eq(conversations.chatbotId, chatbotId))
+        .orderBy(sql`${conversations.lastMessageAt} DESC`)
+        .limit(limit)
+        .offset(offset);
+
+      res.json(conversationsList);
+    } catch (error) {
+      console.error("Error fetching conversations:", error);
+      res.status(500).json({ error: "Failed to fetch conversations" });
     }
   });
 
