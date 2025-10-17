@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { Plus, Bot, Trash2, ExternalLink, Copy, LogOut, Pencil, MessageSquare, FileText, BarChart3 } from "lucide-react";
+import { Plus, Bot, Trash2, ExternalLink, Copy, LogOut, Pencil, MessageSquare, FileText, BarChart3, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -242,6 +242,16 @@ export default function Dashboard() {
                   >
                     <Copy className="w-4 h-4 mr-2" />
                     Embed
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => window.open(`/demo.html?chatbotId=${chatbot.id}`, '_blank')}
+                    data-testid={`button-demo-${chatbot.id}`}
+                    className="flex-1"
+                  >
+                    <Globe className="w-4 h-4 mr-2" />
+                    Demo
                   </Button>
                   <Button
                     variant="outline"

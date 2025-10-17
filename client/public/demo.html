@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Chatbot Demo - Customer Support Assistant</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+        }
+
+        .hero {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 100px 20px;
+            text-align: center;
+        }
+
+        .hero h1 {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            font-weight: 700;
+        }
+
+        .hero p {
+            font-size: 1.25rem;
+            max-width: 600px;
+            margin: 0 auto 2rem;
+            opacity: 0.95;
+        }
+
+        .hero .cta {
+            display: inline-block;
+            background: white;
+            color: #667eea;
+            padding: 12px 32px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: transform 0.2s;
+        }
+
+        .hero .cta:hover {
+            transform: translateY(-2px);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 80px 20px;
+        }
+
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 40px;
+            margin-top: 60px;
+        }
+
+        .feature {
+            text-align: center;
+            padding: 30px;
+            background: #f8f9fa;
+            border-radius: 12px;
+            transition: transform 0.2s;
+        }
+
+        .feature:hover {
+            transform: translateY(-4px);
+        }
+
+        .feature-icon {
+            width: 60px;
+            height: 60px;
+            margin: 0 auto 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+        }
+
+        .feature h3 {
+            margin-bottom: 12px;
+            color: #2d3748;
+        }
+
+        .feature p {
+            color: #718096;
+        }
+
+        .chat-hint {
+            background: #e6f7ff;
+            border-left: 4px solid #1890ff;
+            padding: 20px;
+            margin: 60px auto;
+            max-width: 800px;
+            border-radius: 8px;
+        }
+
+        .chat-hint p {
+            margin: 0;
+            color: #0050b3;
+            font-weight: 500;
+        }
+
+        .content-section {
+            background: white;
+            padding: 60px 20px;
+        }
+
+        .content-section h2 {
+            font-size: 2.5rem;
+            margin-bottom: 2rem;
+            text-align: center;
+            color: #2d3748;
+        }
+
+        .content-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 30px;
+            margin-top: 40px;
+        }
+
+        .content-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            padding: 24px;
+            border-radius: 8px;
+        }
+
+        .content-card h4 {
+            color: #667eea;
+            margin-bottom: 8px;
+        }
+
+        footer {
+            background: #2d3748;
+            color: white;
+            text-align: center;
+            padding: 40px 20px;
+        }
+
+        footer p {
+            opacity: 0.8;
+        }
+
+        .alert-box {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            color: #856404;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px auto;
+            max-width: 800px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="hero">
+        <h1>Welcome to Our Demo Website</h1>
+        <p>Experience the power of AI-driven customer support. Try our chatbot assistant in the bottom-right corner!</p>
+        <a href="#features" class="cta">Explore Features</a>
+    </div>
+
+    <div class="container">
+        <div id="no-chatbot-alert" class="alert-box" style="display: none;">
+            <strong>⚠️ No Chatbot ID Provided</strong>
+            <p>Add <code>?chatbotId=YOUR_CHATBOT_ID</code> to the URL to test your chatbot.</p>
+            <p style="margin-top: 10px;">Example: <code>demo.html?chatbotId=abc123</code></p>
+        </div>
+
+        <div class="chat-hint">
+            <p>👋 Click the chat button in the bottom-right corner to start a conversation with our AI assistant!</p>
+        </div>
+
+        <section id="features">
+            <h2>Our Services</h2>
+            <div class="features">
+                <div class="feature">
+                    <div class="feature-icon">🚀</div>
+                    <h3>Fast Response</h3>
+                    <p>Get instant answers to your questions 24/7 with our AI-powered chatbot</p>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">💡</div>
+                    <h3>Smart Assistance</h3>
+                    <p>Our AI understands context and provides relevant, helpful responses</p>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">🔒</div>
+                    <h3>Secure & Private</h3>
+                    <p>Your conversations are encrypted and handled with the utmost care</p>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <div class="content-section">
+        <div class="container">
+            <h2>Frequently Asked Questions</h2>
+            <div class="content-grid">
+                <div class="content-card">
+                    <h4>What are your hours?</h4>
+                    <p>Our AI assistant is available 24/7 to help you anytime!</p>
+                </div>
+                <div class="content-card">
+                    <h4>How can I contact support?</h4>
+                    <p>Simply use the chatbot or reach out via the contact information provided.</p>
+                </div>
+                <div class="content-card">
+                    <h4>What services do you offer?</h4>
+                    <p>Ask our chatbot about our comprehensive range of services and solutions.</p>
+                </div>
+                <div class="content-card">
+                    <h4>Do you offer custom solutions?</h4>
+                    <p>Yes! Chat with us to discuss your specific needs and requirements.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p>&copy; 2025 AI Chatbot Demo. This is a demonstration website for testing embedded chatbots.</p>
+    </footer>
+
+    <script>
+        // Get chatbot ID from URL parameter
+        const urlParams = new URLSearchParams(window.location.search);
+        const chatbotId = urlParams.get('chatbotId');
+
+        if (chatbotId) {
+            // Create and inject the chatbot script
+            const script = document.createElement('script');
+            script.src = '/widget.js';
+            script.setAttribute('data-chatbot-id', chatbotId);
+            script.async = true;
+            document.body.appendChild(script);
+        } else {
+            // Show alert if no chatbot ID is provided
+            document.getElementById('no-chatbot-alert').style.display = 'block';
+        }
+    </script>
+</body>
+</html>
