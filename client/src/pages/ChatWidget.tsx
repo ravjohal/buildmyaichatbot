@@ -72,8 +72,6 @@ export default function ChatWidget() {
   useEffect(() => {
     document.body.style.background = 'transparent';
     document.documentElement.style.background = 'transparent';
-    // Allow clicks to pass through body to the widget
-    document.body.style.pointerEvents = 'none';
   }, []);
 
   const handleSend = () => {

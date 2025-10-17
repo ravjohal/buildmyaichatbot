@@ -7,18 +7,13 @@
     return;
   }
 
-  // Create container that covers full page but doesn't block clicks
-  const container = document.createElement('div');
-  container.id = 'chatbot-widget-container';
-  container.style.cssText = 'position: fixed; bottom: 0; right: 0; width: 100%; height: 100%; z-index: 2147483647; pointer-events: none;';
-  
-  // Create iframe for the widget - make it clickable
+  // Create iframe sized to fit the widget (button + potential chat window)
+  // Position at bottom-right, size 450x650px to accommodate button and chat window
   const iframe = document.createElement('iframe');
   iframe.src = `${window.location.origin}/widget/${chatbotId}`;
-  iframe.style.cssText = 'width: 100%; height: 100%; border: none; background: transparent; pointer-events: auto;';
+  iframe.style.cssText = 'position: fixed; bottom: 0; right: 0; width: 450px; height: 650px; border: none; background: transparent; z-index: 2147483647;';
   iframe.setAttribute('allow', 'clipboard-write');
   iframe.id = 'chatbot-widget-iframe';
   
-  container.appendChild(iframe);
-  document.body.appendChild(container);
+  document.body.appendChild(iframe);
 })();
