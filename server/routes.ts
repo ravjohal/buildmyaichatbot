@@ -286,39 +286,44 @@ User Question: ${message}
 
 Please answer based on the knowledge base provided. If you cannot find the answer in the knowledge base, politely let the user know and suggest they contact support${chatbot.supportPhoneNumber ? ` at ${chatbot.supportPhoneNumber}` : ""}.`;
 
-      // Call Gemini AI for the main response
-      const result = await genAI.models.generateContent({
-        model: "gemini-2.5-flash",
-        contents: fullPrompt,
-      });
-      const aiMessage = result.text || "I apologize, but I couldn't generate a response.";
-
-      // Generate suggested follow-up questions
-      const suggestionsPrompt = `Based on this conversation context and the user's question, suggest 3-5 relevant follow-up questions that the user might want to ask next.
+      // Call both Gemini AI requests in parallel for faster response
+      const [mainResult, suggestionsResult] = await Promise.all([
+        // Main response
+        genAI.models.generateContent({
+          model: "gemini-2.5-flash",
+          contents: fullPrompt,
+        }),
+        // Suggested questions (run in parallel)
+        genAI.models.generateContent({
+          model: "gemini-2.5-flash",
+          contents: `Based on this conversation, suggest 3-5 relevant follow-up questions (each under 60 characters).
 
 Knowledge Base Topics:
-${knowledgeContext ? knowledgeContext.substring(0, 2000) : "General customer support"}
+${knowledgeContext ? knowledgeContext.substring(0, 1500) : "General customer support"}
 
 User's Question: ${message}
-Assistant's Response: ${aiMessage}
 
-Generate 3-5 short, natural follow-up questions (each under 60 characters) that would help the user learn more. Return only the questions, one per line, without numbering or bullets.`;
+Generate 3-5 short, natural questions that would help the user learn more. Return only the questions, one per line, without numbering.`,
+        }).catch(err => {
+          console.error("Error generating suggested questions:", err);
+          return null;
+        })
+      ]);
 
+      const aiMessage = mainResult.text || "I apologize, but I couldn't generate a response.";
+      
       let suggestedQuestions: string[] = [];
-      try {
-        const suggestionsResult = await genAI.models.generateContent({
-          model: "gemini-2.5-flash",
-          contents: suggestionsPrompt,
-        });
-        const suggestionsText = suggestionsResult.text || "";
-        suggestedQuestions = suggestionsText
-          .split('\n')
-          .map(q => q.trim())
-          .filter(q => q.length > 0 && q.length < 100)
-          .slice(0, 5);
-      } catch (error) {
-        console.error("Error generating suggested questions:", error);
-        // Continue without suggestions if this fails
+      if (suggestionsResult) {
+        try {
+          const suggestionsText = suggestionsResult.text || "";
+          suggestedQuestions = suggestionsText
+            .split('\n')
+            .map(q => q.trim())
+            .filter(q => q.length > 0 && q.length < 100)
+            .slice(0, 5);
+        } catch (error) {
+          console.error("Error parsing suggested questions:", error);
+        }
       }
 
       // Check if we should escalate (basic heuristic)
@@ -342,32 +347,33 @@ Generate 3-5 short, natural follow-up questions (each under 60 characters) that 
         }
       }
 
-      // Save user message to database
-      await db.insert(conversationMessages).values({
-        conversationId: conversation.id,
-        role: "user",
-        content: message,
-        wasEscalated: "false",
-      });
-
-      // Save assistant message to database
-      await db.insert(conversationMessages).values({
-        conversationId: conversation.id,
-        role: "assistant",
-        content: finalMessage,
-        suggestedQuestions: suggestedQuestions.length > 0 ? suggestedQuestions : [],
-        wasEscalated: shouldEscalate ? "true" : "false",
-      });
-
-      // Update conversation metadata
+      // Save both messages and update conversation in parallel for faster database operations
       const newMessageCount = (parseInt(conversation.messageCount) + 2).toString();
-      await db.update(conversations)
-        .set({
-          messageCount: newMessageCount,
-          lastMessageAt: new Date(),
-          wasEscalated: shouldEscalate ? "true" : conversation.wasEscalated,
-        })
-        .where(eq(conversations.id, conversation.id));
+      await Promise.all([
+        // Save user message
+        db.insert(conversationMessages).values({
+          conversationId: conversation.id,
+          role: "user",
+          content: message,
+          wasEscalated: "false",
+        }),
+        // Save assistant message
+        db.insert(conversationMessages).values({
+          conversationId: conversation.id,
+          role: "assistant",
+          content: finalMessage,
+          suggestedQuestions: suggestedQuestions.length > 0 ? suggestedQuestions : [],
+          wasEscalated: shouldEscalate ? "true" : "false",
+        }),
+        // Update conversation metadata
+        db.update(conversations)
+          .set({
+            messageCount: newMessageCount,
+            lastMessageAt: new Date(),
+            wasEscalated: shouldEscalate ? "true" : conversation.wasEscalated,
+          })
+          .where(eq(conversations.id, conversation.id))
+      ]);
 
       const chatResponse: ChatResponse = {
         message: finalMessage,

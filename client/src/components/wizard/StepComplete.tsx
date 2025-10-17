@@ -159,7 +159,7 @@ export function StepComplete({ chatbotId }: StepCompleteProps) {
               <Button
                 variant="outline"
                 className="flex-1"
-                onClick={() => window.open(`/test-widget?chatbotId=${chatbotId}`, "_blank")}
+                onClick={() => window.open(`/test/${chatbotId}`, "_blank")}
                 data-testid="button-test-widget"
               >
                 <ExternalLink className="w-4 h-4 mr-2" />
