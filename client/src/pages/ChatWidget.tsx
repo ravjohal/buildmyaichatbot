@@ -68,6 +68,23 @@ export default function ChatWidget() {
     }
   }, [isOpen, chatbot, messages.length]);
 
+  // Make the widget page transparent when loaded in iframe
+  useEffect(() => {
+    document.body.style.background = 'transparent';
+    document.documentElement.style.background = 'transparent';
+    
+    // Notify parent window about widget state for pointer events
+    const notifyParent = (type: string) => {
+      window.parent.postMessage({ type }, '*');
+    };
+
+    if (isOpen) {
+      notifyParent('chatbot-widget-open');
+    } else {
+      notifyParent('chatbot-widget-close');
+    }
+  }, [isOpen]);
+
   const handleSend = () => {
     if (!inputValue.trim() || chatMutation.isPending) return;
 
