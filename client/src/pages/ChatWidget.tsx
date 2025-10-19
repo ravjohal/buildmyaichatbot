@@ -10,8 +10,12 @@ import type { Chatbot, ChatMessage } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 
 export default function ChatWidget() {
+  console.log('[ChatWidget] Function called');
   const [, params] = useRoute("/widget/:id");
   const chatbotId = params?.id || "";
+  console.log('[ChatWidget] Params:', params);
+  console.log('[ChatWidget] Chatbot ID from route:', chatbotId);
+  
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState("");
@@ -22,6 +26,9 @@ export default function ChatWidget() {
     queryKey: [`/api/public/chatbots/${chatbotId}`],
     enabled: !!chatbotId,
   });
+  
+  console.log('[ChatWidget] isLoading:', isLoading);
+  console.log('[ChatWidget] chatbot:', chatbot);
 
   const chatMutation = useMutation({
     mutationFn: async (message: string) => {
