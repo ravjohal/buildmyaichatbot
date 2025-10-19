@@ -693,6 +693,13 @@ Generate 3-5 short, natural questions that would help the user learn more. Retur
       const latestInvoice = subscription.latest_invoice as any;
       const paymentIntent = latestInvoice?.payment_intent;
 
+      console.log('Subscription created:', {
+        subscriptionId: subscription.id,
+        hasInvoice: !!latestInvoice,
+        hasPaymentIntent: !!paymentIntent,
+        clientSecret: paymentIntent?.client_secret,
+      });
+
       res.json({
         subscriptionId: subscription.id,
         clientSecret: paymentIntent?.client_secret,

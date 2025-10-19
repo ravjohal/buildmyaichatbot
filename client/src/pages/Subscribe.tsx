@@ -100,6 +100,16 @@ export default function Subscribe() {
     apiRequest("POST", "/api/create-subscription", { billingCycle })
       .then((res) => res.json())
       .then((data) => {
+        console.log("Subscription response:", data);
+        if (!data.clientSecret) {
+          toast({
+            title: "Error",
+            description: "No payment client secret received. Please check your Stripe price IDs.",
+            variant: "destructive",
+          });
+          navigate("/pricing");
+          return;
+        }
         setClientSecret(data.clientSecret);
       })
       .catch((error) => {
@@ -109,8 +119,9 @@ export default function Subscribe() {
           variant: "destructive",
         });
         console.error("Subscription creation error:", error);
+        navigate("/pricing");
       });
-  }, [billingCycle]);
+  }, [billingCycle, toast, navigate]);
 
   if (!clientSecret) {
     return (
