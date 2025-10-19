@@ -21,12 +21,16 @@ export const users = pgTable("users", {
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
+  subscriptionTier: varchar("subscription_tier", { enum: ["free", "paid"] }).notNull().default("free"),
+  stripeCustomerId: varchar("stripe_customer_id"),
+  stripeSubscriptionId: varchar("stripe_subscription_id"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
+export type SubscriptionTier = "free" | "paid";
 
 export const chatbots = pgTable("chatbots", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -43,6 +47,7 @@ export const chatbots = pgTable("chatbots", {
   suggestedQuestions: text("suggested_questions").array().default(sql`ARRAY[]::text[]`),
   supportPhoneNumber: text("support_phone_number"),
   escalationMessage: text("escalation_message").notNull().default("If you need more help, you can reach our team at {phone}."),
+  questionCount: text("question_count").notNull().default("0"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
