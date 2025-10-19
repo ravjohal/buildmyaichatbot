@@ -14,9 +14,10 @@ import { apiRequest } from "@/lib/queryClient";
 interface StepCustomizationProps {
   formData: Partial<InsertChatbot>;
   updateFormData: (updates: Partial<InsertChatbot>) => void;
+  isFreeTier?: boolean;
 }
 
-export function StepCustomization({ formData, updateFormData }: StepCustomizationProps) {
+export function StepCustomization({ formData, updateFormData, isFreeTier = false }: StepCustomizationProps) {
   const [newQuestion, setNewQuestion] = useState("");
 
   const addSuggestedQuestion = () => {
@@ -37,7 +38,10 @@ export function StepCustomization({ formData, updateFormData }: StepCustomizatio
       <div>
         <h2 className="text-2xl font-semibold">Customize Appearance</h2>
         <p className="text-muted-foreground mt-2">
-          Make the chatbot widget match your brand with custom colors and messaging.
+          {isFreeTier 
+            ? "Upgrade to Pro to customize colors and logo. Welcome messages and suggested questions are available on all plans."
+            : "Make the chatbot widget match your brand with custom colors and messaging."
+          }
         </p>
       </div>
 
@@ -59,6 +63,7 @@ export function StepCustomization({ formData, updateFormData }: StepCustomizatio
                     onChange={(e) => updateFormData({ primaryColor: e.target.value })}
                     className="w-16 h-11 p-1 cursor-pointer"
                     data-testid="input-primary-color"
+                    disabled={isFreeTier}
                   />
                   <Input
                     type="text"
@@ -66,6 +71,7 @@ export function StepCustomization({ formData, updateFormData }: StepCustomizatio
                     onChange={(e) => updateFormData({ primaryColor: e.target.value })}
                     className="flex-1 h-11 font-mono"
                     placeholder="#0EA5E9"
+                    disabled={isFreeTier}
                   />
                 </div>
               </div>
@@ -79,6 +85,7 @@ export function StepCustomization({ formData, updateFormData }: StepCustomizatio
                     onChange={(e) => updateFormData({ accentColor: e.target.value })}
                     className="w-16 h-11 p-1 cursor-pointer"
                     data-testid="input-accent-color"
+                    disabled={isFreeTier}
                   />
                   <Input
                     type="text"
@@ -86,6 +93,7 @@ export function StepCustomization({ formData, updateFormData }: StepCustomizatio
                     onChange={(e) => updateFormData({ accentColor: e.target.value })}
                     className="flex-1 h-11 font-mono"
                     placeholder="#0284C7"
+                    disabled={isFreeTier}
                   />
                 </div>
               </div>
@@ -97,7 +105,18 @@ export function StepCustomization({ formData, updateFormData }: StepCustomizatio
               <Upload className="w-4 h-4" />
               Company Logo (Optional)
             </Label>
-            {formData.logoUrl ? (
+            {isFreeTier ? (
+              <div className="border-2 border-dashed rounded-lg p-6 text-center bg-muted/30 opacity-60">
+                <Upload className="w-8 h-8 mx-auto text-muted-foreground mb-2" />
+                <p className="text-sm text-muted-foreground mb-2">
+                  Logo uploads require a Pro plan
+                </p>
+                <Button variant="secondary" disabled data-testid="button-upload-logo">
+                  <Upload className="w-4 h-4 mr-2" />
+                  Upgrade to Upload
+                </Button>
+              </div>
+            ) : formData.logoUrl ? (
               <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
                 <img src={formData.logoUrl} alt="Logo preview" className="w-12 h-12 rounded object-cover" />
                 <span className="flex-1 text-sm">Logo uploaded successfully</span>
@@ -120,13 +139,14 @@ export function StepCustomization({ formData, updateFormData }: StepCustomizatio
                   maxNumberOfFiles={1}
                   maxFileSize={10485760}
                   onGetUploadParameters={async () => {
-                    const response = await apiRequest<{ uploadURL: string }>("POST", "/api/objects/upload");
+                    const response = await apiRequest("POST", "/api/objects/upload");
+                    const data = await response.json() as { uploadURL: string };
                     return {
                       method: "PUT" as const,
-                      url: response.uploadURL,
+                      url: data.uploadURL,
                     };
                   }}
-                  onComplete={(result: UploadResult<Record<string, unknown>, Record<string, unknown>>) => {
+                  onComplete={(result: UploadResult) => {
                     if (result.successful && result.successful.length > 0) {
                       const uploadURL = result.successful[0].uploadURL;
                       if (uploadURL) {

@@ -10,9 +10,10 @@ import { StepPersonality } from "@/components/wizard/StepPersonality";
 import { StepCustomization } from "@/components/wizard/StepCustomization";
 import { StepEscalation } from "@/components/wizard/StepEscalation";
 import { StepComplete } from "@/components/wizard/StepComplete";
-import type { InsertChatbot } from "@shared/schema";
+import type { InsertChatbot, User } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useQuery } from "@tanstack/react-query";
 
 const STEPS = [
   { number: 1, title: "Name", description: "Identify your chatbot" },
@@ -28,6 +29,12 @@ export default function CreateChatbot() {
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [createdChatbotId, setCreatedChatbotId] = useState<string | null>(null);
+
+  const { data: user } = useQuery<User>({
+    queryKey: ["/api/auth/user"],
+  });
+
+  const isFreeTier = user?.subscriptionTier === "free";
   
   const [formData, setFormData] = useState<Partial<InsertChatbot>>({
     name: "",
@@ -147,7 +154,7 @@ export default function CreateChatbot() {
               <StepPersonality formData={formData} updateFormData={updateFormData} />
             )}
             {currentStep === 4 && (
-              <StepCustomization formData={formData} updateFormData={updateFormData} />
+              <StepCustomization formData={formData} updateFormData={updateFormData} isFreeTier={isFreeTier} />
             )}
             {currentStep === 5 && (
               <StepEscalation formData={formData} updateFormData={updateFormData} />
