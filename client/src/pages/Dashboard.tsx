@@ -26,6 +26,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 export default function Dashboard() {
   const { toast } = useToast();
@@ -41,6 +46,7 @@ export default function Dashboard() {
   });
 
   const isFreeTier = user?.subscriptionTier === "free";
+  const hasReachedFreeTierLimit = isFreeTier && (chatbots?.length ?? 0) >= 1;
 
   const handleDelete = async () => {
     if (!deleteId) return;
@@ -113,12 +119,30 @@ export default function Dashboard() {
                   </Button>
                 </Link>
               )}
-              <Link href="/create">
-                <Button size="lg" variant={isFreeTier ? "outline" : "default"} data-testid="button-create-chatbot">
-                  <Plus className="w-5 h-5 mr-2" />
-                  Create Chatbot
-                </Button>
-              </Link>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  {hasReachedFreeTierLimit ? (
+                    <span>
+                      <Button size="lg" variant="outline" disabled data-testid="button-create-chatbot">
+                        <Plus className="w-5 h-5 mr-2" />
+                        Create Chatbot
+                      </Button>
+                    </span>
+                  ) : (
+                    <Link href="/create">
+                      <Button size="lg" variant={isFreeTier ? "outline" : "default"} data-testid="button-create-chatbot">
+                        <Plus className="w-5 h-5 mr-2" />
+                        Create Chatbot
+                      </Button>
+                    </Link>
+                  )}
+                </TooltipTrigger>
+                {hasReachedFreeTierLimit && (
+                  <TooltipContent>
+                    <p>Free tier is limited to 1 chatbot. Upgrade to Pro for unlimited chatbots.</p>
+                  </TooltipContent>
+                )}
+              </Tooltip>
               <Button 
                 variant="outline" 
                 size="lg"
