@@ -278,6 +278,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Chatbot not found" });
       }
 
+      // Check chatbot owner's subscription tier and enforce free tier limits
+      const ownerResult = await db.select().from(users).where(eq(users.id, chatbot.userId)).limit(1);
+      const owner = ownerResult[0];
+      
+      if (owner && owner.subscriptionTier === "free") {
+        const currentQuestionCount = parseInt(chatbot.questionCount);
+        if (currentQuestionCount >= 3) {
+          return res.status(403).json({ 
+            error: "Free tier limit reached",
+            message: "This chatbot has reached its free tier limit of 3 questions. The owner needs to upgrade to Pro for unlimited questions."
+          });
+        }
+      }
+
       // Find or create conversation for this session
       let conversation;
       if (sessionId) {
@@ -410,7 +424,9 @@ Generate 3-5 short, natural questions that would help the user learn more. Retur
             lastMessageAt: new Date(),
             wasEscalated: shouldEscalate ? "true" : conversation.wasEscalated,
           })
-          .where(eq(conversations.id, conversation.id))
+          .where(eq(conversations.id, conversation.id)),
+        // Increment chatbot question count (for free tier limit tracking)
+        storage.incrementChatbotQuestionCount(chatbotId)
       ]);
 
       const chatResponse: ChatResponse = {
