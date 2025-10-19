@@ -22,13 +22,14 @@ export default function ChatWidget() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [sessionId] = useState(() => `widget-${Date.now()}-${Math.random().toString(36).slice(2)}`);
 
-  const { data: chatbot, isLoading } = useQuery<Chatbot>({
+  const { data: chatbot, isLoading, error } = useQuery<Chatbot>({
     queryKey: [`/api/public/chatbots/${chatbotId}`],
     enabled: !!chatbotId,
   });
   
   console.log('[ChatWidget] isLoading:', isLoading);
   console.log('[ChatWidget] chatbot:', chatbot);
+  console.log('[ChatWidget] error:', error);
 
   const chatMutation = useMutation({
     mutationFn: async (message: string) => {
