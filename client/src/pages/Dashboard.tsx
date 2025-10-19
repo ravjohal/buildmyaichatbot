@@ -1,10 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { Plus, Bot, Trash2, ExternalLink, Copy, LogOut, Pencil, MessageSquare, FileText, BarChart3, Globe } from "lucide-react";
+import { Plus, Bot, Trash2, ExternalLink, Copy, LogOut, Pencil, MessageSquare, FileText, BarChart3, Globe, Crown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import type { Chatbot } from "@shared/schema";
+import type { Chatbot, User } from "@shared/schema";
 import { useState } from "react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -36,6 +36,12 @@ export default function Dashboard() {
     queryKey: ["/api/chatbots"],
   });
 
+  const { data: user } = useQuery<User>({
+    queryKey: ["/api/auth/user"],
+  });
+
+  const isFreeTier = user?.subscriptionTier === "free";
+
   const handleDelete = async () => {
     if (!deleteId) return;
     
@@ -57,6 +63,15 @@ export default function Dashboard() {
   };
 
   const handleCopyEmbed = (chatbotId: string) => {
+    if (isFreeTier) {
+      toast({
+        title: "Upgrade Required",
+        description: "Embedding chatbots requires a paid plan. Upgrade to unlock this feature.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     const embedCode = `<script src="${window.location.origin}/widget.js" data-chatbot-id="${chatbotId}" async></script>`;
     navigator.clipboard.writeText(embedCode);
     toast({
@@ -89,9 +104,17 @@ export default function Dashboard() {
               <h1 className="text-3xl font-bold tracking-tight">My Chatbots</h1>
               <p className="text-muted-foreground mt-1">Create and manage your AI-powered support assistants</p>
             </div>
-            <div className="flex gap-3">
+            <div className="flex gap-3 flex-wrap">
+              {isFreeTier && (
+                <Link href="/pricing">
+                  <Button size="lg" variant="default" data-testid="button-upgrade-pro">
+                    <Crown className="w-5 h-5 mr-2" />
+                    Upgrade to Pro
+                  </Button>
+                </Link>
+              )}
               <Link href="/create">
-                <Button size="lg" data-testid="button-create-chatbot">
+                <Button size="lg" variant={isFreeTier ? "outline" : "default"} data-testid="button-create-chatbot">
                   <Plus className="w-5 h-5 mr-2" />
                   Create Chatbot
                 </Button>
@@ -211,17 +234,37 @@ export default function Dashboard() {
                       Test
                     </Button>
                   </Link>
-                  <Link href={`/analytics/${chatbot.id}`}>
+                  {isFreeTier ? (
                     <Button
                       variant="outline"
                       size="sm"
+                      disabled
                       data-testid={`button-analytics-${chatbot.id}`}
                       className="flex-1"
+                      onClick={() => {
+                        toast({
+                          title: "Upgrade Required",
+                          description: "Analytics are only available on the Pro plan.",
+                          variant: "destructive",
+                        });
+                      }}
                     >
                       <BarChart3 className="w-4 h-4 mr-2" />
                       Analytics
                     </Button>
-                  </Link>
+                  ) : (
+                    <Link href={`/analytics/${chatbot.id}`}>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        data-testid={`button-analytics-${chatbot.id}`}
+                        className="flex-1"
+                      >
+                        <BarChart3 className="w-4 h-4 mr-2" />
+                        Analytics
+                      </Button>
+                    </Link>
+                  )}
                   <Link href={`/edit/${chatbot.id}`}>
                     <Button
                       variant="outline"
