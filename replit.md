@@ -25,6 +25,21 @@ This SaaS web application enables non-technical business owners to create, custo
 - All chat interactions are now logged and available for analysis
 - Analytics access restricted to Pro plan subscribers
 
+### Shareable Links & QR Codes (Completed)
+- Implemented shareable link feature for easy chatbot distribution
+- Added QR code generation using qrcode.react library
+- Share dialog displays both shareable link and downloadable QR code
+- Full-page chat interface when accessing via shareable link (no click required)
+- Chatbots automatically detect standalone vs iframe mode
+- Shareable URL format: `{origin}/widget/{chatbotId}`
+- Available to all users (Free and Pro tiers)
+
+### Landing Page Enhancements (Completed)
+- Added Pricing link to header navigation
+- Created pricing preview section with Free vs Pro comparison
+- Professional layout with clear feature breakdown
+- Upgrade call-to-action integrated into landing page
+
 ### Optimizations
 - Optimized recursive website crawler to eliminate double-fetching
 - Improved URL normalization for better crawling performance

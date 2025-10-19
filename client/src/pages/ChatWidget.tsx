@@ -16,7 +16,10 @@ export default function ChatWidget() {
   console.log('[ChatWidget] Params:', params);
   console.log('[ChatWidget] Chatbot ID from route:', chatbotId);
   
-  const [isOpen, setIsOpen] = useState(false);
+  // Check if we're in an iframe (embedded) or standalone page (shareable link)
+  const isStandalone = window.self === window.top;
+  
+  const [isOpen, setIsOpen] = useState(isStandalone); // Auto-open for standalone
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -30,6 +33,7 @@ export default function ChatWidget() {
   console.log('[ChatWidget] isLoading:', isLoading);
   console.log('[ChatWidget] chatbot:', chatbot);
   console.log('[ChatWidget] error:', error);
+  console.log('[ChatWidget] isStandalone:', isStandalone);
 
   const chatMutation = useMutation({
     mutationFn: async (message: string) => {
@@ -76,14 +80,22 @@ export default function ChatWidget() {
     }
   }, [isOpen, chatbot, messages.length]);
 
-  // Make the widget page transparent when loaded in iframe
+  // Make the widget page transparent when loaded in iframe, but not for standalone page
   useEffect(() => {
     console.log('[ChatWidget] Component mounted');
     console.log('[ChatWidget] Chatbot ID:', chatbotId);
     console.log('[ChatWidget] Is in iframe?', window.self !== window.top);
-    document.body.style.background = 'transparent';
-    document.documentElement.style.background = 'transparent';
-  }, []);
+    
+    if (!isStandalone) {
+      // Only make transparent when embedded in iframe
+      document.body.style.background = 'transparent';
+      document.documentElement.style.background = 'transparent';
+    } else {
+      // For standalone page, use normal background
+      document.body.style.background = '';
+      document.documentElement.style.background = '';
+    }
+  }, [isStandalone]);
 
   const handleSend = () => {
     if (!inputValue.trim() || chatMutation.isPending) return;
@@ -130,6 +142,143 @@ export default function ChatWidget() {
 
   const displayedSuggestions = getDisplayedSuggestions();
 
+  // Render full-page chat for standalone mode
+  if (isStandalone) {
+    return (
+      <div className="h-screen w-full flex flex-col bg-background" data-testid="chat-widget">
+        <div
+          className="p-6 text-white flex items-center gap-3 border-b"
+          style={{ backgroundColor: chatbot.primaryColor }}
+        >
+          {chatbot.logoUrl ? (
+            <img
+              src={chatbot.logoUrl}
+              alt={chatbot.name}
+              className="w-12 h-12 rounded-lg object-cover"
+            />
+          ) : (
+            <div className="w-12 h-12 rounded-lg bg-white/20 flex items-center justify-center">
+              <Bot className="w-8 h-8" />
+            </div>
+          )}
+          <div>
+            <h1 className="text-xl font-semibold">{chatbot.name}</h1>
+            <p className="text-sm opacity-90">Online - Ready to help</p>
+          </div>
+        </div>
+
+        <ScrollArea className="flex-1 p-6" ref={scrollRef}>
+          <div className="max-w-3xl mx-auto space-y-4">
+            {messages.map((message) => (
+              <div
+                key={message.id}
+                className={`flex gap-3 ${
+                  message.role === "user" ? "justify-end" : "justify-start"
+                }`}
+              >
+                {message.role === "assistant" && (
+                  <div
+                    className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+                    style={{ backgroundColor: chatbot.primaryColor + "20" }}
+                  >
+                    <Bot className="w-6 h-6" style={{ color: chatbot.primaryColor }} />
+                  </div>
+                )}
+                <div
+                  className={`rounded-2xl p-4 max-w-[70%] ${
+                    message.role === "user"
+                      ? "text-white rounded-tr-sm"
+                      : "bg-muted rounded-tl-sm"
+                  }`}
+                  style={
+                    message.role === "user"
+                      ? { backgroundColor: chatbot.accentColor }
+                      : undefined
+                  }
+                >
+                  <p className="text-sm whitespace-pre-wrap" data-testid={`message-${message.id}`}>
+                    {message.content || ""}
+                  </p>
+                  {message.content && chatbot.supportPhoneNumber && 
+                    message.content.includes(chatbot.supportPhoneNumber) && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="mt-2 w-full"
+                        onClick={() => window.open(`tel:${chatbot.supportPhoneNumber}`)}
+                      >
+                        <Phone className="w-4 h-4 mr-2" />
+                        Call {chatbot.supportPhoneNumber}
+                      </Button>
+                    )}
+                </div>
+              </div>
+            ))}
+
+            {displayedSuggestions && !chatMutation.isPending && (
+              <div className="flex flex-wrap gap-2 ml-13">
+                {displayedSuggestions.map((question, i) => (
+                  <Badge
+                    key={i}
+                    variant="outline"
+                    className="cursor-pointer hover-elevate"
+                    style={{ borderColor: chatbot.accentColor + "40" }}
+                    onClick={() => handleSuggestedQuestion(question)}
+                    data-testid={`suggested-question-${i}`}
+                  >
+                    {question}
+                  </Badge>
+                ))}
+              </div>
+            )}
+
+            {chatMutation.isPending && (
+              <div className="flex gap-3">
+                <div
+                  className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+                  style={{ backgroundColor: chatbot.primaryColor + "20" }}
+                >
+                  <Bot className="w-6 h-6" style={{ color: chatbot.primaryColor }} />
+                </div>
+                <div className="bg-muted rounded-2xl rounded-tl-sm p-4">
+                  <div className="flex gap-1">
+                    <div className="w-2 h-2 rounded-full bg-muted-foreground animate-bounce" />
+                    <div className="w-2 h-2 rounded-full bg-muted-foreground animate-bounce [animation-delay:0.2s]" />
+                    <div className="w-2 h-2 rounded-full bg-muted-foreground animate-bounce [animation-delay:0.4s]" />
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </ScrollArea>
+
+        <div className="p-6 border-t bg-background">
+          <div className="max-w-3xl mx-auto flex gap-3">
+            <Input
+              placeholder="Type your message..."
+              className="flex-1"
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              onKeyPress={(e) => e.key === "Enter" && handleSend()}
+              data-testid="input-chat-message"
+            />
+            <Button
+              size="icon"
+              style={{ backgroundColor: chatbot.accentColor }}
+              className="text-white"
+              onClick={handleSend}
+              disabled={!inputValue.trim() || chatMutation.isPending}
+              data-testid="button-send-message"
+            >
+              <Send className="w-5 h-5" />
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Render floating widget for iframe embedding
   return (
     <div className="fixed bottom-6 right-6 z-50 pointer-events-auto" data-testid="chat-widget">
       {isOpen && (
