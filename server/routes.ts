@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertChatbotSchema, type ChatRequest, type ChatResponse, chatbots, conversations, conversationMessages } from "@shared/schema";
+import { insertChatbotSchema, type ChatRequest, type ChatResponse, chatbots, conversations, conversationMessages, users } from "@shared/schema";
 import { ZodError } from "zod";
 import { GoogleGenAI } from "@google/genai";
 import multer from "multer";
@@ -10,9 +10,15 @@ import { isAuthenticated } from "./replitAuth";
 import { db } from "./db";
 import { eq, sql } from "drizzle-orm";
 import { crawlMultipleWebsitesRecursive } from "./crawler";
+import Stripe from "stripe";
 
 const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
 const upload = multer({ storage: multer.memoryStorage() });
+
+if (!process.env.STRIPE_SECRET_KEY) {
+  throw new Error('Missing required Stripe secret: STRIPE_SECRET_KEY');
+}
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Get authenticated user (NOT protected - returns null if not authenticated)
@@ -535,6 +541,160 @@ Generate 3-5 short, natural questions that would help the user learn more. Retur
       console.error("Error fetching conversations:", error);
       res.status(500).json({ error: "Failed to fetch conversations" });
     }
+  });
+
+  // Create Stripe subscription (protected)
+  app.post("/api/create-subscription", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { billingCycle } = req.body;
+      
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Check if user already has an active subscription
+      if (user.stripeSubscriptionId) {
+        const subscription = await stripe.subscriptions.retrieve(user.stripeSubscriptionId, {
+          expand: ['latest_invoice.payment_intent'],
+        });
+        
+        if (subscription.status === 'active' || subscription.status === 'trialing') {
+          const latestInvoice: any = subscription.latest_invoice;
+          return res.json({
+            subscriptionId: subscription.id,
+            clientSecret: latestInvoice?.payment_intent?.client_secret,
+          });
+        }
+      }
+
+      // Create or retrieve Stripe customer
+      let stripeCustomerId = user.stripeCustomerId;
+      if (!stripeCustomerId) {
+        const customer = await stripe.customers.create({
+          email: user.email || undefined,
+          name: user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : undefined,
+          metadata: {
+            userId: user.id,
+          },
+        });
+        stripeCustomerId = customer.id;
+        await storage.updateStripeCustomerId(user.id, stripeCustomerId);
+      }
+
+      // Create price based on billing cycle
+      const amount = billingCycle === "monthly" ? 2999 : 30000; // $29.99 or $300
+      const recurring = billingCycle === "monthly" 
+        ? { interval: 'month' as const, interval_count: 1 }
+        : { interval: 'year' as const, interval_count: 1 };
+
+      // Create subscription
+      const subscription = await stripe.subscriptions.create({
+        customer: stripeCustomerId,
+        items: [{
+          price_data: {
+            currency: 'usd',
+            product: 'prod_chatbot_builder',
+            recurring,
+            unit_amount: amount,
+          } as any,
+        }],
+        payment_behavior: 'default_incomplete',
+        payment_settings: {
+          save_default_payment_method: 'on_subscription',
+        },
+        expand: ['latest_invoice.payment_intent'],
+        metadata: {
+          userId: user.id,
+          billingCycle,
+        },
+      });
+
+      // Store subscription ID
+      await storage.updateStripeSubscriptionId(user.id, subscription.id);
+
+      const latestInvoice = subscription.latest_invoice as any;
+      const paymentIntent = latestInvoice?.payment_intent;
+
+      res.json({
+        subscriptionId: subscription.id,
+        clientSecret: paymentIntent?.client_secret,
+      });
+    } catch (error: any) {
+      console.error("Subscription creation error:", error);
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // Stripe webhook handler for subscription updates
+  app.post("/api/stripe-webhook", async (req, res) => {
+    const sig = req.headers['stripe-signature'];
+    
+    if (!sig) {
+      return res.status(400).send('No signature');
+    }
+
+    let event;
+    try {
+      event = stripe.webhooks.constructEvent(
+        req.body,
+        sig,
+        process.env.STRIPE_WEBHOOK_SECRET || ''
+      );
+    } catch (err: any) {
+      console.error('Webhook signature verification failed:', err.message);
+      return res.status(400).send(`Webhook Error: ${err.message}`);
+    }
+
+    // Handle the event
+    switch (event.type) {
+      case 'customer.subscription.created':
+      case 'customer.subscription.updated':
+        const subscription = event.data.object as Stripe.Subscription;
+        const userId = subscription.metadata?.userId;
+        
+        if (userId && subscription.status === 'active') {
+          // Update user to paid tier
+          await db.update(users)
+            .set({ subscriptionTier: 'paid' })
+            .where(eq(users.id, userId));
+        }
+        break;
+        
+      case 'customer.subscription.deleted':
+        const deletedSubscription = event.data.object as Stripe.Subscription;
+        const deletedUserId = deletedSubscription.metadata?.userId;
+        
+        if (deletedUserId) {
+          // Downgrade user to free tier
+          await db.update(users)
+            .set({ 
+              subscriptionTier: 'free',
+              stripeSubscriptionId: null,
+            })
+            .where(eq(users.id, deletedUserId));
+        }
+        break;
+
+      case 'invoice.payment_succeeded':
+        const invoice = event.data.object as Stripe.Invoice;
+        const invoiceSubscription: any = invoice;
+        if (invoiceSubscription.subscription && invoice.metadata?.userId) {
+          // Ensure user is on paid tier
+          await db.update(users)
+            .set({ subscriptionTier: 'paid' })
+            .where(eq(users.id, invoice.metadata.userId));
+        }
+        break;
+
+      case 'invoice.payment_failed':
+        const failedInvoice = event.data.object as Stripe.Invoice;
+        console.error('Payment failed for invoice:', failedInvoice.id);
+        break;
+    }
+
+    res.json({ received: true });
   });
 
   const httpServer = createServer(app);

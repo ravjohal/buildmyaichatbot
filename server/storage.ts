@@ -6,6 +6,9 @@ export interface IStorage {
   // User operations
   getUser(id: string): Promise<User | undefined>;
   upsertUser(user: UpsertUser): Promise<User>;
+  updateStripeCustomerId(userId: string, stripeCustomerId: string): Promise<User>;
+  updateStripeSubscriptionId(userId: string, stripeSubscriptionId: string): Promise<User>;
+  updateSubscriptionTier(userId: string, tier: "free" | "paid"): Promise<User>;
   
   // Chatbot operations (user-scoped)
   getAllChatbots(userId: string): Promise<Chatbot[]>;
@@ -13,6 +16,7 @@ export interface IStorage {
   createChatbot(chatbot: InsertChatbot, userId: string): Promise<Chatbot>;
   updateChatbot(id: string, userId: string, chatbot: Partial<InsertChatbot>): Promise<Chatbot | undefined>;
   deleteChatbot(id: string, userId: string): Promise<boolean>;
+  incrementChatbotQuestionCount(chatbotId: string): Promise<void>;
 }
 
 export class DbStorage implements IStorage {
@@ -37,6 +41,33 @@ export class DbStorage implements IStorage {
           updatedAt: new Date(),
         },
       })
+      .returning();
+    return result[0];
+  }
+
+  async updateStripeCustomerId(userId: string, stripeCustomerId: string): Promise<User> {
+    const result = await db
+      .update(users)
+      .set({ stripeCustomerId, updatedAt: new Date() })
+      .where(eq(users.id, userId))
+      .returning();
+    return result[0];
+  }
+
+  async updateStripeSubscriptionId(userId: string, stripeSubscriptionId: string): Promise<User> {
+    const result = await db
+      .update(users)
+      .set({ stripeSubscriptionId, updatedAt: new Date() })
+      .where(eq(users.id, userId))
+      .returning();
+    return result[0];
+  }
+
+  async updateSubscriptionTier(userId: string, tier: "free" | "paid"): Promise<User> {
+    const result = await db
+      .update(users)
+      .set({ subscriptionTier: tier, updatedAt: new Date() })
+      .where(eq(users.id, userId))
       .returning();
     return result[0];
   }
@@ -82,6 +113,23 @@ export class DbStorage implements IStorage {
       .where(and(eq(chatbots.id, id), eq(chatbots.userId, userId)))
       .returning();
     return result.length > 0;
+  }
+
+  async incrementChatbotQuestionCount(chatbotId: string): Promise<void> {
+    // Get current count
+    const current = await db
+      .select({ questionCount: chatbots.questionCount })
+      .from(chatbots)
+      .where(eq(chatbots.id, chatbotId))
+      .limit(1);
+    
+    if (current[0]) {
+      const newCount = (parseInt(current[0].questionCount) + 1).toString();
+      await db
+        .update(chatbots)
+        .set({ questionCount: newCount })
+        .where(eq(chatbots.id, chatbotId));
+    }
   }
 }
 
