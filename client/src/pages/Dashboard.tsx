@@ -5,6 +5,7 @@ import { QRCodeSVG } from "qrcode.react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import type { Chatbot, User } from "@shared/schema";
 import { useState } from "react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -445,11 +446,11 @@ export default function Dashboard() {
               <div className="space-y-3">
                 <label className="text-sm font-medium">Shareable Link</label>
                 <div className="flex gap-2">
-                  <input
+                  <Input
                     type="text"
                     readOnly
                     value={`${window.location.origin}/widget/${shareDialogChatbot.id}`}
-                    className="flex-1 px-3 py-2 text-sm border rounded-md bg-muted"
+                    className="flex-1 bg-muted"
                     data-testid="input-share-link"
                   />
                   <Button
@@ -467,7 +468,7 @@ export default function Dashboard() {
 
               <div className="space-y-3">
                 <label className="text-sm font-medium">QR Code</label>
-                <div className="flex justify-center p-6 bg-white rounded-lg border">
+                <div className="flex justify-center p-6 bg-background dark:bg-white rounded-lg border">
                   <QRCodeSVG
                     value={`${window.location.origin}/widget/${shareDialogChatbot.id}`}
                     size={200}
