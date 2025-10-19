@@ -690,19 +690,41 @@ Generate 3-5 short, natural questions that would help the user learn more. Retur
       // Store subscription ID
       await storage.updateStripeSubscriptionId(user.id, subscription.id);
 
-      const latestInvoice = subscription.latest_invoice as any;
-      const paymentIntent = latestInvoice?.payment_intent;
+      // Get the invoice and payment intent
+      let clientSecret: string | null = null;
+      const latestInvoice = subscription.latest_invoice;
+      
+      if (typeof latestInvoice === 'string') {
+        // Invoice wasn't expanded, fetch it manually
+        const invoice: any = await stripe.invoices.retrieve(latestInvoice, {
+          expand: ['payment_intent'],
+        });
+        const paymentIntent = invoice.payment_intent;
+        if (typeof paymentIntent === 'object' && paymentIntent !== null) {
+          clientSecret = paymentIntent.client_secret;
+        }
+      } else if (latestInvoice && typeof latestInvoice === 'object') {
+        // Invoice was expanded
+        const paymentIntent = (latestInvoice as any).payment_intent;
+        if (typeof paymentIntent === 'object' && paymentIntent !== null) {
+          clientSecret = paymentIntent.client_secret;
+        }
+      }
 
       console.log('Subscription created:', {
         subscriptionId: subscription.id,
-        hasInvoice: !!latestInvoice,
-        hasPaymentIntent: !!paymentIntent,
-        clientSecret: paymentIntent?.client_secret,
+        status: subscription.status,
+        invoiceType: typeof latestInvoice,
+        clientSecret: clientSecret ? 'present' : 'missing',
       });
+
+      if (!clientSecret) {
+        throw new Error('Failed to create payment intent. Please check your Stripe configuration.');
+      }
 
       res.json({
         subscriptionId: subscription.id,
-        clientSecret: paymentIntent?.client_secret,
+        clientSecret,
       });
     } catch (error: any) {
       console.error("Subscription creation error:", error);
