@@ -10,8 +10,8 @@ This SaaS web application enables non-technical business owners to create, custo
 - Implemented two-tier pricing: Free (test/demo, limited) and Pro ($29.99/month or $300/year, unlimited)
 - Integrated Stripe for subscription management and payments
 - Added comprehensive server-side enforcement for Pro-only features
-- Free tier limits: 3 questions max per chatbot, no analytics, no embed code access, no color/logo customization
-- Pro tier: Unlimited questions, full analytics, embedding, complete customization
+- Free tier limits: 1 chatbot max, 3 questions max per chatbot, no analytics, no embed code access, no color/logo customization
+- Pro tier: Unlimited chatbots, unlimited questions, full analytics, embedding, complete customization
 - Database schema updated: subscriptionTier, stripeCustomerId, stripeSubscriptionId fields in users table; questionCount field in chatbots table
 - UI updates: Upgrade prompts, disabled buttons for free tier, clear upgrade paths
 - Subscription webhooks: Handle lifecycle events (created, updated, cancelled, payment succeeded/failed)
