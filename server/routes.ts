@@ -103,6 +103,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.claims.sub;
       const validatedData = insertChatbotSchema.parse(req.body);
       
+      // Check if free tier user already has a chatbot (limit: 1 chatbot for free tier)
+      const user = await storage.getUser(userId);
+      if (user && user.subscriptionTier !== "paid") {
+        const existingChatbots = await storage.getAllChatbots(userId);
+        if (existingChatbots.length >= 1) {
+          return res.status(403).json({
+            error: "Upgrade required",
+            message: "Free tier is limited to 1 chatbot. Upgrade to Pro to create unlimited chatbots."
+          });
+        }
+      }
+      
       // Crawl websites if URLs are provided (recursive crawling)
       let websiteContent = "";
       if (validatedData.websiteUrls && validatedData.websiteUrls.length > 0) {
