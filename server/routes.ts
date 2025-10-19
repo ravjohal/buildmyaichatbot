@@ -667,13 +667,18 @@ Generate 3-5 short, natural questions that would help the user learn more. Retur
         ? { interval: 'month' as const, interval_count: 1 }
         : { interval: 'year' as const, interval_count: 1 };
 
-      // Create subscription
+      // Create subscription with inline product creation
       const subscription = await stripe.subscriptions.create({
         customer: stripeCustomerId,
         items: [{
           price_data: {
             currency: 'usd',
-            product: 'prod_chatbot_builder',
+            product_data: {
+              name: 'Chatbot Builder Pro',
+              description: billingCycle === 'monthly' 
+                ? 'Pro plan - Monthly subscription'
+                : 'Pro plan - Annual subscription',
+            },
             recurring,
             unit_amount: amount,
           } as any,
