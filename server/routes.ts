@@ -661,27 +661,20 @@ Generate 3-5 short, natural questions that would help the user learn more. Retur
         await storage.updateStripeCustomerId(user.id, stripeCustomerId);
       }
 
-      // Create price based on billing cycle
-      const amount = billingCycle === "monthly" ? 2999 : 30000; // $29.99 or $300
-      const recurring = billingCycle === "monthly" 
-        ? { interval: 'month' as const, interval_count: 1 }
-        : { interval: 'year' as const, interval_count: 1 };
+      // Use pre-created Stripe price IDs from environment variables
+      const priceId = billingCycle === "monthly" 
+        ? process.env.STRIPE_MONTHLY_PRICE_ID
+        : process.env.STRIPE_ANNUAL_PRICE_ID;
 
-      // Create subscription with inline product creation
+      if (!priceId) {
+        throw new Error(`Missing Stripe price ID for ${billingCycle} billing cycle`);
+      }
+
+      // Create subscription using pre-created price
       const subscription = await stripe.subscriptions.create({
         customer: stripeCustomerId,
         items: [{
-          price_data: {
-            currency: 'usd',
-            product_data: {
-              name: 'Chatbot Builder Pro',
-              description: billingCycle === 'monthly' 
-                ? 'Pro plan - Monthly subscription'
-                : 'Pro plan - Annual subscription',
-            },
-            recurring,
-            unit_amount: amount,
-          } as any,
+          price: priceId,
         }],
         payment_behavior: 'default_incomplete',
         payment_settings: {
