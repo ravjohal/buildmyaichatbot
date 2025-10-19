@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { Plus, Bot, Trash2, ExternalLink, Copy, LogOut, Pencil, MessageSquare, FileText, BarChart3, Globe, Crown } from "lucide-react";
+import { Plus, Bot, Trash2, ExternalLink, Copy, LogOut, Pencil, MessageSquare, FileText, BarChart3, Globe, Crown, Share2, QrCode } from "lucide-react";
+import { QRCodeSVG } from "qrcode.react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -36,6 +37,7 @@ export default function Dashboard() {
   const { toast } = useToast();
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [viewKnowledgeBase, setViewKnowledgeBase] = useState<Chatbot | null>(null);
+  const [shareDialogChatbot, setShareDialogChatbot] = useState<Chatbot | null>(null);
 
   const { data: chatbots, isLoading } = useQuery<Chatbot[]>({
     queryKey: ["/api/chatbots"],
@@ -83,6 +85,15 @@ export default function Dashboard() {
     toast({
       title: "Embed code copied!",
       description: "Paste this code into your website.",
+    });
+  };
+
+  const handleCopyShareLink = (chatbotId: string) => {
+    const shareUrl = `${window.location.origin}/widget/${chatbotId}`;
+    navigator.clipboard.writeText(shareUrl);
+    toast({
+      title: "Link copied!",
+      description: "Share this link with your users to access the chatbot directly.",
     });
   };
 
@@ -323,6 +334,16 @@ export default function Dashboard() {
                   <Button
                     variant="outline"
                     size="sm"
+                    onClick={() => setShareDialogChatbot(chatbot)}
+                    data-testid={`button-share-${chatbot.id}`}
+                    className="flex-1"
+                  >
+                    <Share2 className="w-4 h-4 mr-2" />
+                    Share
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
                     onClick={() => setDeleteId(chatbot.id)}
                     data-testid={`button-delete-${chatbot.id}`}
                   >
@@ -404,6 +425,59 @@ export default function Dashboard() {
                     <p className="text-sm text-muted-foreground italic">No content has been indexed yet</p>
                   )}
                 </ScrollArea>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!shareDialogChatbot} onOpenChange={(open) => !open && setShareDialogChatbot(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Share Chatbot</DialogTitle>
+            <DialogDescription>
+              Share this link or QR code with your users to give them direct access to the chatbot
+            </DialogDescription>
+          </DialogHeader>
+          
+          {shareDialogChatbot && (
+            <div className="space-y-6">
+              <div className="space-y-3">
+                <label className="text-sm font-medium">Shareable Link</label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    readOnly
+                    value={`${window.location.origin}/widget/${shareDialogChatbot.id}`}
+                    className="flex-1 px-3 py-2 text-sm border rounded-md bg-muted"
+                    data-testid="input-share-link"
+                  />
+                  <Button
+                    size="sm"
+                    onClick={() => handleCopyShareLink(shareDialogChatbot.id)}
+                    data-testid="button-copy-share-link"
+                  >
+                    <Copy className="w-4 h-4" />
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Users can access the chatbot directly through this link without embedding it on a website
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                <label className="text-sm font-medium">QR Code</label>
+                <div className="flex justify-center p-6 bg-white rounded-lg border">
+                  <QRCodeSVG
+                    value={`${window.location.origin}/widget/${shareDialogChatbot.id}`}
+                    size={200}
+                    level="H"
+                    data-testid="qr-code"
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground text-center">
+                  Scan this QR code to access the chatbot on mobile devices
+                </p>
               </div>
             </div>
           )}
