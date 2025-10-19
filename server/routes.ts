@@ -150,6 +150,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.claims.sub;
       const validatedData = insertChatbotSchema.partial().parse(req.body);
       
+      // Check if user is trying to update Pro-only features (colors, logo)
+      const isUpdatingProFeatures = validatedData.primaryColor || validatedData.accentColor || validatedData.logoUrl;
+      
+      if (isUpdatingProFeatures) {
+        const user = await storage.getUser(userId);
+        if (!user || user.subscriptionTier !== "paid") {
+          return res.status(403).json({ 
+            error: "Upgrade required",
+            message: "Color and logo customization is only available on the Pro plan. Please upgrade to access this feature."
+          });
+        }
+      }
+      
       // If websiteUrls are being updated, re-crawl them or clear content
       let updateData = { ...validatedData };
       if (validatedData.websiteUrls !== undefined) {
@@ -237,10 +250,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Update chatbot with uploaded logo URL (protected)
+  // Update chatbot with uploaded logo URL (protected - Pro plan only)
   app.put("/api/chatbots/:id/logo", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
+      
+      // Verify user has paid subscription for logo customization
+      const user = await storage.getUser(userId);
+      if (!user || user.subscriptionTier !== "paid") {
+        return res.status(403).json({ 
+          error: "Upgrade required",
+          message: "Logo customization is only available on the Pro plan. Please upgrade to access this feature."
+        });
+      }
+      
       if (!req.body.logoURL) {
         return res.status(400).json({ error: "logoURL is required" });
       }
@@ -445,7 +468,7 @@ Generate 3-5 short, natural questions that would help the user learn more. Retur
     }
   });
 
-  // Analytics routes (protected - only for chatbot owners)
+  // Analytics routes (protected - only for chatbot owners with paid subscription)
   
   // Get analytics overview for a chatbot
   app.get("/api/chatbots/:id/analytics", isAuthenticated, async (req: any, res) => {
@@ -457,6 +480,15 @@ Generate 3-5 short, natural questions that would help the user learn more. Retur
       const chatbot = await storage.getChatbot(chatbotId, userId);
       if (!chatbot) {
         return res.status(404).json({ error: "Chatbot not found" });
+      }
+
+      // Verify user has paid subscription for analytics access
+      const user = await storage.getUser(userId);
+      if (!user || user.subscriptionTier !== "paid") {
+        return res.status(403).json({ 
+          error: "Upgrade required",
+          message: "Analytics are only available on the Pro plan. Please upgrade to access this feature."
+        });
       }
 
       // Get all conversations for this chatbot
@@ -491,7 +523,7 @@ Generate 3-5 short, natural questions that would help the user learn more. Retur
     }
   });
 
-  // Get conversation details with all messages
+  // Get conversation details with all messages - Pro plan only
   app.get("/api/conversations/:id", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
@@ -514,6 +546,15 @@ Generate 3-5 short, natural questions that would help the user learn more. Retur
         return res.status(403).json({ error: "Unauthorized" });
       }
 
+      // Verify user has paid subscription for conversation access
+      const user = await storage.getUser(userId);
+      if (!user || user.subscriptionTier !== "paid") {
+        return res.status(403).json({ 
+          error: "Upgrade required",
+          message: "Conversation details are only available on the Pro plan. Please upgrade to access this feature."
+        });
+      }
+
       // Get all messages for this conversation
       const messages = await db.select()
         .from(conversationMessages)
@@ -530,7 +571,7 @@ Generate 3-5 short, natural questions that would help the user learn more. Retur
     }
   });
 
-  // Get all conversations for a chatbot (with pagination)
+  // Get all conversations for a chatbot (with pagination) - Pro plan only
   app.get("/api/chatbots/:id/conversations", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
@@ -542,6 +583,15 @@ Generate 3-5 short, natural questions that would help the user learn more. Retur
       const chatbot = await storage.getChatbot(chatbotId, userId);
       if (!chatbot) {
         return res.status(404).json({ error: "Chatbot not found" });
+      }
+
+      // Verify user has paid subscription for analytics access
+      const user = await storage.getUser(userId);
+      if (!user || user.subscriptionTier !== "paid") {
+        return res.status(403).json({ 
+          error: "Upgrade required",
+          message: "Conversation history is only available on the Pro plan. Please upgrade to access this feature."
+        });
       }
 
       // Get conversations with pagination

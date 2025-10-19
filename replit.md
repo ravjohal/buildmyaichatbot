@@ -6,6 +6,16 @@ This SaaS web application enables non-technical business owners to create, custo
 
 ## Recent Changes (October 2025)
 
+### Freemium Pricing System with Stripe Integration (Completed)
+- Implemented two-tier pricing: Free (test/demo, limited) and Pro ($29.99/month or $300/year, unlimited)
+- Integrated Stripe for subscription management and payments
+- Added comprehensive server-side enforcement for Pro-only features
+- Free tier limits: 3 questions max per chatbot, no analytics, no embed code access, no color/logo customization
+- Pro tier: Unlimited questions, full analytics, embedding, complete customization
+- Database schema updated: subscriptionTier, stripeCustomerId, stripeSubscriptionId fields in users table; questionCount field in chatbots table
+- UI updates: Upgrade prompts, disabled buttons for free tier, clear upgrade paths
+- Subscription webhooks: Handle lifecycle events (created, updated, cancelled, payment succeeded/failed)
+
 ### Analytics Feature (Completed)
 - Implemented comprehensive conversation tracking and analytics system
 - Added database tables for conversations and conversation_messages
@@ -13,6 +23,7 @@ This SaaS web application enables non-technical business owners to create, custo
 - Integrated sessionId tracking across both ChatWidget and TestChatbot
 - Added analytics link to Dashboard for easy access
 - All chat interactions are now logged and available for analysis
+- Analytics access restricted to Pro plan subscribers
 
 ### Optimizations
 - Optimized recursive website crawler to eliminate double-fetching
@@ -35,8 +46,9 @@ The backend uses Express.js with Node.js and TypeScript. It follows a RESTful AP
 
 ### Data Storage
 
-Currently utilizes an in-memory Map-based storage (`MemStorage`) for chatbot configurations. The application now uses PostgreSQL with Drizzle ORM for analytics data storage. Database tables include:
-- `chatbots`: Core chatbot configurations (name, URLs, content, styling, behavior)
+Currently utilizes an in-memory Map-based storage (`MemStorage`) for chatbot configurations. The application now uses PostgreSQL with Drizzle ORM for analytics data storage and subscription management. Database tables include:
+- `users`: User accounts with authentication data and subscription information (subscriptionTier, stripeCustomerId, stripeSubscriptionId)
+- `chatbots`: Core chatbot configurations (name, URLs, content, styling, behavior, questionCount for free tier limits)
 - `conversations`: Conversation session metadata (sessionId, chatbotId, messageCount, escalation status)
 - `conversation_messages`: Individual chat messages (user/assistant content, role, suggested questions, timestamps)
 
@@ -91,4 +103,4 @@ Frontend assets are built with Vite, and server code is bundled with esbuild. Th
 
 ### Environment Requirements
 
-`DATABASE_URL`, `GEMINI_API_KEY`, `PUBLIC_OBJECT_SEARCH_PATHS`, `PRIVATE_OBJECT_DIR`, `DEFAULT_OBJECT_STORAGE_BUCKET_ID`, `SESSION_SECRET`.
+`DATABASE_URL`, `GEMINI_API_KEY`, `PUBLIC_OBJECT_SEARCH_PATHS`, `PRIVATE_OBJECT_DIR`, `DEFAULT_OBJECT_STORAGE_BUCKET_ID`, `SESSION_SECRET`, `STRIPE_SECRET_KEY`, `VITE_STRIPE_PUBLIC_KEY`.
