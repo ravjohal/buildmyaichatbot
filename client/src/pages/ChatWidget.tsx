@@ -70,6 +70,9 @@ export default function ChatWidget() {
 
   // Make the widget page transparent when loaded in iframe
   useEffect(() => {
+    console.log('[ChatWidget] Component mounted');
+    console.log('[ChatWidget] Chatbot ID:', chatbotId);
+    console.log('[ChatWidget] Is in iframe?', window.self !== window.top);
     document.body.style.background = 'transparent';
     document.documentElement.style.background = 'transparent';
   }, []);
@@ -271,7 +274,15 @@ export default function ChatWidget() {
       <button
         className="w-16 h-16 rounded-full shadow-2xl flex items-center justify-center text-white transition-transform hover:scale-110 active-elevate-2"
         style={{ backgroundColor: chatbot.primaryColor }}
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={(e) => {
+          console.log('[ChatWidget] Chat button CLICKED!', e);
+          console.log('[ChatWidget] Current isOpen state:', isOpen);
+          console.log('[ChatWidget] Will toggle to:', !isOpen);
+          setIsOpen(!isOpen);
+        }}
+        onMouseEnter={() => console.log('[ChatWidget] Mouse entered chat button')}
+        onMouseDown={() => console.log('[ChatWidget] Mouse down on chat button')}
+        onMouseUp={() => console.log('[ChatWidget] Mouse up on chat button')}
         data-testid="button-chat-toggle"
       >
         {isOpen ? <X className="w-8 h-8" /> : <MessageCircle className="w-8 h-8" />}
