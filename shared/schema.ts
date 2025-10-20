@@ -24,6 +24,7 @@ export const users = pgTable("users", {
   subscriptionTier: varchar("subscription_tier", { enum: ["free", "paid"] }).notNull().default("free"),
   stripeCustomerId: varchar("stripe_customer_id"),
   stripeSubscriptionId: varchar("stripe_subscription_id"),
+  isAdmin: text("is_admin").notNull().default("false"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
