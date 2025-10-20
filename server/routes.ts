@@ -183,8 +183,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const validatedData = insertChatbotSchema.parse(req.body);
       
       // Check if free tier user already has a chatbot (limit: 1 chatbot for free tier)
+      // Admins bypass all limits
       const user = await storage.getUser(userId);
-      if (user && user.subscriptionTier !== "paid") {
+      if (user && user.subscriptionTier !== "paid" && user.isAdmin !== "true") {
         const existingChatbots = await storage.getAllChatbots(userId);
         if (existingChatbots.length >= 1) {
           return res.status(403).json({
@@ -242,11 +243,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const validatedData = insertChatbotSchema.partial().parse(req.body);
       
       // Check if user is trying to update Pro-only features (colors, logo)
+      // Admins bypass all restrictions
       const isUpdatingProFeatures = validatedData.primaryColor || validatedData.accentColor || validatedData.logoUrl;
       
       if (isUpdatingProFeatures) {
         const user = await storage.getUser(userId);
-        if (!user || user.subscriptionTier !== "paid") {
+        if (!user || (user.subscriptionTier !== "paid" && user.isAdmin !== "true")) {
           return res.status(403).json({ 
             error: "Upgrade required",
             message: "Color and logo customization is only available on the Pro plan. Please upgrade to access this feature."
