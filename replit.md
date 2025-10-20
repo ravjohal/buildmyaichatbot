@@ -6,6 +6,19 @@ This SaaS web application enables non-technical business owners to create, custo
 
 ## Recent Changes (October 2025)
 
+### Account Management & Billing Portal (Completed - October 20, 2025)
+- Created comprehensive Account/Profile page at `/account` route
+- Displays user information: name, email, avatar with initials, account creation date
+- Shows subscription status and details for both Free and Pro tier users
+- Integrated Stripe billing portal for subscription management
+  - Server-side session creation with secure return URL handling
+  - One-click access to update payment methods, view invoices, and manage subscriptions
+- Added null checks throughout Stripe integration to prevent crashes when STRIPE_SECRET_KEY is missing
+- Improved error handling with proper error states, retry functionality, and user feedback
+- Currency formatting using Intl.NumberFormat for internationalization
+- Professional UX with loading skeletons, disabled states, and clear navigation
+- Navigation link added to Dashboard header (user avatar icon)
+
 ### Freemium Pricing System with Stripe Integration (Completed)
 - Implemented two-tier pricing: Free (test/demo, limited) and Pro ($29.99/month or $300/year, unlimited)
 - Integrated Stripe for subscription management and payments
