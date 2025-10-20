@@ -15,10 +15,8 @@ import Stripe from "stripe";
 const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
 const upload = multer({ storage: multer.memoryStorage() });
 
-if (!process.env.STRIPE_SECRET_KEY) {
-  throw new Error('Missing required Stripe secret: STRIPE_SECRET_KEY');
-}
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+// Initialize Stripe only if the secret is available
+const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY) : null;
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Get authenticated user (NOT protected - returns null if not authenticated)
@@ -35,6 +33,83 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching user:", error);
       res.status(500).json({ message: "Failed to fetch user" });
+    }
+  });
+
+  // Get account details with subscription info (protected)
+  app.get('/api/account', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      let subscriptionDetails = null;
+      
+      // If user has a Stripe subscription, fetch details from Stripe
+      if (user.stripeSubscriptionId && stripe) {
+        try {
+          const subscription = await stripe.subscriptions.retrieve(user.stripeSubscriptionId);
+          const product = subscription.items.data[0]?.price;
+          
+          subscriptionDetails = {
+            id: subscription.id,
+            status: subscription.status,
+            currentPeriodStart: (subscription as any).current_period_start,
+            currentPeriodEnd: (subscription as any).current_period_end,
+            cancelAtPeriodEnd: (subscription as any).cancel_at_period_end,
+            canceledAt: (subscription as any).canceled_at,
+            billingCycle: product?.recurring?.interval || 'month',
+            amount: product?.unit_amount ? product.unit_amount / 100 : 0,
+            currency: product?.currency || 'usd',
+          };
+        } catch (error) {
+          console.error("Error fetching Stripe subscription:", error);
+          // Continue without subscription details if Stripe fails
+        }
+      }
+
+      res.json({
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        profileImageUrl: user.profileImageUrl,
+        subscriptionTier: user.subscriptionTier,
+        createdAt: user.createdAt,
+        subscription: subscriptionDetails,
+      });
+    } catch (error) {
+      console.error("Error fetching account details:", error);
+      res.status(500).json({ error: "Failed to fetch account details" });
+    }
+  });
+
+  // Create billing portal session (protected)
+  app.post('/api/billing/portal', isAuthenticated, async (req: any, res) => {
+    try {
+      if (!stripe) {
+        return res.status(503).json({ error: "Stripe is not configured" });
+      }
+
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user || !user.stripeCustomerId) {
+        return res.status(404).json({ error: "No billing account found" });
+      }
+
+      const session = await stripe.billingPortal.sessions.create({
+        customer: user.stripeCustomerId,
+        return_url: `${req.headers.origin || 'http://localhost:5000'}/account`,
+      });
+
+      res.json({ url: session.url });
+    } catch (error) {
+      console.error("Error creating billing portal session:", error);
+      res.status(500).json({ error: "Failed to create billing portal session" });
     }
   });
 
@@ -624,6 +699,10 @@ Generate 3-5 short, natural questions that would help the user learn more. Retur
   // Create Stripe subscription (protected)
   app.post("/api/create-subscription", isAuthenticated, async (req: any, res) => {
     try {
+      if (!stripe) {
+        return res.status(503).json({ error: "Stripe is not configured" });
+      }
+
       const userId = req.user.claims.sub;
       const { billingCycle } = req.body;
       
@@ -750,6 +829,10 @@ Generate 3-5 short, natural questions that would help the user learn more. Retur
 
   // Stripe webhook handler for subscription updates
   app.post("/api/stripe-webhook", async (req, res) => {
+    if (!stripe) {
+      return res.status(503).send('Stripe is not configured');
+    }
+
     const sig = req.headers['stripe-signature'];
     
     if (!sig) {
