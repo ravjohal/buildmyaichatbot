@@ -1,8 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Shield, Users, MessageSquare, Bot, TrendingUp, Crown } from "lucide-react";
+import { Shield, Users, MessageSquare, Bot, TrendingUp, Crown, AlertTriangle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Link } from "wouter";
+import type { User } from "@shared/schema";
 import {
   Table,
   TableBody,
@@ -43,17 +46,52 @@ interface AdminChatbot {
 }
 
 export default function Admin() {
+  const { data: currentUser } = useQuery<User>({
+    queryKey: ["/api/auth/user"],
+  });
+
   const { data: stats, isLoading: statsLoading } = useQuery<AdminStats>({
     queryKey: ["/api/admin/stats"],
+    enabled: currentUser?.isAdmin === "true",
   });
 
   const { data: users, isLoading: usersLoading } = useQuery<AdminUser[]>({
     queryKey: ["/api/admin/users"],
+    enabled: currentUser?.isAdmin === "true",
   });
 
   const { data: chatbots, isLoading: chatbotsLoading } = useQuery<AdminChatbot[]>({
     queryKey: ["/api/admin/chatbots"],
+    enabled: currentUser?.isAdmin === "true",
   });
+
+  // Check if user is not an admin
+  if (currentUser && currentUser.isAdmin !== "true") {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-6">
+        <Card className="max-w-md">
+          <CardContent className="pt-6">
+            <div className="flex flex-col items-center text-center space-y-4">
+              <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center">
+                <AlertTriangle className="w-8 h-8 text-destructive" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold mb-2">Access Denied</h2>
+                <p className="text-muted-foreground">
+                  You do not have permission to access the admin dashboard. This area is restricted to administrators only.
+                </p>
+              </div>
+              <Link href="/">
+                <Button data-testid="button-back-dashboard">
+                  Return to Dashboard
+                </Button>
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("en-US", {

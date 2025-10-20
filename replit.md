@@ -6,6 +6,28 @@ This SaaS web application enables non-technical business owners to create, custo
 
 ## Recent Changes (October 2025)
 
+### Admin System (Completed - October 20, 2025)
+- Implemented comprehensive admin system for site administrators
+- Added `isAdmin` field to users table (text type, values: "true" or "false")
+- Set ravneetjohal@gmail.com as site administrator
+- Admin privileges:
+  - Create unlimited chatbots (bypasses free tier restrictions)
+  - Access to all Pro features regardless of subscription tier
+  - View system-wide statistics via Admin Dashboard
+  - View all users with subscription and admin status
+  - View all chatbots with owner information
+- Admin API routes (protected with isAdmin middleware):
+  - GET /api/admin/stats - System metrics (users, chatbots, conversations, messages)
+  - GET /api/admin/users - List all registered users
+  - GET /api/admin/chatbots - List all chatbots with owner details
+- Admin Dashboard UI at /admin route:
+  - Statistics cards showing key metrics
+  - Users table with tier and admin badges
+  - Chatbots table with owner and usage information
+  - Access denied page for non-admin users
+- Admin navigation button in Dashboard header (red, with Shield icon)
+- Frontend and backend enforcement: Admins bypass all tier restrictions
+
 ### Account Management & Billing Portal (Completed - October 20, 2025)
 - Created comprehensive Account/Profile page at `/account` route
 - Displays user information: name, email, avatar with initials, account creation date

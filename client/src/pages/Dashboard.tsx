@@ -48,7 +48,8 @@ export default function Dashboard() {
     queryKey: ["/api/auth/user"],
   });
 
-  const isFreeTier = user?.subscriptionTier === "free";
+  const isAdmin = user?.isAdmin === "true";
+  const isFreeTier = user?.subscriptionTier === "free" && !isAdmin;
   const hasReachedFreeTierLimit = isFreeTier && (chatbots?.length ?? 0) >= 1;
 
   const handleDelete = async () => {
@@ -72,7 +73,8 @@ export default function Dashboard() {
   };
 
   const handleCopyEmbed = (chatbotId: string) => {
-    if (isFreeTier) {
+    // Admins bypass all restrictions
+    if (isFreeTier && !isAdmin) {
       toast({
         title: "Upgrade Required",
         description: "Embedding chatbots requires a paid plan. Upgrade to unlock this feature.",
