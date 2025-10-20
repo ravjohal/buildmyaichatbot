@@ -1,36 +1,36 @@
 import * as cheerio from 'cheerio';
+import { CheerioRenderer, PlaywrightRenderer, PageRenderer } from './renderers';
 
 export interface CrawlResult {
   url: string;
   content: string;
   title?: string;
   error?: string;
+  renderedWith?: 'static' | 'javascript';
 }
 
 export interface RecursiveCrawlOptions {
   maxDepth?: number;
   maxPages?: number;
   sameDomainOnly?: boolean;
+  mode?: 'static' | 'javascript' | 'auto';
+  maxJsPages?: number;
 }
 
 function isValidPublicUrl(urlString: string): { valid: boolean; error?: string } {
   try {
     const url = new URL(urlString);
     
-    // Only allow HTTP and HTTPS protocols
     if (!['http:', 'https:'].includes(url.protocol)) {
       return { valid: false, error: 'Only HTTP and HTTPS protocols are allowed' };
     }
     
-    // Block localhost and private IP ranges to prevent SSRF
     const hostname = url.hostname.toLowerCase();
     
-    // Block localhost variations
     if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '0.0.0.0') {
       return { valid: false, error: 'Localhost URLs are not allowed' };
     }
     
-    // Block private IP ranges (simplified check)
     if (hostname.startsWith('10.') || 
         hostname.startsWith('192.168.') ||
         hostname.startsWith('172.16.') || hostname.startsWith('172.17.') || 
@@ -44,7 +44,6 @@ function isValidPublicUrl(urlString: string): { valid: boolean; error?: string }
       return { valid: false, error: 'Private IP addresses are not allowed' };
     }
     
-    // Block common metadata endpoints
     if (hostname === '169.254.169.254') {
       return { valid: false, error: 'Metadata endpoints are not allowed' };
     }
@@ -55,91 +54,66 @@ function isValidPublicUrl(urlString: string): { valid: boolean; error?: string }
   }
 }
 
-export async function crawlWebsite(url: string): Promise<CrawlResult & { html?: string }> {
-  try {
-    // Validate URL to prevent SSRF attacks
-    const validation = isValidPublicUrl(url);
-    if (!validation.valid) {
-      return {
-        url,
-        content: '',
-        error: validation.error || 'Invalid URL',
-      };
-    }
-    
-    // Fetch the webpage
-    const response = await fetch(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; ChatbotBuilder/1.0)',
-      },
-    });
-
-    if (!response.ok) {
-      return {
-        url,
-        content: '',
-        error: `HTTP ${response.status}: ${response.statusText}`,
-      };
-    }
-
-    const html = await response.text();
-    const $ = cheerio.load(html);
-
-    // Remove script and style elements
-    $('script, style, noscript, iframe').remove();
-
-    // Extract title
-    const title = $('title').text().trim() || $('h1').first().text().trim();
-
-    // Extract main content - prioritize semantic HTML elements
-    let content = '';
-    
-    // Try to find main content area
-    const mainContent = $('main, article, [role="main"]').first();
-    if (mainContent.length) {
-      content = mainContent.text();
-    } else {
-      // Fallback to body content
-      content = $('body').text();
-    }
-
-    // Clean up whitespace
-    content = content
-      .replace(/\s+/g, ' ')
-      .trim()
-      .substring(0, 50000); // Limit to 50k characters to avoid token limits
-
-    if (!content) {
-      return {
-        url,
-        content: '',
-        error: 'No content could be extracted from the page',
-      };
-    }
-
+async function crawlWithRenderer(
+  url: string,
+  renderer: PageRenderer
+): Promise<{ content: string; title: string; html: string; error?: string }> {
+  const validation = isValidPublicUrl(url);
+  if (!validation.valid) {
     return {
-      url,
-      content,
-      title,
-      html, // Return HTML for link extraction in recursive crawling
-    };
-  } catch (error) {
-    return {
-      url,
       content: '',
-      error: error instanceof Error ? error.message : 'Unknown error',
+      title: '',
+      html: '',
+      error: validation.error || 'Invalid URL',
     };
   }
+
+  const result = await renderer.render(url);
+  
+  if (result.error) {
+    return {
+      content: '',
+      title: '',
+      html: '',
+      error: result.error,
+    };
+  }
+
+  if (!result.textContent || result.textContent.length === 0) {
+    return {
+      content: '',
+      title: result.title,
+      html: result.html,
+      error: 'No content could be extracted from the page',
+    };
+  }
+
+  return {
+    content: result.textContent,
+    title: result.title,
+    html: result.html,
+  };
+}
+
+export async function crawlWebsite(url: string): Promise<CrawlResult & { html?: string }> {
+  const staticRenderer = new CheerioRenderer();
+  const result = await crawlWithRenderer(url, staticRenderer);
+  
+  return {
+    url,
+    content: result.content,
+    title: result.title,
+    html: result.html,
+    error: result.error,
+    renderedWith: 'static',
+  };
 }
 
 function normalizeUrl(url: string): string {
   try {
     const parsed = new URL(url);
-    // Remove trailing slash for consistency
     parsed.pathname = parsed.pathname.replace(/\/$/, '') || '/';
-    // Remove hash
     parsed.hash = '';
-    // Sort search params for consistency
     parsed.searchParams.sort();
     return parsed.toString();
   } catch {
@@ -163,21 +137,17 @@ function extractLinks(html: string, baseUrl: string): string[] {
     if (!href) return;
     
     try {
-      // Convert relative URLs to absolute
       const absoluteUrl = new URL(href, baseUrl);
       
-      // Only include http/https links
       if (absoluteUrl.protocol === 'http:' || absoluteUrl.protocol === 'https:') {
-        // Remove hash fragments
         absoluteUrl.hash = '';
         links.push(absoluteUrl.toString());
       }
     } catch {
-      // Ignore invalid URLs
     }
   });
   
-  return [...new Set(links)]; // Remove duplicates
+  return Array.from(new Set(links));
 }
 
 function isSameDomain(url1: string, url2: string): boolean {
@@ -198,47 +168,91 @@ export async function crawlWebsiteRecursive(
     maxDepth = 2,
     maxPages = 50,
     sameDomainOnly = true,
+    mode = 'auto',
+    maxJsPages = 3,
   } = options;
 
   const visited = new Set<string>();
   const results: CrawlResult[] = [];
   const queue: { url: string; depth: number }[] = [{ url: normalizeUrl(startUrl), depth: 0 }];
 
-  while (queue.length > 0 && results.length < maxPages) {
-    const { url, depth } = queue.shift()!;
+  const staticRenderer = new CheerioRenderer();
+  let jsRenderer: PlaywrightRenderer | null = null;
+  let jsPageCount = 0;
 
-    // Skip if already visited
-    if (visited.has(url)) continue;
-    visited.add(url);
+  try {
+    while (queue.length > 0 && results.length < maxPages) {
+      const { url, depth } = queue.shift()!;
 
-    // Skip if exceeded max depth
-    if (depth > maxDepth) continue;
+      if (visited.has(url)) continue;
+      visited.add(url);
 
-    // Crawl the page (returns HTML along with content)
-    const result = await crawlWebsite(url);
-    
-    // Store result without HTML
-    const { html, ...resultWithoutHtml } = result;
-    results.push(resultWithoutHtml);
+      if (depth > maxDepth) continue;
 
-    // If successful and not at max depth, extract and queue links using the HTML we already fetched
-    if (!result.error && result.html && depth < maxDepth) {
-      const links = extractLinks(result.html, url);
+      let result: { content: string; title: string; html: string; error?: string };
+      let renderedWith: 'static' | 'javascript' = 'static';
 
-      // Queue new links
-      for (const link of links) {
-        const normalizedLink = normalizeUrl(link);
-        if (!visited.has(normalizedLink) && results.length < maxPages) {
-          // Check if same domain if required
-          if (!sameDomainOnly || isSameDomain(startUrl, normalizedLink)) {
-            queue.push({ url: normalizedLink, depth: depth + 1 });
+      if (mode === 'javascript') {
+        if (!jsRenderer) {
+          jsRenderer = new PlaywrightRenderer();
+        }
+        result = await crawlWithRenderer(url, jsRenderer);
+        renderedWith = 'javascript';
+        jsPageCount++;
+      } else if (mode === 'static') {
+        result = await crawlWithRenderer(url, staticRenderer);
+        renderedWith = 'static';
+      } else {
+        result = await crawlWithRenderer(url, staticRenderer);
+        renderedWith = 'static';
+
+        const contentTooShort = result.content.length < 1000;
+        const shouldTryJs = contentTooShort && !result.error && jsPageCount < maxJsPages;
+
+        if (shouldTryJs) {
+          console.log(`Content too short (${result.content.length} chars), trying JavaScript rendering for ${url}`);
+          
+          if (!jsRenderer) {
+            jsRenderer = new PlaywrightRenderer();
+          }
+          
+          const jsResult = await crawlWithRenderer(url, jsRenderer);
+          
+          if (!jsResult.error && jsResult.content.length > result.content.length) {
+            console.log(`JavaScript rendering yielded more content: ${jsResult.content.length} chars vs ${result.content.length} chars`);
+            result = jsResult;
+            renderedWith = 'javascript';
+            jsPageCount++;
           }
         }
       }
-    }
 
-    // Add small delay to avoid overwhelming the server
-    await new Promise(resolve => setTimeout(resolve, 100));
+      const { html, ...resultWithoutHtml } = result;
+      results.push({
+        url,
+        ...resultWithoutHtml,
+        renderedWith,
+      });
+
+      if (!result.error && result.html && depth < maxDepth) {
+        const links = extractLinks(result.html, url);
+
+        for (const link of links) {
+          const normalizedLink = normalizeUrl(link);
+          if (!visited.has(normalizedLink) && results.length < maxPages) {
+            if (!sameDomainOnly || isSameDomain(startUrl, normalizedLink)) {
+              queue.push({ url: normalizedLink, depth: depth + 1 });
+            }
+          }
+        }
+      }
+
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+  } finally {
+    if (jsRenderer) {
+      await jsRenderer.close();
+    }
   }
 
   return results;
