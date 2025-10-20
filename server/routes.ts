@@ -694,6 +694,15 @@ Generate 3-5 short, natural questions that would help the user learn more. Retur
       let clientSecret: string | null = null;
       const latestInvoice = subscription.latest_invoice;
       
+      console.log('Invoice details:', {
+        invoiceType: typeof latestInvoice,
+        invoiceId: typeof latestInvoice === 'object' ? (latestInvoice as any)?.id : latestInvoice,
+        hasPaymentIntent: typeof latestInvoice === 'object' ? !!(latestInvoice as any)?.payment_intent : 'N/A',
+        paymentIntentType: typeof latestInvoice === 'object' ? typeof (latestInvoice as any)?.payment_intent : 'N/A',
+        invoiceStatus: typeof latestInvoice === 'object' ? (latestInvoice as any)?.status : 'N/A',
+        invoiceKeys: typeof latestInvoice === 'object' ? Object.keys(latestInvoice as any).slice(0, 20).join(', ') : 'N/A',
+      });
+      
       if (typeof latestInvoice === 'string') {
         // Invoice wasn't expanded, fetch it manually
         const invoice: any = await stripe.invoices.retrieve(latestInvoice, {
