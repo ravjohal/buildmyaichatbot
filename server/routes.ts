@@ -18,6 +18,27 @@ const upload = multer({ storage: multer.memoryStorage() });
 // Initialize Stripe only if the secret is available
 const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY) : null;
 
+// Middleware to check if user is an admin
+const isAdmin = async (req: any, res: any, next: any) => {
+  try {
+    if (!req.isAuthenticated() || !req.user?.claims?.sub) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+    
+    const userId = req.user.claims.sub;
+    const user = await storage.getUser(userId);
+    
+    if (!user || user.isAdmin !== "true") {
+      return res.status(403).json({ error: "Forbidden - Admin access required" });
+    }
+    
+    next();
+  } catch (error) {
+    console.error("Error in isAdmin middleware:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Get authenticated user (NOT protected - returns null if not authenticated)
   app.get('/api/auth/user', async (req: any, res) => {
@@ -830,6 +851,67 @@ Generate 3-5 short, natural questions that would help the user learn more. Retur
     } catch (error: any) {
       console.error("Subscription creation error:", error);
       res.status(400).json({ error: error.message });
+    }
+  });
+
+  // ===== ADMIN ROUTES =====
+  
+  // Get admin statistics
+  app.get('/api/admin/stats', isAdmin, async (req: any, res) => {
+    try {
+      const totalUsers = await db.select({ count: sql<number>`count(*)::int` }).from(users);
+      const totalChatbots = await db.select({ count: sql<number>`count(*)::int` }).from(chatbots);
+      const totalConversations = await db.select({ count: sql<number>`count(*)::int` }).from(conversations);
+      const totalMessages = await db.select({ count: sql<number>`count(*)::int` }).from(conversationMessages);
+      const paidUsers = await db.select({ count: sql<number>`count(*)::int` }).from(users).where(eq(users.subscriptionTier, 'paid'));
+      
+      res.json({
+        totalUsers: totalUsers[0].count,
+        totalChatbots: totalChatbots[0].count,
+        totalConversations: totalConversations[0].count,
+        totalMessages: totalMessages[0].count,
+        paidUsers: paidUsers[0].count,
+        freeUsers: totalUsers[0].count - paidUsers[0].count,
+      });
+    } catch (error) {
+      console.error("Error fetching admin stats:", error);
+      res.status(500).json({ error: "Failed to fetch statistics" });
+    }
+  });
+
+  // Get all users (admin only)
+  app.get('/api/admin/users', isAdmin, async (req: any, res) => {
+    try {
+      const allUsers = await db.select().from(users).orderBy(sql`${users.createdAt} DESC`);
+      res.json(allUsers);
+    } catch (error) {
+      console.error("Error fetching all users:", error);
+      res.status(500).json({ error: "Failed to fetch users" });
+    }
+  });
+
+  // Get all chatbots (admin only)
+  app.get('/api/admin/chatbots', isAdmin, async (req: any, res) => {
+    try {
+      // Get all chatbots with user information
+      const allChatbots = await db.select({
+        id: chatbots.id,
+        name: chatbots.name,
+        userId: chatbots.userId,
+        questionCount: chatbots.questionCount,
+        createdAt: chatbots.createdAt,
+        userEmail: users.email,
+        userName: sql<string>`CONCAT(${users.firstName}, ' ', ${users.lastName})`,
+        subscriptionTier: users.subscriptionTier,
+      })
+      .from(chatbots)
+      .leftJoin(users, eq(chatbots.userId, users.id))
+      .orderBy(sql`${chatbots.createdAt} DESC`);
+      
+      res.json(allChatbots);
+    } catch (error) {
+      console.error("Error fetching all chatbots:", error);
+      res.status(500).json({ error: "Failed to fetch chatbots" });
     }
   });
 
