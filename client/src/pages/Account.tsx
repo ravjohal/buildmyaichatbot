@@ -256,7 +256,7 @@ export default function Account() {
                 </Badge>
               </div>
 
-              {account.subscription ? (
+              {account.subscriptionTier === "paid" && account.subscription ? (
                 <>
                   <Separator />
                   
