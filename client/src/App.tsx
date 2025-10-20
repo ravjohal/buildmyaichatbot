@@ -22,6 +22,7 @@ function Router() {
     return (
       <Switch>
         <Route path="/" component={Landing} />
+        <Route path="/pricing" component={Pricing} />
         <Route path="/widget/:id" component={ChatWidget} />
         <Route component={Landing} />
       </Switch>
