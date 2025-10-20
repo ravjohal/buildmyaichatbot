@@ -676,9 +676,11 @@ Generate 3-5 short, natural questions that would help the user learn more. Retur
         items: [{
           price: priceId,
         }],
+        collection_method: 'charge_automatically',
         payment_behavior: 'default_incomplete',
         payment_settings: {
           save_default_payment_method: 'on_subscription',
+          payment_method_types: ['card'],
         },
         expand: ['latest_invoice.payment_intent'],
         metadata: {
