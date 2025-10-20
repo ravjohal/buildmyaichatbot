@@ -12,7 +12,8 @@ export default function Pricing() {
 
   const handleSelectPlan = (billingCycle: "monthly" | "annual") => {
     if (!user) {
-      navigate("/");
+      // Redirect to login, then back to subscribe page
+      window.location.href = `/api/login?redirect=/subscribe?plan=${billingCycle}`;
       return;
     }
     navigate(`/subscribe?plan=${billingCycle}`);

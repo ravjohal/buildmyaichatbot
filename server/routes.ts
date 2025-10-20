@@ -682,7 +682,7 @@ Generate 3-5 short, natural questions that would help the user learn more. Retur
           save_default_payment_method: 'on_subscription',
           payment_method_types: ['card'],
         },
-        expand: ['latest_invoice.payment_intent'],
+        expand: ['latest_invoice.payment_intent', 'pending_setup_intent'],
         metadata: {
           userId: user.id,
           billingCycle,
@@ -692,19 +692,21 @@ Generate 3-5 short, natural questions that would help the user learn more. Retur
       // Store subscription ID
       await storage.updateStripeSubscriptionId(user.id, subscription.id);
 
-      // Get the invoice and payment intent
+      // Get the client secret from either payment_intent or pending_setup_intent
       let clientSecret: string | null = null;
       const latestInvoice = subscription.latest_invoice;
+      const pendingSetupIntent = subscription.pending_setup_intent;
       
-      console.log('Invoice details:', {
+      console.log('Subscription details:', {
+        subscriptionId: subscription.id,
+        status: subscription.status,
         invoiceType: typeof latestInvoice,
         invoiceId: typeof latestInvoice === 'object' ? (latestInvoice as any)?.id : latestInvoice,
-        hasPaymentIntent: typeof latestInvoice === 'object' ? !!(latestInvoice as any)?.payment_intent : 'N/A',
-        paymentIntentType: typeof latestInvoice === 'object' ? typeof (latestInvoice as any)?.payment_intent : 'N/A',
-        invoiceStatus: typeof latestInvoice === 'object' ? (latestInvoice as any)?.status : 'N/A',
-        invoiceKeys: typeof latestInvoice === 'object' ? Object.keys(latestInvoice as any).slice(0, 20).join(', ') : 'N/A',
+        hasPendingSetupIntent: !!pendingSetupIntent,
+        pendingSetupIntentType: typeof pendingSetupIntent,
       });
       
+      // Check for payment intent in the invoice (for immediate payment)
       if (typeof latestInvoice === 'string') {
         // Invoice wasn't expanded, fetch it manually
         const invoice: any = await stripe.invoices.retrieve(latestInvoice, {
@@ -722,11 +724,14 @@ Generate 3-5 short, natural questions that would help the user learn more. Retur
         }
       }
 
-      console.log('Subscription created:', {
-        subscriptionId: subscription.id,
-        status: subscription.status,
-        invoiceType: typeof latestInvoice,
+      // If no payment intent, check for pending setup intent (for trials or deferred payment)
+      if (!clientSecret && pendingSetupIntent && typeof pendingSetupIntent === 'object') {
+        clientSecret = (pendingSetupIntent as any).client_secret;
+      }
+
+      console.log('Client secret status:', {
         clientSecret: clientSecret ? 'present' : 'missing',
+        source: clientSecret ? (pendingSetupIntent && typeof pendingSetupIntent === 'object' ? 'pending_setup_intent' : 'payment_intent') : 'none',
       });
 
       if (!clientSecret) {
