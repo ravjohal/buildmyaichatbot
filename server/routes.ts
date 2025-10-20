@@ -101,9 +101,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "No billing account found" });
       }
 
+      // Construct trusted return URL from server-known origin
+      const baseUrl = process.env.APP_BASE_URL || `${req.protocol}://${req.get('host')}`;
+      const returnUrl = `${baseUrl}/account`;
+
       const session = await stripe.billingPortal.sessions.create({
         customer: user.stripeCustomerId,
-        return_url: `${req.headers.origin || 'http://localhost:5000'}/account`,
+        return_url: returnUrl,
       });
 
       res.json({ url: session.url });
