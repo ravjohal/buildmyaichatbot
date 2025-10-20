@@ -12,6 +12,7 @@ import Analytics from "@/pages/Analytics";
 import Pricing from "@/pages/Pricing";
 import Subscribe from "@/pages/Subscribe";
 import Account from "@/pages/Account";
+import Admin from "@/pages/Admin";
 import Landing from "@/pages/Landing";
 import NotFound from "@/pages/not-found";
 import { useAuth } from "@/hooks/useAuth";
@@ -40,6 +41,7 @@ function Router() {
       <Route path="/pricing" component={Pricing} />
       <Route path="/subscribe" component={Subscribe} />
       <Route path="/account" component={Account} />
+      <Route path="/admin" component={Admin} />
       <Route path="/widget/:id" component={ChatWidget} />
       <Route component={NotFound} />
     </Switch>
