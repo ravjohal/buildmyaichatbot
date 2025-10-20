@@ -1,5 +1,6 @@
 import * as cheerio from 'cheerio';
 import { chromium, Browser, Page } from 'playwright';
+import { validateUrl, shouldBlockRequest } from './ssrf-protection';
 
 export interface RenderResult {
   html: string;
@@ -16,46 +17,113 @@ export interface PageRenderer {
 export class CheerioRenderer implements PageRenderer {
   async render(url: string): Promise<RenderResult> {
     try {
-      const response = await fetch(url, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (compatible; ChatbotBuilder/1.0)',
-        },
-      });
-
-      if (!response.ok) {
+      const validation = await validateUrl(url);
+      if (!validation.valid) {
         return {
           html: '',
           textContent: '',
           title: '',
-          error: `HTTP ${response.status}: ${response.statusText}`,
+          error: validation.error || 'Invalid URL',
         };
       }
 
-      const html = await response.text();
-      const $ = cheerio.load(html);
+      let currentUrl = url;
+      let redirectCount = 0;
+      const maxRedirects = 5;
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 30000);
 
-      $('script, style, noscript, iframe').remove();
+      try {
+        let finalResponse: Response | null = null;
 
-      const title = $('title').text().trim() || $('h1').first().text().trim();
+        while (redirectCount <= maxRedirects) {
+          const response = await fetch(currentUrl, {
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (compatible; ChatbotBuilder/1.0)',
+            },
+            redirect: 'manual',
+            signal: controller.signal,
+          });
 
-      let content = '';
-      const mainContent = $('main, article, [role="main"]').first();
-      if (mainContent.length) {
-        content = mainContent.text();
-      } else {
-        content = $('body').text();
+          if (response.status >= 300 && response.status < 400) {
+            const location = response.headers.get('location');
+            if (!location) break;
+
+            const nextUrl = new URL(location, currentUrl).toString();
+            const validation = await validateUrl(nextUrl);
+            if (!validation.valid) {
+              return {
+                html: '',
+                textContent: '',
+                title: '',
+                error: `Redirect blocked: ${validation.error}`,
+              };
+            }
+
+            currentUrl = nextUrl;
+            redirectCount++;
+            continue;
+          }
+
+          finalResponse = response;
+          break;
+        }
+
+        if (!finalResponse) {
+          return {
+            html: '',
+            textContent: '',
+            title: '',
+            error: 'Too many redirects',
+          };
+        }
+
+        clearTimeout(timeout);
+
+        if (!finalResponse.ok) {
+          return {
+            html: '',
+            textContent: '',
+            title: '',
+            error: `HTTP ${finalResponse.status}: ${finalResponse.statusText}`,
+          };
+        }
+
+        const html = await finalResponse.text();
+        const trimmedHtml = html.substring(0, 2000000);
+        const $ = cheerio.load(trimmedHtml);
+
+        $('script, style, noscript, iframe').remove();
+
+        const title = $('title').text().trim() || $('h1').first().text().trim();
+
+        let content = '';
+        const mainContent = $('main, article, [role="main"]').first();
+        if (mainContent.length) {
+          content = mainContent.text();
+        } else {
+          content = $('body').text();
+        }
+
+        content = content
+          .replace(/\s+/g, ' ')
+          .trim()
+          .substring(0, 50000);
+
+        return {
+          html: trimmedHtml,
+          textContent: content,
+          title,
+        };
+      } catch (fetchError) {
+        clearTimeout(timeout);
+        return {
+          html: '',
+          textContent: '',
+          title: '',
+          error: fetchError instanceof Error ? fetchError.message : 'Fetch failed',
+        };
       }
-
-      content = content
-        .replace(/\s+/g, ' ')
-        .trim()
-        .substring(0, 50000);
-
-      return {
-        html,
-        textContent: content,
-        title,
-      };
     } catch (error) {
       return {
         html: '',
@@ -74,14 +142,22 @@ export class PlaywrightRenderer implements PageRenderer {
 
   async render(url: string): Promise<RenderResult> {
     try {
+      const validation = await validateUrl(url);
+      if (!validation.valid) {
+        return {
+          html: '',
+          textContent: '',
+          title: '',
+          error: validation.error || 'Invalid URL',
+        };
+      }
+
       if (!this.browser) {
         this.browser = await chromium.launch({
           headless: true,
           args: [
             '--no-sandbox',
             '--disable-dev-shm-usage',
-            '--disable-web-security',
-            '--disable-features=IsolateOrigins,site-per-process',
           ],
         });
       }
@@ -95,6 +171,14 @@ export class PlaywrightRenderer implements PageRenderer {
       this.activePage = page;
 
       await page.route('**/*', (route) => {
+        const requestUrl = route.request().url();
+        
+        if (shouldBlockRequest(requestUrl)) {
+          console.log(`Blocked request to: ${requestUrl}`);
+          route.abort();
+          return;
+        }
+
         const resourceType = route.request().resourceType();
         if (['image', 'stylesheet', 'font', 'media'].includes(resourceType)) {
           route.abort();

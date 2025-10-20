@@ -17,57 +17,10 @@ export interface RecursiveCrawlOptions {
   maxJsPages?: number;
 }
 
-function isValidPublicUrl(urlString: string): { valid: boolean; error?: string } {
-  try {
-    const url = new URL(urlString);
-    
-    if (!['http:', 'https:'].includes(url.protocol)) {
-      return { valid: false, error: 'Only HTTP and HTTPS protocols are allowed' };
-    }
-    
-    const hostname = url.hostname.toLowerCase();
-    
-    if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '0.0.0.0') {
-      return { valid: false, error: 'Localhost URLs are not allowed' };
-    }
-    
-    if (hostname.startsWith('10.') || 
-        hostname.startsWith('192.168.') ||
-        hostname.startsWith('172.16.') || hostname.startsWith('172.17.') || 
-        hostname.startsWith('172.18.') || hostname.startsWith('172.19.') ||
-        hostname.startsWith('172.20.') || hostname.startsWith('172.21.') ||
-        hostname.startsWith('172.22.') || hostname.startsWith('172.23.') ||
-        hostname.startsWith('172.24.') || hostname.startsWith('172.25.') ||
-        hostname.startsWith('172.26.') || hostname.startsWith('172.27.') ||
-        hostname.startsWith('172.28.') || hostname.startsWith('172.29.') ||
-        hostname.startsWith('172.30.') || hostname.startsWith('172.31.')) {
-      return { valid: false, error: 'Private IP addresses are not allowed' };
-    }
-    
-    if (hostname === '169.254.169.254') {
-      return { valid: false, error: 'Metadata endpoints are not allowed' };
-    }
-    
-    return { valid: true };
-  } catch {
-    return { valid: false, error: 'Invalid URL format' };
-  }
-}
-
 async function crawlWithRenderer(
   url: string,
   renderer: PageRenderer
 ): Promise<{ content: string; title: string; html: string; error?: string }> {
-  const validation = isValidPublicUrl(url);
-  if (!validation.valid) {
-    return {
-      content: '',
-      title: '',
-      html: '',
-      error: validation.error || 'Invalid URL',
-    };
-  }
-
   const result = await renderer.render(url);
   
   if (result.error) {

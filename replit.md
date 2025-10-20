@@ -6,6 +6,40 @@ This SaaS web application enables non-technical business owners to create, custo
 
 ## Recent Changes (October 2025)
 
+### SPA Crawler with Auto-Detection (Completed - October 20, 2025)
+- Implemented dual-mode intelligent website crawler for Single Page Applications (SPAs)
+- Auto-detection mode: Tries static HTML first, falls back to JavaScript rendering if needed
+- Crawling modes:
+  - **Static** (default, fast): Uses Cheerio for server-rendered HTML
+  - **JavaScript**: Uses Playwright headless browser for JavaScript-heavy sites
+  - **Auto** (recommended): Automatically switches based on content detection
+- Auto-detection logic:
+  - Crawls with static HTML parser first
+  - If content is too short (< 1000 chars), automatically retries with JavaScript rendering
+  - Limits JavaScript rendering to 3 pages per crawl for cost control
+- Enhanced security (SSRF protection):
+  - DNS resolution with IPv4 and IPv6 validation
+  - Blocks private IP ranges (10.x, 172.16-31.x, 192.168.x, 127.x, etc.)
+  - Blocks IPv6 special ranges (::1, fe80::/10, fc00::/7, ff00::/8, etc.)
+  - Validates redirect chains (max 5 redirects)
+  - Request blocking in Playwright for internal IPs
+  - Port restrictions (only 80/443), protocol restrictions (http/https only)
+- Resource limits:
+  - 30-second fetch timeout for static crawler
+  - 15-second page timeout for JavaScript rendering
+  - Image/font/stylesheet blocking in Playwright
+  - 2MB HTML size limit, 50k character content limit
+  - Proper browser cleanup and error handling
+- Technical architecture:
+  - PageRenderer interface with CheerioRenderer and PlaywrightRenderer
+  - Separate SSRF protection module (server/ssrf-protection.ts)
+  - Automatic fallback logic in crawler
+  - Detailed logging of rendering mode used
+- Current limitations:
+  - JavaScript rendering limited to reduce costs
+  - DNS rebinding protection not fully implemented
+  - Best for public websites; may have issues with complex SPAs with auth
+  
 ### Admin System (Completed - October 20, 2025)
 - Implemented comprehensive admin system for site administrators
 - Added `isAdmin` field to users table (text type, values: "true" or "false")
