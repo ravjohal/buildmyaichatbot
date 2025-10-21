@@ -4,7 +4,7 @@ hidden = [".config", ".git", "generated-icon.png", "node_modules", "dist"]
 
 [nix]
 channel = "stable-24_05"
-packages = ["playwright-driver"]
+packages = ["playwright-driver", "glib", "nspr", "nss", "dbus", "atk", "at-spi2-core", "gtk3", "mesa", "libxkbcommon", "alsa-lib", "xorg.libX11", "xorg.libXcomposite", "xorg.libXdamage", "xorg.libXext", "xorg.libXfixes", "xorg.libXrandr", "xorg.libxcb"]
 
 [deployment]
 deploymentTarget = "autoscale"
