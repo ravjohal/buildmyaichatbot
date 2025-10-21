@@ -122,7 +122,7 @@ export async function crawlWebsiteRecursive(
     maxPages = 50,
     sameDomainOnly = true,
     mode = 'auto',
-    maxJsPages = 3,
+    maxJsPages = 20,
   } = options;
 
   const visited = new Set<string>();
