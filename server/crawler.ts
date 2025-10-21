@@ -170,17 +170,27 @@ export async function crawlWebsiteRecursive(
         if (shouldTryJs) {
           console.log(`Content extraction failed or too short (${result.content.length} chars), trying JavaScript rendering for ${url}`);
           
-          if (!jsRenderer) {
-            jsRenderer = new PlaywrightRenderer();
-          }
-          
-          const jsResult = await crawlWithRenderer(url, jsRenderer);
-          
-          if (!jsResult.error && jsResult.content.length > result.content.length) {
-            console.log(`JavaScript rendering yielded more content: ${jsResult.content.length} chars vs ${result.content.length} chars`);
-            result = jsResult;
-            renderedWith = 'javascript';
-            jsPageCount++;
+          try {
+            if (!jsRenderer) {
+              console.log(`[Auto-detect] Creating new PlaywrightRenderer...`);
+              jsRenderer = new PlaywrightRenderer();
+              console.log(`[Auto-detect] PlaywrightRenderer created successfully`);
+            }
+            
+            console.log(`[Auto-detect] Calling crawlWithRenderer with Playwright...`);
+            const jsResult = await crawlWithRenderer(url, jsRenderer);
+            console.log(`[Auto-detect] Playwright result: content=${jsResult.content.length} chars, error="${jsResult.error}"`);
+            
+            if (!jsResult.error && jsResult.content.length > result.content.length) {
+              console.log(`JavaScript rendering yielded more content: ${jsResult.content.length} chars vs ${result.content.length} chars`);
+              result = jsResult;
+              renderedWith = 'javascript';
+              jsPageCount++;
+            } else {
+              console.log(`[Auto-detect] Playwright didn't improve results, keeping static result`);
+            }
+          } catch (jsError) {
+            console.error(`[Auto-detect] Error during JavaScript rendering:`, jsError);
           }
         }
       }
