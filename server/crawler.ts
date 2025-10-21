@@ -159,9 +159,13 @@ export async function crawlWebsiteRecursive(
         result = await crawlWithRenderer(url, staticRenderer);
         renderedWith = 'static';
 
+        console.log(`[Auto-detect] Static result for ${url}: content=${result.content.length} chars, error="${result.error}", jsPageCount=${jsPageCount}/${maxJsPages}`);
+
         const contentTooShort = result.content.length < 1000;
         const noContentExtracted = result.error === 'No content could be extracted from the page';
         const shouldTryJs = (contentTooShort || noContentExtracted) && jsPageCount < maxJsPages;
+
+        console.log(`[Auto-detect] contentTooShort=${contentTooShort}, noContentExtracted=${noContentExtracted}, shouldTryJs=${shouldTryJs}`);
 
         if (shouldTryJs) {
           console.log(`Content extraction failed or too short (${result.content.length} chars), trying JavaScript rendering for ${url}`);
