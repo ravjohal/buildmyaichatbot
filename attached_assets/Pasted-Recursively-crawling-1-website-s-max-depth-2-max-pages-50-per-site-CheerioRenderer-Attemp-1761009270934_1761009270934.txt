@@ -1,0 +1,45 @@
+Recursively crawling 1 website(s) (max depth: 2, max pages: 50 per site)...
+[CheerioRenderer] Attempting to render: https://rurka-clone.replit.app/
+[CheerioRenderer] Validation result for https://rurka-clone.replit.app/: {"valid":true}
+[Auto-detect] Static result for https://rurka-clone.replit.app/: content=0 chars, error="No content could be extracted from the page", jsPageCount=0/3
+[Auto-detect] contentTooShort=true, noContentExtracted=true, shouldTryJs=true
+Content extraction failed or too short (0 chars), trying JavaScript rendering for https://rurka-clone.replit.app/
+[Auto-detect] Creating new PlaywrightRenderer...
+[Auto-detect] PlaywrightRenderer created successfully
+[Auto-detect] Calling crawlWithRenderer with Playwright...
+[PlaywrightRenderer] Starting render for: https://rurka-clone.replit.app/
+[PlaywrightRenderer] Validation result: {"valid":true}
+[PlaywrightRenderer] Launching browser...
+[Auto-detect] Playwright result: content=0 chars, error="browserType.launch: 
+╔══════════════════════════════════════════════════════╗
+║ Host system is missing dependencies to run browsers. ║
+║ Please install them with the following command:      ║
+║                                                      ║
+║     sudo npx playwright install-deps                 ║
+║                                                      ║
+║ Alternatively, use apt:                              ║
+║     sudo apt-get install libglib2.0-0t64\            ║
+║         libnspr4\                                    ║
+║         libnss3\                                     ║
+║         libdbus-1-3\                                 ║
+║         libatk1.0-0t64\                              ║
+║         libatk-bridge2.0-0t64\                       ║
+║         libatspi2.0-0t64\                            ║
+║         libx11-6\                                    ║
+║         libxcomposite1\                              ║
+║         libxdamage1\                                 ║
+║         libxext6\                                    ║
+║         libxfixes3\                                  ║
+║         libxrandr2\                                  ║
+║         libgbm1\                                     ║
+║         libxcb1\                                     ║
+║         libxkbcommon0\                               ║
+║         libasound2t64                                ║
+║                                                      ║
+║ <3 Playwright Team                                   ║
+╚══════════════════════════════════════════════════════╝"
+[Auto-detect] Playwright didn't improve results, keeping static result
+Successfully crawled 0 pages
+Failed to crawl https://rurka-clone.replit.app/: No content could be extracted from the page
+1:14:19 AM [express] POST /api/chatbots 201 in 1190ms :: {"id":"5a61aefc-7faa-4bd6-9d02-12eb72cfef87…
+1:14:22 AM [express] GET /api/chatbots 200 in 408ms :: [{"id":"5a61aefc-7faa-4bd6-9d02-12eb72cfef87"…
