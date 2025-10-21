@@ -143,8 +143,10 @@ export class PlaywrightRenderer implements PageRenderer {
   private readonly timeout: number = 15000;
 
   async render(url: string): Promise<RenderResult> {
+    console.log(`[PlaywrightRenderer] Starting render for: ${url}`);
     try {
       const validation = await validateUrl(url);
+      console.log(`[PlaywrightRenderer] Validation result: ${JSON.stringify(validation)}`);
       if (!validation.valid) {
         return {
           html: '',
@@ -155,6 +157,7 @@ export class PlaywrightRenderer implements PageRenderer {
       }
 
       if (!this.browser) {
+        console.log(`[PlaywrightRenderer] Launching browser...`);
         this.browser = await chromium.launch({
           headless: true,
           args: [
@@ -162,8 +165,10 @@ export class PlaywrightRenderer implements PageRenderer {
             '--disable-dev-shm-usage',
           ],
         });
+        console.log(`[PlaywrightRenderer] Browser launched successfully`);
       }
 
+      console.log(`[PlaywrightRenderer] Creating browser context...`);
       const context = await this.browser.newContext({
         viewport: { width: 1280, height: 720 },
         userAgent: 'Mozilla/5.0 (compatible; ChatbotBuilder/1.0)',
@@ -171,6 +176,7 @@ export class PlaywrightRenderer implements PageRenderer {
 
       const page = await context.newPage();
       this.activePage = page;
+      console.log(`[PlaywrightRenderer] Page created, navigating to ${url}...`);
 
       await page.route('**/*', (route) => {
         const requestUrl = route.request().url();
@@ -193,11 +199,13 @@ export class PlaywrightRenderer implements PageRenderer {
         waitUntil: 'networkidle',
         timeout: this.timeout,
       });
+      console.log(`[PlaywrightRenderer] Page loaded, waiting for JavaScript...`);
 
       await page.waitForTimeout(2000);
 
       const html = await page.content();
       const title = await page.title();
+      console.log(`[PlaywrightRenderer] Got title: ${title}`);
 
       const textContent = await page.evaluate(() => {
         const scripts = document.querySelectorAll('script, style, noscript, iframe');
@@ -211,6 +219,8 @@ export class PlaywrightRenderer implements PageRenderer {
           .trim()
           .substring(0, 50000);
       });
+
+      console.log(`[PlaywrightRenderer] Extracted ${textContent.length} chars of content`);
 
       await context.close();
       this.activePage = null;
