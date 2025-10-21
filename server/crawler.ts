@@ -160,10 +160,11 @@ export async function crawlWebsiteRecursive(
         renderedWith = 'static';
 
         const contentTooShort = result.content.length < 1000;
-        const shouldTryJs = contentTooShort && !result.error && jsPageCount < maxJsPages;
+        const noContentExtracted = result.error === 'No content could be extracted from the page';
+        const shouldTryJs = (contentTooShort || noContentExtracted) && jsPageCount < maxJsPages;
 
         if (shouldTryJs) {
-          console.log(`Content too short (${result.content.length} chars), trying JavaScript rendering for ${url}`);
+          console.log(`Content extraction failed or too short (${result.content.length} chars), trying JavaScript rendering for ${url}`);
           
           if (!jsRenderer) {
             jsRenderer = new PlaywrightRenderer();
