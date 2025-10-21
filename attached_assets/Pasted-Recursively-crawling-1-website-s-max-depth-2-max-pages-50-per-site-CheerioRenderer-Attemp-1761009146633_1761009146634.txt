@@ -1,0 +1,25 @@
+Recursively crawling 1 website(s) (max depth: 2, max pages: 50 per site)...
+[CheerioRenderer] Attempting to render: https://rurka-clone.replit.app/
+[CheerioRenderer] Validation result for https://rurka-clone.replit.app/: {"valid":true}
+[Auto-detect] Static result for https://rurka-clone.replit.app/: content=0 chars, error="No content could be extracted from the page", jsPageCount=0/3
+[Auto-detect] contentTooShort=true, noContentExtracted=true, shouldTryJs=true
+Content extraction failed or too short (0 chars), trying JavaScript rendering for https://rurka-clone.replit.app/
+[Auto-detect] Creating new PlaywrightRenderer...
+[Auto-detect] PlaywrightRenderer created successfully
+[Auto-detect] Calling crawlWithRenderer with Playwright...
+[PlaywrightRenderer] Starting render for: https://rurka-clone.replit.app/
+[PlaywrightRenderer] Validation result: {"valid":true}
+[PlaywrightRenderer] Launching browser...
+[Auto-detect] Playwright result: content=0 chars, error="browserType.launch: Executable doesn't exist at /home/runner/workspace/.cache/ms-playwright/chromium_headless_shell-1194/chrome-linux/headless_shell
+╔═════════════════════════════════════════════════════════════════════════╗
+║ Looks like Playwright Test or Playwright was just installed or updated. ║
+║ Please run the following command to download new browsers:              ║
+║                                                                         ║
+║     npx playwright install                                              ║
+║                                                                         ║
+║ <3 Playwright Team                                                      ║
+╚═════════════════════════════════════════════════════════════════════════╝"
+[Auto-detect] Playwright didn't improve results, keeping static result
+Successfully crawled 0 pages
+Failed to crawl https://rurka-clone.replit.app/: No content could be extracted from the page
+1:12:08 AM [express] POST /api/chatbots 201 in 1077ms :: {"id":"042d4c7e-c636-4f53-9de6-43b1849f98e3…
