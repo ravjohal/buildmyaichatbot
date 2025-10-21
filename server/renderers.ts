@@ -16,8 +16,10 @@ export interface PageRenderer {
 
 export class CheerioRenderer implements PageRenderer {
   async render(url: string): Promise<RenderResult> {
+    console.log(`[CheerioRenderer] Attempting to render: ${url}`);
     try {
       const validation = await validateUrl(url);
+      console.log(`[CheerioRenderer] Validation result for ${url}: ${JSON.stringify(validation)}`);
       if (!validation.valid) {
         return {
           html: '',
