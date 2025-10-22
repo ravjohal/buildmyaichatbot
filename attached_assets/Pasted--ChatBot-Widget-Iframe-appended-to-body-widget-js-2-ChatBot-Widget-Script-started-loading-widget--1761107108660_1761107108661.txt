@@ -1,0 +1,48 @@
+[ChatBot Widget] Iframe appended to body
+widget.js:2 [ChatBot Widget] Script started loading
+widget.js:12 [ChatBot Widget] Chatbot ID: 91c74266-a628-484e-90b5-cd5367bef2ee
+widget.js:18 [ChatBot Widget] Script src: https://buildchatbot.replit.app/widget.js
+widget.js:34 [ChatBot Widget] Chatbot server origin: https://buildchatbot.replit.app
+widget.js:36 [ChatBot Widget] Creating iframe...
+widget.js:46 [ChatBot Widget] Iframe src: https://buildchatbot.replit.app/widget/91c74266-a628-484e-90b5-cd5367bef2ee
+widget.js:47 [ChatBot Widget] Iframe style: position: fixed; bottom: 0px; right: 0px; width: 450px; height: 650px; border: none; background: transparent; z-index: 2147483647; pointer-events: auto;
+widget.js:59 [ChatBot Widget] Iframe appended to body
+/api/user:1  Failed to load resource: the server responded with a status of 401 ()
+ [ChatWidget] Function called
+ [ChatWidget] Params: Object
+ [ChatWidget] Chatbot ID from route: 91c74266-a628-484e-90b5-cd5367bef2ee
+ [ChatWidget] isLoading: true
+ [ChatWidget] chatbot: undefined
+ [ChatWidget] error: null
+ [ChatWidget] isStandalone: false
+ [ChatWidget] Component mounted
+ [ChatWidget] Chatbot ID: 91c74266-a628-484e-90b5-cd5367bef2ee
+ [ChatWidget] Is in iframe? true
+index-ChjL1f6Z.js:356 [ChatWidget] Function called
+index-ChjL1f6Z.js:356 [ChatWidget] Params: Object
+index-ChjL1f6Z.js:356 [ChatWidget] Chatbot ID from route: 91c74266-a628-484e-90b5-cd5367bef2ee
+index-ChjL1f6Z.js:356 [ChatWidget] isLoading: true
+index-ChjL1f6Z.js:356 [ChatWidget] chatbot: undefined
+index-ChjL1f6Z.js:356 [ChatWidget] error: null
+index-ChjL1f6Z.js:356 [ChatWidget] isStandalone: false
+index-ChjL1f6Z.js:356 [ChatWidget] Component mounted
+index-ChjL1f6Z.js:356 [ChatWidget] Chatbot ID: 91c74266-a628-484e-90b5-cd5367bef2ee
+index-ChjL1f6Z.js:356 [ChatWidget] Is in iframe? true
+8[Violation] Potential permissions policy violation: payment is not allowed in this document.
+[Violation] Potential permissions policy violation: payment is not allowed in this document.
+[Violation] Potential permissions policy violation: payment is not allowed in this document.
+[Violation] Potential permissions policy violation: payment is not allowed in this document.
+[Violation] Potential permissions policy violation: payment is not allowed in this document.
+[Violation] Potential permissions policy violation: payment is not allowed in this document.
+[Violation] Potential permissions policy violation: payment is not allowed in this document.
+[Violation] Potential permissions policy violation: payment is not allowed in this document.
+[Violation] Potential permissions policy violation: payment is not allowed in this document.
+2widget.js:51 [ChatBot Widget] Iframe loaded successfully
+ [ChatWidget] Function called
+ [ChatWidget] Params: Object
+ [ChatWidget] Chatbot ID from route: 91c74266-a628-484e-90b5-cd5367bef2ee
+ [ChatWidget] isLoading: false
+ [ChatWidget] chatbot: Object
+ [ChatWidget] error: null
+ [ChatWidget] isStandalone: false
+index-ChjL1f6Z.js:356 [ChatWidget] Function called
