@@ -1,0 +1,114 @@
+2025-10-21 23:18:07.51
+206e1473
+User
+[PlaywrightRenderer] Starting render for: https://rurka-clone.replit.app/RurkaCaliforniaWarranty.pdf
+2025-10-21 23:18:07.51
+206e1473
+User
+[PlaywrightRenderer] Environment: production
+2025-10-21 23:18:07.51
+206e1473
+User
+[PlaywrightRenderer] Platform: linux
+2025-10-21 23:18:07.51
+206e1473
+User
+[PlaywrightRenderer] Architecture: x64
+2025-10-21 23:18:07.51
+206e1473
+User
+[PlaywrightRenderer] Validation result: {"valid":true}
+2025-10-21 23:18:07.51
+206e1473
+User
+[PlaywrightRenderer] Creating browser context...
+2025-10-21 23:18:07.54
+206e1473
+User
+[PlaywrightRenderer] Page created, navigating to https://rurka-clone.replit.app/RurkaCaliforniaWarranty.pdf...
+2025-10-21 23:18:07.84
+206e1473
+User
+6:18:07 AM [express] GET /api/public/chatbots/91c74266-a628-484e-90b5-cd5367bef2ee 200 in 23ms :: {"…
+2025-10-21 23:18:07.87
+206e1473
+User
+6:18:07 AM [express] GET /api/public/chatbots/91c74266-a628-484e-90b5-cd5367bef2ee 200 in 23ms :: {"…
+2025-10-21 23:18:22.55
+206e1473
+User
+[PlaywrightRenderer] ✗ RENDER ERROR for https://rurka-clone.replit.app/RurkaCaliforniaWarranty.pdf
+2025-10-21 23:18:22.55
+206e1473
+User
+[PlaywrightRenderer] Error type: TimeoutError
+2025-10-21 23:18:22.55
+206e1473
+User
+[PlaywrightRenderer] Error message: page.goto: Timeout 15000ms exceeded.
+2025-10-21 23:18:22.55
+206e1473
+User
+Call log:
+2025-10-21 23:18:22.55
+206e1473
+User
+- navigating to "https://rurka-clone.replit.app/RurkaCaliforniaWarranty.pdf", waiting until "networkidle"
+2025-10-21 23:18:22.55
+206e1473
+User
+2025-10-21 23:18:22.55
+206e1473
+User
+[PlaywrightRenderer] Error stack: page.goto: Timeout 15000ms exceeded.
+2025-10-21 23:18:22.55
+206e1473
+User
+Call log:
+2025-10-21 23:18:22.55
+206e1473
+User
+- navigating to "https://rurka-clone.replit.app/RurkaCaliforniaWarranty.pdf", waiting until "networkidle"
+2025-10-21 23:18:22.55
+206e1473
+User
+2025-10-21 23:18:22.55
+206e1473
+User
+at PlaywrightRenderer.render (/home/runner/workspace/dist/index.js:809:18)
+2025-10-21 23:18:22.55
+206e1473
+User
+at async crawlWithRenderer (/home/runner/workspace/dist/index.js:871:18)
+2025-10-21 23:18:22.55
+206e1473
+User
+at async crawlWebsiteRecursive (/home/runner/workspace/dist/index.js:980:30)
+2025-10-21 23:18:22.55
+206e1473
+User
+at async crawlMultipleWebsitesRecursive (/home/runner/workspace/dist/index.js:1024:21)
+2025-10-21 23:18:22.55
+206e1473
+User
+at async file:///home/runner/workspace/dist/index.js:1277:32
+2025-10-21 23:18:22.55
+206e1473
+User
+[PlaywrightRenderer] Full error: {
+2025-10-21 23:18:22.55
+206e1473
+User
+"stack": "page.goto: Timeout 15000ms exceeded.\nCall log:\n - navigating to \"https://rurka-clone.replit.app/RurkaCaliforniaWarranty.pdf\", waiting until \"networkidle\"\n\n at PlaywrightRenderer.render (/home/runner/workspace/dist/index.js:809:18)\n at async crawlWithRenderer (/home/runner/workspace/dist/index.js:871:18)\n at async crawlWebsiteRecursive (/home/runner/workspace/dist/index.js:980:30)\n at async crawlMultipleWebsitesRecursive (/home/runner/workspace/dist/index.js:1024:21)\n at async file:///home/runner/workspace/dist/index.js:1277:32",
+2025-10-21 23:18:22.55
+206e1473
+User
+"message": "page.goto: Timeout 15000ms exceeded.\nCall log:\n - navigating to \"https://rurka-clone.replit.app/RurkaCaliforniaWarranty.pdf\", waiting until \"networkidle\"\n",
+2025-10-21 23:18:22.55
+206e1473
+User
+"name": "TimeoutError"
+2025-10-21 23:18:22.55
+206e1473
+User
+}

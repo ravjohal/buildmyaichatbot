@@ -92,7 +92,9 @@ function extractLinks(html: string, baseUrl: string): string[] {
     try {
       const absoluteUrl = new URL(href, baseUrl);
       
-      if (absoluteUrl.protocol === 'http:' || absoluteUrl.protocol === 'https:') {
+      // Only include HTTP(S) URLs that point to crawlable content
+      if ((absoluteUrl.protocol === 'http:' || absoluteUrl.protocol === 'https:') && 
+          isCrawlableUrl(absoluteUrl.toString())) {
         absoluteUrl.hash = '';
         links.push(absoluteUrl.toString());
       }
@@ -108,6 +110,34 @@ function isSameDomain(url1: string, url2: string): boolean {
     const domain1 = new URL(url1).hostname;
     const domain2 = new URL(url2).hostname;
     return domain1 === domain2;
+  } catch {
+    return false;
+  }
+}
+
+function isCrawlableUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    const pathname = parsed.pathname.toLowerCase();
+    
+    // Skip non-HTML file extensions
+    const nonHtmlExtensions = [
+      '.pdf', '.zip', '.rar', '.tar', '.gz', '.7z',
+      '.jpg', '.jpeg', '.png', '.gif', '.bmp', '.svg', '.webp', '.ico',
+      '.mp4', '.avi', '.mov', '.wmv', '.flv', '.webm',
+      '.mp3', '.wav', '.ogg', '.m4a',
+      '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx',
+      '.exe', '.dmg', '.apk', '.deb', '.rpm',
+      '.css', '.js', '.json', '.xml', '.txt',
+    ];
+    
+    for (const ext of nonHtmlExtensions) {
+      if (pathname.endsWith(ext)) {
+        return false;
+      }
+    }
+    
+    return true;
   } catch {
     return false;
   }
@@ -141,6 +171,12 @@ export async function crawlWebsiteRecursive(
       visited.add(url);
 
       if (depth > maxDepth) continue;
+      
+      // Skip non-crawlable URLs (PDFs, images, etc.)
+      if (!isCrawlableUrl(url)) {
+        console.log(`[Crawler] Skipping non-HTML URL: ${url}`);
+        continue;
+      }
 
       let result: { content: string; title: string; html: string; error?: string };
       let renderedWith: 'static' | 'javascript' = 'static';
