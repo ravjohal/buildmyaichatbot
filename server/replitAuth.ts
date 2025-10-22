@@ -44,7 +44,8 @@ export function getSession() {
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      secure: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
       maxAge: sessionTtl,
     },
   });
@@ -174,17 +175,30 @@ export async function setupAuth(app: Express) {
 export const isAuthenticated: RequestHandler = async (req, res, next) => {
   const user = req.user as any;
 
-  if (!req.isAuthenticated() || !user.expires_at) {
+  console.log("[AUTH] isAuthenticated check:", {
+    isAuthenticated: req.isAuthenticated(),
+    hasUser: !!req.user,
+    hasSession: !!req.session,
+    sessionID: req.sessionID,
+    userClaims: user?.claims?.sub,
+    expiresAt: user?.expires_at,
+  });
+
+  if (!req.isAuthenticated() || !user?.expires_at) {
+    console.log("[AUTH] ✗ Not authenticated or missing expires_at");
     return res.status(401).json({ message: "Unauthorized" });
   }
 
   const now = Math.floor(Date.now() / 1000);
   if (now <= user.expires_at) {
+    console.log("[AUTH] ✓ Token still valid");
     return next();
   }
 
+  console.log("[AUTH] Token expired, attempting refresh");
   const refreshToken = user.refresh_token;
   if (!refreshToken) {
+    console.log("[AUTH] ✗ No refresh token available");
     res.status(401).json({ message: "Unauthorized" });
     return;
   }
@@ -193,8 +207,10 @@ export const isAuthenticated: RequestHandler = async (req, res, next) => {
     const config = await getOidcConfig();
     const tokenResponse = await client.refreshTokenGrant(config, refreshToken);
     updateUserSession(user, tokenResponse);
+    console.log("[AUTH] ✓ Token refreshed successfully");
     return next();
   } catch (error) {
+    console.log("[AUTH] ✗ Token refresh failed:", error);
     res.status(401).json({ message: "Unauthorized" });
     return;
   }
