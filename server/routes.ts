@@ -827,13 +827,12 @@ Generate 3-5 short, natural questions that would help the user learn more. Retur
         items: [{
           price: priceId,
         }],
-        collection_method: 'charge_automatically',
         payment_behavior: 'default_incomplete',
         payment_settings: {
           save_default_payment_method: 'on_subscription',
           payment_method_types: ['card'],
         },
-        expand: ['latest_invoice.payment_intent', 'pending_setup_intent'],
+        expand: ['latest_invoice.payment_intent'],
         metadata: {
           userId: user.id,
           billingCycle,
@@ -843,50 +842,66 @@ Generate 3-5 short, natural questions that would help the user learn more. Retur
       // Store subscription ID
       await storage.updateStripeSubscriptionId(user.id, subscription.id);
 
-      // Get the client secret from either payment_intent or pending_setup_intent
+      // Get the client secret from the payment intent
       let clientSecret: string | null = null;
       const latestInvoice = subscription.latest_invoice;
-      const pendingSetupIntent = subscription.pending_setup_intent;
       
-      console.log('Subscription details:', {
+      console.log('Subscription created:', {
         subscriptionId: subscription.id,
         status: subscription.status,
-        invoiceType: typeof latestInvoice,
-        invoiceId: typeof latestInvoice === 'object' ? (latestInvoice as any)?.id : latestInvoice,
-        hasPendingSetupIntent: !!pendingSetupIntent,
-        pendingSetupIntentType: typeof pendingSetupIntent,
+        latestInvoiceType: typeof latestInvoice,
+        latestInvoiceId: typeof latestInvoice === 'object' ? (latestInvoice as any)?.id : latestInvoice,
       });
       
-      // Check for payment intent in the invoice (for immediate payment)
-      if (typeof latestInvoice === 'string') {
-        // Invoice wasn't expanded, fetch it manually
+      // Extract payment intent from the expanded invoice
+      if (typeof latestInvoice === 'object' && latestInvoice !== null) {
+        const invoice = latestInvoice as any;
+        const paymentIntent = invoice.payment_intent;
+        
+        console.log('Invoice details:', {
+          invoiceId: invoice.id,
+          status: invoice.status,
+          total: invoice.total,
+          paymentIntentType: typeof paymentIntent,
+          paymentIntentId: typeof paymentIntent === 'object' ? paymentIntent?.id : paymentIntent,
+        });
+        
+        if (typeof paymentIntent === 'object' && paymentIntent !== null && paymentIntent.client_secret) {
+          clientSecret = paymentIntent.client_secret;
+        } else if (typeof paymentIntent === 'string') {
+          // Payment intent wasn't expanded, retrieve it
+          const pi = await stripe.paymentIntents.retrieve(paymentIntent);
+          clientSecret = pi.client_secret;
+        }
+      } else if (typeof latestInvoice === 'string') {
+        // Invoice wasn't expanded, fetch it with payment intent
         const invoice: any = await stripe.invoices.retrieve(latestInvoice, {
           expand: ['payment_intent'],
         });
         const paymentIntent = invoice.payment_intent;
-        if (typeof paymentIntent === 'object' && paymentIntent !== null) {
-          clientSecret = paymentIntent.client_secret;
-        }
-      } else if (latestInvoice && typeof latestInvoice === 'object') {
-        // Invoice was expanded
-        const paymentIntent = (latestInvoice as any).payment_intent;
-        if (typeof paymentIntent === 'object' && paymentIntent !== null) {
+        
+        if (typeof paymentIntent === 'object' && paymentIntent !== null && paymentIntent.client_secret) {
           clientSecret = paymentIntent.client_secret;
         }
       }
 
-      // If no payment intent, check for pending setup intent (for trials or deferred payment)
-      if (!clientSecret && pendingSetupIntent && typeof pendingSetupIntent === 'object') {
-        clientSecret = (pendingSetupIntent as any).client_secret;
-      }
-
-      console.log('Client secret status:', {
-        clientSecret: clientSecret ? 'present' : 'missing',
-        source: clientSecret ? (pendingSetupIntent && typeof pendingSetupIntent === 'object' ? 'pending_setup_intent' : 'payment_intent') : 'none',
+      console.log('Client secret extraction:', {
+        clientSecret: clientSecret ? 'found' : 'missing',
+        clientSecretPrefix: clientSecret ? clientSecret.substring(0, 7) + '...' : 'none',
       });
 
       if (!clientSecret) {
-        throw new Error('Failed to create payment intent. Please check your Stripe configuration.');
+        // More detailed error logging
+        console.error('Failed to extract client secret. Subscription object:', JSON.stringify({
+          id: subscription.id,
+          status: subscription.status,
+          latest_invoice: typeof latestInvoice === 'object' ? { 
+            id: (latestInvoice as any)?.id,
+            status: (latestInvoice as any)?.status,
+            payment_intent: (latestInvoice as any)?.payment_intent ? 'exists' : 'missing'
+          } : latestInvoice,
+        }, null, 2));
+        throw new Error('Failed to create payment intent. The subscription was created but payment setup failed. Please contact support.');
       }
 
       res.json({
