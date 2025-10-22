@@ -54,8 +54,9 @@ function ProtectedRouter() {
 function Router() {
   const [location] = useLocation();
   
-  // Skip authentication for public routes (widget and pricing)
-  const isPublicRoute = location.startsWith('/widget/') || location === '/pricing' || location === '/';
+  // Only skip authentication for truly public routes (widget and pricing)
+  // Homepage (/) should check authentication to show Dashboard vs Landing
+  const isPublicRoute = location.startsWith('/widget/') || location === '/pricing';
   
   if (isPublicRoute) {
     return <PublicRouter />;
