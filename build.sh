@@ -3,9 +3,10 @@ set -e
 
 echo "=== PRODUCTION BUILD SCRIPT ==="
 echo ""
-echo "Step 1/3: Installing Playwright Chromium browser..."
-npx playwright install chromium --with-deps
-echo "✓ Playwright browser installed"
+echo "Step 1/3: Installing Playwright Chromium browser (binaries only)..."
+# Install only the browser binaries, not system deps (Nix provides those)
+npx playwright install chromium
+echo "✓ Playwright browser binaries installed"
 echo ""
 
 echo "Step 2/3: Building frontend with Vite..."
@@ -20,3 +21,5 @@ echo ""
 
 echo "=== BUILD COMPLETE ==="
 echo "Production build ready in dist/"
+echo ""
+echo "Note: System dependencies provided by Nix packages (replit.nix)"

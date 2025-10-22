@@ -8,7 +8,7 @@ packages = ["playwright-driver", "glib", "nspr", "nss", "dbus", "atk", "at-spi2-
 
 [deployment]
 deploymentTarget = "autoscale"
-build = ["npm", "run", "build"]
+build = ["sh", "-c", "./build.sh"]
 run = ["npm", "run", "start"]
 
 [[ports]]
