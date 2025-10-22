@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
-import { ArrowLeft, ArrowRight, Check, Bot } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, Bot, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { StepIndicator } from "@/components/StepIndicator";
@@ -114,7 +114,19 @@ export default function CreateChatbot() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background relative">
+      {/* Loading Overlay */}
+      {isSubmitting && (
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
+          <div className="flex flex-col items-center gap-4">
+            <Loader2 className="w-12 h-12 text-primary animate-spin" data-testid="loader-creating" />
+            <div className="text-center">
+              <p className="text-lg font-semibold">Creating your chatbot...</p>
+              <p className="text-sm text-muted-foreground">This may take a moment</p>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="border-b">
         <div className="max-w-4xl mx-auto px-6 py-6">
           <div className="flex items-center gap-3">
