@@ -162,14 +162,36 @@ export class PlaywrightRenderer implements PageRenderer {
 
       if (!this.browser) {
         console.log(`[PlaywrightRenderer] Launching browser...`);
-        console.log(`[PlaywrightRenderer] Chromium path:`, chromium.executablePath());
+        
+        // In production, use system Chromium from Nix; in dev, use Playwright's downloaded browser
+        let executablePath: string | undefined = undefined;
+        
+        if (process.env.NODE_ENV === 'production') {
+          // Try to find system chromium
+          try {
+            const { execSync } = await import('child_process');
+            const chromiumPath = execSync('which chromium-browser || which chromium', { encoding: 'utf8' }).trim();
+            if (chromiumPath) {
+              executablePath = chromiumPath;
+              console.log(`[PlaywrightRenderer] Found system Chromium:`, executablePath);
+            }
+          } catch (error) {
+            console.log(`[PlaywrightRenderer] System Chromium not found, will try Playwright browser`);
+          }
+        }
+        
+        if (!executablePath) {
+          console.log(`[PlaywrightRenderer] Using Playwright Chromium:`, chromium.executablePath());
+        }
         
         try {
           this.browser = await chromium.launch({
+            executablePath: executablePath || undefined,
             headless: true,
             args: [
               '--no-sandbox',
               '--disable-dev-shm-usage',
+              '--disable-gpu',
             ],
           });
           console.log(`[PlaywrightRenderer] ✓ Browser launched successfully`);

@@ -49,12 +49,38 @@ app.use((req, res, next) => {
   console.log("\n=== PLAYWRIGHT AVAILABILITY CHECK ===");
   try {
     const { chromium } = await import('playwright');
+    const { execSync } = await import('child_process');
     console.log("✓ Playwright module loaded successfully");
-    console.log("✓ Chromium executable path:", chromium.executablePath());
+    console.log("  Default executable:", chromium.executablePath());
     
-    // Try to get the version
+    // Check for system Chromium (Nix)
+    let systemChromium: string | null = null;
     try {
-      const browser = await chromium.launch({ headless: true });
+      systemChromium = execSync('which chromium-browser || which chromium', { encoding: 'utf8' }).trim();
+      if (systemChromium) {
+        console.log("✓ System Chromium found:", systemChromium);
+      }
+    } catch {
+      console.log("  System Chromium not found in PATH");
+    }
+    
+    // Try to launch browser
+    try {
+      const executablePath = (process.env.NODE_ENV === 'production' && systemChromium) 
+        ? systemChromium 
+        : undefined;
+      
+      if (executablePath) {
+        console.log("  Testing with system Chromium:", executablePath);
+      } else {
+        console.log("  Testing with Playwright Chromium");
+      }
+      
+      const browser = await chromium.launch({ 
+        executablePath: executablePath || undefined,
+        headless: true,
+        args: ['--no-sandbox', '--disable-dev-shm-usage', '--disable-gpu']
+      });
       const version = await browser.version();
       console.log("✓ Chromium version:", version);
       await browser.close();

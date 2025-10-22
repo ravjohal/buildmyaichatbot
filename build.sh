@@ -3,18 +3,12 @@ set -e
 
 echo "=== PRODUCTION BUILD SCRIPT ==="
 echo ""
-echo "Step 1/3: Installing Playwright Chromium browser (binaries only)..."
-# Install only the browser binaries, not system deps (Nix provides those)
-npx playwright install chromium
-echo "✓ Playwright browser binaries installed"
-echo ""
-
-echo "Step 2/3: Building frontend with Vite..."
+echo "Step 1/2: Building frontend with Vite..."
 npx vite build
 echo "✓ Frontend built"
 echo ""
 
-echo "Step 3/3: Building backend with esbuild..."
+echo "Step 2/2: Building backend with esbuild..."
 npx esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist
 echo "✓ Backend built"
 echo ""
@@ -22,4 +16,4 @@ echo ""
 echo "=== BUILD COMPLETE ==="
 echo "Production build ready in dist/"
 echo ""
-echo "Note: System dependencies provided by Nix packages (replit.nix)"
+echo "Note: Using system Chromium from Nix (replit.nix) at runtime"
