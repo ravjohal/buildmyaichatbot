@@ -3,6 +3,21 @@ import { QueryClient, QueryFunction } from "@tanstack/react-query";
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
     const text = (await res.text()) || res.statusText;
+    
+    // Check if session expired and login is required
+    if (res.status === 401) {
+      try {
+        const errorData = JSON.parse(text);
+        if (errorData.requireLogin) {
+          // Session expired, redirect to login
+          window.location.href = '/api/login';
+          return;
+        }
+      } catch {
+        // Not JSON, just throw the error
+      }
+    }
+    
     throw new Error(`${res.status}: ${text}`);
   }
 }

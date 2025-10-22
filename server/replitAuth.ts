@@ -211,7 +211,17 @@ export const isAuthenticated: RequestHandler = async (req, res, next) => {
     return next();
   } catch (error) {
     console.log("[AUTH] ✗ Token refresh failed:", error);
-    res.status(401).json({ message: "Unauthorized" });
+    // Clear the invalid session and require re-login
+    req.logout((err) => {
+      if (err) console.error("[AUTH] Logout error:", err);
+    });
+    req.session.destroy((err) => {
+      if (err) console.error("[AUTH] Session destroy error:", err);
+    });
+    res.status(401).json({ 
+      message: "Session expired. Please log in again.",
+      requireLogin: true 
+    });
     return;
   }
 };
