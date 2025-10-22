@@ -822,7 +822,7 @@ Generate 3-5 short, natural questions that would help the user learn more. Retur
       }
 
       // Create subscription using pre-created price
-      const subscription = await stripe.subscriptions.create({
+      let subscription = await stripe.subscriptions.create({
         customer: stripeCustomerId,
         items: [{
           price: priceId,
@@ -841,10 +841,35 @@ Generate 3-5 short, natural questions that would help the user learn more. Retur
 
       // Store subscription ID
       await storage.updateStripeSubscriptionId(user.id, subscription.id);
+      
+      // Check if payment intent was created, if not, finalize the invoice to create it
+      let latestInvoice = subscription.latest_invoice;
+      if (typeof latestInvoice === 'object' && latestInvoice !== null) {
+        const invoice = latestInvoice as any;
+        
+        // If invoice doesn't have a payment intent, finalize it to create one
+        if (!invoice.payment_intent) {
+          console.log('Payment intent not found, finalizing invoice to create it...');
+          const finalizedInvoice: any = await stripe.invoices.finalizeInvoice(invoice.id, {
+            expand: ['payment_intent'],
+          });
+          
+          // Update subscription with the finalized invoice
+          subscription = await stripe.subscriptions.retrieve(subscription.id, {
+            expand: ['latest_invoice.payment_intent'],
+          });
+          latestInvoice = subscription.latest_invoice;
+          
+          console.log('Invoice finalized:', {
+            invoiceId: finalizedInvoice.id,
+            status: finalizedInvoice.status,
+            hasPaymentIntent: !!finalizedInvoice.payment_intent,
+          });
+        }
+      }
 
       // Get the client secret from the payment intent
       let clientSecret: string | null = null;
-      const latestInvoice = subscription.latest_invoice;
       
       console.log('Subscription created:', {
         subscriptionId: subscription.id,
