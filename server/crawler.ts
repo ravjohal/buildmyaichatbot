@@ -1,6 +1,9 @@
 import * as cheerio from 'cheerio';
 import { CheerioRenderer, PlaywrightRenderer, PageRenderer } from './renderers';
 
+// pdf-parse doesn't have proper ESM exports, use dynamic import
+const pdfParsePromise = import('pdf-parse');
+
 export interface CrawlResult {
   url: string;
   content: string;
@@ -115,14 +118,28 @@ function isSameDomain(url1: string, url2: string): boolean {
   }
 }
 
+function isPdfUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    return parsed.pathname.toLowerCase().endsWith('.pdf');
+  } catch {
+    return false;
+  }
+}
+
 function isCrawlableUrl(url: string): boolean {
   try {
     const parsed = new URL(url);
     const pathname = parsed.pathname.toLowerCase();
     
-    // Skip non-HTML file extensions
-    const nonHtmlExtensions = [
-      '.pdf', '.zip', '.rar', '.tar', '.gz', '.7z',
+    // PDFs are now crawlable (we extract text from them)
+    if (pathname.endsWith('.pdf')) {
+      return true;
+    }
+    
+    // Skip other non-HTML file extensions
+    const nonCrawlableExtensions = [
+      '.zip', '.rar', '.tar', '.gz', '.7z',
       '.jpg', '.jpeg', '.png', '.gif', '.bmp', '.svg', '.webp', '.ico',
       '.mp4', '.avi', '.mov', '.wmv', '.flv', '.webm',
       '.mp3', '.wav', '.ogg', '.m4a',
@@ -131,7 +148,7 @@ function isCrawlableUrl(url: string): boolean {
       '.css', '.js', '.json', '.xml', '.txt',
     ];
     
-    for (const ext of nonHtmlExtensions) {
+    for (const ext of nonCrawlableExtensions) {
       if (pathname.endsWith(ext)) {
         return false;
       }
@@ -140,6 +157,55 @@ function isCrawlableUrl(url: string): boolean {
     return true;
   } catch {
     return false;
+  }
+}
+
+async function extractPdfText(url: string): Promise<{ content: string; title: string; error?: string }> {
+  try {
+    console.log(`[PDF Extractor] Fetching PDF from: ${url}`);
+    
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; ChatbotCrawler/1.0)',
+      },
+      signal: AbortSignal.timeout(30000), // 30 second timeout
+    });
+
+    if (!response.ok) {
+      return {
+        content: '',
+        title: '',
+        error: `Failed to fetch PDF: ${response.status} ${response.statusText}`,
+      };
+    }
+
+    const arrayBuffer = await response.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+
+    console.log(`[PDF Extractor] PDF downloaded, size: ${buffer.length} bytes`);
+
+    // Dynamically import pdf-parse (it doesn't have proper ESM exports)
+    const pdfParseModule = await pdfParsePromise;
+    const pdfParse = (pdfParseModule as any).default || pdfParseModule;
+    const pdfData = await pdfParse(buffer);
+
+    console.log(`[PDF Extractor] Text extracted: ${pdfData.text.length} characters`);
+
+    // Get filename from URL as title
+    const urlObj = new URL(url);
+    const filename = urlObj.pathname.split('/').pop() || 'PDF Document';
+
+    return {
+      content: pdfData.text.trim(),
+      title: filename.replace('.pdf', ''),
+    };
+  } catch (error: any) {
+    console.error(`[PDF Extractor] Error extracting PDF:`, error);
+    return {
+      content: '',
+      title: '',
+      error: `Failed to extract PDF text: ${error.message}`,
+    };
   }
 }
 
@@ -172,16 +238,25 @@ export async function crawlWebsiteRecursive(
 
       if (depth > maxDepth) continue;
       
-      // Skip non-crawlable URLs (PDFs, images, etc.)
+      // Skip non-crawlable URLs (images, videos, etc. - but PDFs are crawlable)
       if (!isCrawlableUrl(url)) {
-        console.log(`[Crawler] Skipping non-HTML URL: ${url}`);
+        console.log(`[Crawler] Skipping non-crawlable URL: ${url}`);
         continue;
       }
 
-      let result: { content: string; title: string; html: string; error?: string };
+      let result: { content: string; title: string; html?: string; error?: string };
       let renderedWith: 'static' | 'javascript' = 'static';
 
-      if (mode === 'javascript') {
+      // Check if this is a PDF file
+      if (isPdfUrl(url)) {
+        console.log(`[Crawler] Detected PDF: ${url}`);
+        const pdfResult = await extractPdfText(url);
+        result = {
+          ...pdfResult,
+          html: '', // PDFs don't have HTML
+        };
+        renderedWith = 'static'; // Mark as static since we didn't use JS rendering
+      } else if (mode === 'javascript') {
         if (!jsRenderer) {
           jsRenderer = new PlaywrightRenderer();
         }
