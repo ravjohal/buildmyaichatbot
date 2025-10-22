@@ -30,15 +30,32 @@ const getOidcConfig = memoize(
 
 export function getSession() {
   const sessionTtl = 7 * 24 * 60 * 60 * 1000; // 1 week
+  
+  // Ensure SESSION_SECRET is set
+  if (!process.env.SESSION_SECRET) {
+    throw new Error("SESSION_SECRET environment variable is required");
+  }
+  
+  // Ensure DATABASE_URL is set for session store
+  if (!process.env.DATABASE_URL) {
+    throw new Error("DATABASE_URL environment variable is required for session store");
+  }
+  
   const pgStore = connectPg(session);
   const sessionStore = new pgStore({
     conString: process.env.DATABASE_URL,
-    createTableIfMissing: false,
+    createTableIfMissing: true, // Auto-create table in production
     ttl: sessionTtl,
     tableName: "sessions",
   });
+  
+  // Add error handling for session store
+  sessionStore.on('error', (error: Error) => {
+    console.error('Session store error:', error);
+  });
+  
   return session({
-    secret: process.env.SESSION_SECRET!,
+    secret: process.env.SESSION_SECRET,
     store: sessionStore,
     resave: false,
     saveUninitialized: false,
