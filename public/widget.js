@@ -1,14 +1,38 @@
 (function() {
+  console.log('[ChatBot Widget] Script started loading');
+  
   // Get the chatbot ID from the script tag's data attribute
   const currentScript = document.currentScript || document.querySelector('script[data-chatbot-id]');
   const chatbotId = currentScript?.getAttribute('data-chatbot-id');
   
   if (!chatbotId) {
-    console.error('[ChatWidget] No chatbot ID provided');
+    console.error('[ChatBot Widget] No chatbot ID provided');
     return;
   }
 
-  console.log('[ChatWidget] Initializing with chatbot ID:', chatbotId);
+  console.log('[ChatBot Widget] Chatbot ID:', chatbotId);
+
+  // Get the origin from the current script's src attribute
+  // The script src will be like: https://buildchatbot.replit.app/widget.js
+  const scriptSrc = currentScript?.getAttribute('src') || '';
+  console.log('[ChatBot Widget] Script src:', scriptSrc);
+  
+  // Extract origin from script src (this is the chatbot server's domain)
+  let origin;
+  if (scriptSrc) {
+    try {
+      // Parse the script URL to get the origin (protocol + hostname + port)
+      const scriptUrl = new URL(scriptSrc);
+      origin = scriptUrl.origin;
+    } catch (e) {
+      console.error('[ChatBot Widget] Failed to parse script src:', e);
+      origin = window.location.origin; // Fallback to current page origin
+    }
+  } else {
+    origin = window.location.origin;
+  }
+
+  console.log('[ChatBot Widget] Using origin:', origin);
 
   // Create container div for the widget
   const container = document.createElement('div');
@@ -21,27 +45,31 @@
     pointer-events: none;
   `;
 
+  console.log('[ChatBot Widget] Creating iframe...');
+
   // Create iframe for the chatbot
   const iframe = document.createElement('iframe');
   iframe.id = 'chatbot-widget-iframe';
   
-  // Get the origin from the current script's src attribute
-  const scriptSrc = currentScript?.getAttribute('src') || '';
-  const origin = scriptSrc ? new URL(scriptSrc, window.location.href).origin : window.location.origin;
-  
+  // Point iframe to the chatbot server's widget page
   iframe.src = `${origin}/widget/${chatbotId}`;
+  
+  console.log('[ChatBot Widget] Iframe src:', iframe.src);
+  
   iframe.style.cssText = `
-    border: none;
     position: fixed;
     bottom: 0;
     right: 0;
-    width: 100vw;
-    height: 100vh;
-    max-width: 100vw;
-    max-height: 100vh;
-    pointer-events: auto;
+    width: 450px;
+    height: 650px;
+    border: none;
     background: transparent;
+    z-index: 2147483647;
+    pointer-events: auto;
   `;
+  
+  console.log('[ChatBot Widget] Iframe style:', iframe.style.cssText);
+  
   iframe.setAttribute('title', 'Customer Support Chat');
   iframe.setAttribute('allow', 'clipboard-write');
 
@@ -51,11 +79,11 @@
   // Append container to body when DOM is ready
   if (document.body) {
     document.body.appendChild(container);
-    console.log('[ChatWidget] Widget iframe injected successfully');
+    console.log('[ChatBot Widget] Iframe appended to body');
   } else {
     document.addEventListener('DOMContentLoaded', function() {
       document.body.appendChild(container);
-      console.log('[ChatWidget] Widget iframe injected successfully (after DOMContentLoaded)');
+      console.log('[ChatBot Widget] Iframe appended to body (after DOMContentLoaded)');
     });
   }
 })();
