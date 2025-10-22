@@ -460,10 +460,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Check chatbot owner's subscription tier and enforce free tier limits
+      // Admins bypass all limits
       const ownerResult = await db.select().from(users).where(eq(users.id, chatbot.userId)).limit(1);
       const owner = ownerResult[0];
       
-      if (owner && owner.subscriptionTier === "free") {
+      if (owner && owner.subscriptionTier === "free" && owner.isAdmin !== "true") {
         const currentQuestionCount = parseInt(chatbot.questionCount);
         if (currentQuestionCount >= 3) {
           return res.status(403).json({ 
