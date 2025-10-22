@@ -38,6 +38,38 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  // Log startup environment information
+  console.log("=== SERVER STARTUP ===");
+  console.log("Environment:", process.env.NODE_ENV);
+  console.log("Platform:", process.platform);
+  console.log("Node version:", process.version);
+  console.log("Port:", process.env.PORT || '5000');
+  
+  // Check Playwright availability
+  console.log("\n=== PLAYWRIGHT AVAILABILITY CHECK ===");
+  try {
+    const { chromium } = await import('playwright');
+    console.log("✓ Playwright module loaded successfully");
+    console.log("✓ Chromium executable path:", chromium.executablePath());
+    
+    // Try to get the version
+    try {
+      const browser = await chromium.launch({ headless: true });
+      const version = await browser.version();
+      console.log("✓ Chromium version:", version);
+      await browser.close();
+      console.log("✓ Playwright is FULLY OPERATIONAL");
+    } catch (browserError) {
+      console.error("✗ Chromium browser launch failed:", browserError);
+      console.error("✗ Playwright module exists but browser is NOT functional");
+    }
+  } catch (importError) {
+    console.error("✗ Playwright module NOT available");
+    console.error("✗ Import error:", importError);
+    console.error("✗ JavaScript SPA crawling will NOT work in production");
+  }
+  console.log("=== END PLAYWRIGHT CHECK ===\n");
+  
   // Setup authentication middleware BEFORE routes
   await setupAuth(app);
   

@@ -144,6 +144,10 @@ export class PlaywrightRenderer implements PageRenderer {
 
   async render(url: string): Promise<RenderResult> {
     console.log(`[PlaywrightRenderer] Starting render for: ${url}`);
+    console.log(`[PlaywrightRenderer] Environment:`, process.env.NODE_ENV);
+    console.log(`[PlaywrightRenderer] Platform:`, process.platform);
+    console.log(`[PlaywrightRenderer] Architecture:`, process.arch);
+    
     try {
       const validation = await validateUrl(url);
       console.log(`[PlaywrightRenderer] Validation result: ${JSON.stringify(validation)}`);
@@ -158,14 +162,25 @@ export class PlaywrightRenderer implements PageRenderer {
 
       if (!this.browser) {
         console.log(`[PlaywrightRenderer] Launching browser...`);
-        this.browser = await chromium.launch({
-          headless: true,
-          args: [
-            '--no-sandbox',
-            '--disable-dev-shm-usage',
-          ],
-        });
-        console.log(`[PlaywrightRenderer] Browser launched successfully`);
+        console.log(`[PlaywrightRenderer] Chromium path:`, chromium.executablePath());
+        
+        try {
+          this.browser = await chromium.launch({
+            headless: true,
+            args: [
+              '--no-sandbox',
+              '--disable-dev-shm-usage',
+            ],
+          });
+          console.log(`[PlaywrightRenderer] ✓ Browser launched successfully`);
+          console.log(`[PlaywrightRenderer] Browser version:`, await this.browser.version());
+        } catch (launchError) {
+          console.error(`[PlaywrightRenderer] ✗ FAILED TO LAUNCH BROWSER`);
+          console.error(`[PlaywrightRenderer] Error:`, launchError);
+          console.error(`[PlaywrightRenderer] Error type:`, launchError instanceof Error ? launchError.constructor.name : typeof launchError);
+          console.error(`[PlaywrightRenderer] Stack:`, launchError instanceof Error ? launchError.stack : 'N/A');
+          throw launchError;
+        }
       }
 
       console.log(`[PlaywrightRenderer] Creating browser context...`);
@@ -231,6 +246,12 @@ export class PlaywrightRenderer implements PageRenderer {
         title: title || '',
       };
     } catch (error) {
+      console.error(`[PlaywrightRenderer] ✗ RENDER ERROR for ${url}`);
+      console.error(`[PlaywrightRenderer] Error type:`, error instanceof Error ? error.constructor.name : typeof error);
+      console.error(`[PlaywrightRenderer] Error message:`, error instanceof Error ? error.message : String(error));
+      console.error(`[PlaywrightRenderer] Error stack:`, error instanceof Error ? error.stack : 'No stack trace');
+      console.error(`[PlaywrightRenderer] Full error:`, JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
+      
       if (this.activePage) {
         try {
           await this.activePage.context().close();

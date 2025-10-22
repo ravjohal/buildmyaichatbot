@@ -200,15 +200,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create chatbot (protected)
   app.post("/api/chatbots", isAuthenticated, async (req: any, res) => {
     try {
+      console.log("=== CHATBOT CREATION REQUEST STARTED ===");
+      console.log("Environment:", process.env.NODE_ENV);
+      console.log("User ID:", req.user?.claims?.sub);
+      console.log("Request body keys:", Object.keys(req.body));
+      
       const userId = req.user.claims.sub;
       const validatedData = insertChatbotSchema.parse(req.body);
+      console.log("Data validated successfully");
       
       // Check if free tier user already has a chatbot (limit: 1 chatbot for free tier)
       // Admins bypass all limits
       const user = await storage.getUser(userId);
+      console.log("User tier:", user?.subscriptionTier, "Is admin:", user?.isAdmin);
+      
       if (user && user.subscriptionTier !== "paid" && user.isAdmin !== "true") {
         const existingChatbots = await storage.getAllChatbots(userId);
         if (existingChatbots.length >= 1) {
+          console.log("User hit free tier chatbot limit");
           return res.status(403).json({
             error: "Upgrade required",
             message: "Free tier is limited to 1 chatbot. Upgrade to Pro to create unlimited chatbots."
@@ -219,40 +228,75 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Crawl websites if URLs are provided (recursive crawling)
       let websiteContent = "";
       if (validatedData.websiteUrls && validatedData.websiteUrls.length > 0) {
-        console.log(`Recursively crawling ${validatedData.websiteUrls.length} website(s) (max depth: 2, max pages: 50 per site)...`);
-        const crawlResults = await crawlMultipleWebsitesRecursive(validatedData.websiteUrls, {
-          maxDepth: 2,
-          maxPages: 50,
-          sameDomainOnly: true,
-        });
+        console.log(`[CRAWLER] Starting recursive crawl for ${validatedData.websiteUrls.length} website(s)`);
+        console.log("[CRAWLER] URLs to crawl:", validatedData.websiteUrls);
+        console.log("[CRAWLER] Checking Playwright availability...");
         
-        console.log(`Successfully crawled ${crawlResults.filter(r => !r.error).length} pages`);
+        try {
+          const { chromium } = await import('playwright');
+          console.log("[CRAWLER] ✓ Playwright module loaded successfully");
+          console.log("[CRAWLER] Chromium executable:", chromium.executablePath());
+        } catch (playwrightError) {
+          console.error("[CRAWLER] ✗ Playwright not available:", playwrightError);
+          console.error("[CRAWLER] Error details:", JSON.stringify(playwrightError, null, 2));
+        }
         
-        // Combine all successfully crawled content
-        websiteContent = crawlResults
-          .filter(result => !result.error && result.content)
-          .map(result => `URL: ${result.url}\nTitle: ${result.title || 'N/A'}\n\n${result.content}`)
-          .join('\n\n---\n\n');
+        console.log("[CRAWLER] Starting crawl with options: maxDepth=2, maxPages=50, sameDomainOnly=true");
         
-        // Log any errors
-        crawlResults
-          .filter(result => result.error)
-          .forEach(result => {
-            console.error(`Failed to crawl ${result.url}: ${result.error}`);
+        try {
+          const crawlResults = await crawlMultipleWebsitesRecursive(validatedData.websiteUrls, {
+            maxDepth: 2,
+            maxPages: 50,
+            sameDomainOnly: true,
           });
+          
+          const successCount = crawlResults.filter(r => !r.error).length;
+          const errorCount = crawlResults.filter(r => r.error).length;
+          console.log(`[CRAWLER] Crawl completed: ${successCount} successful, ${errorCount} failed`);
+          
+          // Combine all successfully crawled content
+          websiteContent = crawlResults
+            .filter(result => !result.error && result.content)
+            .map(result => `URL: ${result.url}\nTitle: ${result.title || 'N/A'}\n\n${result.content}`)
+            .join('\n\n---\n\n');
+          
+          console.log(`[CRAWLER] Total content length: ${websiteContent.length} characters`);
+          
+          // Log any errors
+          crawlResults
+            .filter(result => result.error)
+            .forEach(result => {
+              console.error(`[CRAWLER] Failed to crawl ${result.url}: ${result.error}`);
+            });
+        } catch (crawlError) {
+          console.error("[CRAWLER] CRITICAL ERROR during crawl:", crawlError);
+          console.error("[CRAWLER] Stack trace:", (crawlError as Error).stack);
+          throw crawlError;
+        }
+      } else {
+        console.log("[CRAWLER] No website URLs provided, skipping crawl");
       }
       
+      console.log("Creating chatbot in database...");
       const chatbot = await storage.createChatbot({
         ...validatedData,
         websiteContent,
       }, userId);
       
+      console.log("✓ Chatbot created successfully:", chatbot.id);
+      console.log("=== CHATBOT CREATION REQUEST COMPLETED ===");
       res.status(201).json(chatbot);
     } catch (error) {
       if (error instanceof ZodError) {
+        console.error("Validation error:", error.errors);
         return res.status(400).json({ error: "Invalid data", details: error.errors });
       }
-      console.error("Error creating chatbot:", error);
+      console.error("=== CHATBOT CREATION ERROR ===");
+      console.error("Error type:", error instanceof Error ? error.constructor.name : typeof error);
+      console.error("Error message:", error instanceof Error ? error.message : String(error));
+      console.error("Stack trace:", error instanceof Error ? error.stack : "No stack trace available");
+      console.error("Full error object:", JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
+      console.error("=== END ERROR ===");
       res.status(500).json({ error: "Failed to create chatbot" });
     }
   });
