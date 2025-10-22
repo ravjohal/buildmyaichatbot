@@ -110,7 +110,7 @@ export class CheerioRenderer implements PageRenderer {
         content = content
           .replace(/\s+/g, ' ')
           .trim()
-          .substring(0, 50000);
+          .substring(0, 100000);
 
         return {
           html: trimmedHtml,
@@ -254,7 +254,7 @@ export class PlaywrightRenderer implements PageRenderer {
         return (content || '')
           .replace(/\s+/g, ' ')
           .trim()
-          .substring(0, 50000);
+          .substring(0, 100000);
       });
 
       console.log(`[PlaywrightRenderer] Extracted ${textContent.length} chars of content`);

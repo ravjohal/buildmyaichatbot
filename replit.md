@@ -28,7 +28,7 @@ This SaaS web application enables non-technical business owners to create, custo
   - 30-second fetch timeout for static crawler
   - 15-second page timeout for JavaScript rendering
   - Image/font/stylesheet blocking in Playwright
-  - 2MB HTML size limit, 50k character content limit
+  - 2MB HTML size limit, 100k character content limit per page
   - Proper browser cleanup and error handling
 - Technical architecture:
   - PageRenderer interface with CheerioRenderer and PlaywrightRenderer
