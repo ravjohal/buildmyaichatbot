@@ -6,7 +6,7 @@ This SaaS web application enables non-technical business owners to create, custo
 
 ## Recent Changes (October 2025)
 
-### SPA Crawler with Auto-Detection (Completed - October 20, 2025)
+### SPA Crawler with Auto-Detection (Completed - October 22, 2025)
 - Implemented dual-mode intelligent website crawler for Single Page Applications (SPAs)
 - Auto-detection mode: Tries static HTML first, falls back to JavaScript rendering if needed
 - Crawling modes:
@@ -35,6 +35,13 @@ This SaaS web application enables non-technical business owners to create, custo
   - Separate SSRF protection module (server/ssrf-protection.ts)
   - Automatic fallback logic in crawler
   - Detailed logging of rendering mode used
+- **Production Deployment (Resolved - October 22, 2025)**:
+  - **Development**: Uses Playwright's downloaded Chromium browser
+  - **Production**: Uses system Chromium from Nix (replit.nix)
+  - Dynamic executable path detection via `which chromium-browser`
+  - Environment-aware browser configuration in PlaywrightRenderer
+  - Build script simplified (removed Playwright browser installation)
+  - Verified working on Replit Autoscale deployments
 - Current limitations:
   - JavaScript rendering limited to reduce costs
   - DNS rebinding protection not fully implemented
