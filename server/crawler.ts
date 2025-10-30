@@ -1,9 +1,6 @@
 import * as cheerio from 'cheerio';
 import { CheerioRenderer, PlaywrightRenderer, PageRenderer } from './renderers';
 
-// pdf-parse doesn't have proper ESM exports, use dynamic import
-const pdfParsePromise = import('pdf-parse');
-
 export interface CrawlResult {
   url: string;
   content: string;
@@ -184,9 +181,14 @@ async function extractPdfText(url: string): Promise<{ content: string; title: st
 
     console.log(`[PDF Extractor] PDF downloaded, size: ${buffer.length} bytes`);
 
-    // Dynamically import pdf-parse (it doesn't have proper ESM exports)
-    const pdfParseModule = await pdfParsePromise;
-    const pdfParse = (pdfParseModule as any).default || pdfParseModule;
+    // Dynamically import pdf-parse (CommonJS module)
+    const pdfParseModule: any = await import('pdf-parse');
+    const pdfParse = pdfParseModule.default || pdfParseModule;
+    
+    if (typeof pdfParse !== 'function') {
+      throw new Error('pdf-parse module did not export a function');
+    }
+    
     const pdfData = await pdfParse(buffer);
 
     console.log(`[PDF Extractor] Text extracted: ${pdfData.text.length} characters`);
