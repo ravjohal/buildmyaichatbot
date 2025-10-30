@@ -114,6 +114,8 @@ export interface ChatMessage {
   content: string;
   timestamp: number;
   suggestedQuestions?: string[];
+  limitReached?: boolean;
+  upgradeUrl?: string;
 }
 
 export interface ChatRequest {

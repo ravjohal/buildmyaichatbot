@@ -467,9 +467,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (owner && owner.subscriptionTier === "free" && owner.isAdmin !== "true") {
         const currentQuestionCount = parseInt(chatbot.questionCount);
         if (currentQuestionCount >= 3) {
-          return res.status(403).json({ 
-            error: "Free tier limit reached",
-            message: "This chatbot has reached its free tier limit of 3 questions. The owner needs to upgrade to Pro for unlimited questions."
+          // Return a special response that the widget can display nicely
+          return res.json({ 
+            message: "I apologize, but this chatbot has reached its free tier limit. The chatbot owner needs to upgrade to Pro for unlimited conversations. Please ask the site owner to upgrade their plan.",
+            shouldEscalate: false,
+            limitReached: true,
+            upgradeUrl: `${req.protocol}://${req.get('host')}/pricing`
           });
         }
       }

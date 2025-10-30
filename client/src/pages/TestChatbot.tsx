@@ -34,7 +34,13 @@ export default function TestChatbot() {
           sessionId,
         }
       );
-      const data = await response.json() as { message: string; shouldEscalate: boolean; suggestedQuestions?: string[] };
+      const data = await response.json() as { 
+        message: string; 
+        shouldEscalate: boolean; 
+        suggestedQuestions?: string[];
+        limitReached?: boolean;
+        upgradeUrl?: string;
+      };
       return data;
     },
     onSuccess: (data) => {
@@ -44,6 +50,8 @@ export default function TestChatbot() {
         content: data.message,
         timestamp: Date.now(),
         suggestedQuestions: data.suggestedQuestions,
+        limitReached: data.limitReached,
+        upgradeUrl: data.upgradeUrl,
       };
       setMessages((prev) => [...prev, assistantMessage]);
     },
@@ -206,6 +214,18 @@ export default function TestChatbot() {
                   <p className="text-sm whitespace-pre-wrap">
                     {message.content || ""}
                   </p>
+                  {message.limitReached && message.upgradeUrl && (
+                    <Button
+                      variant="default"
+                      size="sm"
+                      className="mt-3 w-full"
+                      style={{ backgroundColor: chatbot.accentColor }}
+                      onClick={() => window.open(message.upgradeUrl, '_blank')}
+                      data-testid="button-upgrade-pro"
+                    >
+                      Upgrade to Pro Plan
+                    </Button>
+                  )}
                   {message.content && chatbot.supportPhoneNumber && 
                     message.content.includes(chatbot.supportPhoneNumber) && (
                       <Button
