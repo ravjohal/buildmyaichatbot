@@ -705,9 +705,9 @@ Generate 3-5 short, natural questions that would help the user learn more. Retur
         return res.status(403).json({ error: "Unauthorized" });
       }
 
-      // Verify user has paid subscription for conversation access
+      // Verify user has paid subscription for conversation access (admins bypass this check)
       const user = await storage.getUser(userId);
-      if (!user || user.subscriptionTier !== "paid") {
+      if (!user || (user.subscriptionTier !== "paid" && user.isAdmin !== "true")) {
         return res.status(403).json({ 
           error: "Upgrade required",
           message: "Conversation details are only available on the Pro plan. Please upgrade to access this feature."
