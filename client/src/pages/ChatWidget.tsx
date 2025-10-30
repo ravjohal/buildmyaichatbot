@@ -51,8 +51,6 @@ export default function ChatWidget() {
         message: string; 
         shouldEscalate: boolean; 
         suggestedQuestions?: string[];
-        limitReached?: boolean;
-        upgradeUrl?: string;
       };
       return data;
     },
@@ -63,8 +61,6 @@ export default function ChatWidget() {
         content: data.message,
         timestamp: Date.now(),
         suggestedQuestions: data.suggestedQuestions,
-        limitReached: data.limitReached,
-        upgradeUrl: data.upgradeUrl,
       };
       setMessages((prev) => [...prev, assistantMessage]);
     },
@@ -207,18 +203,6 @@ export default function ChatWidget() {
                   <p className="text-sm whitespace-pre-wrap" data-testid={`message-${message.id}`}>
                     {message.content || ""}
                   </p>
-                  {message.limitReached && message.upgradeUrl && (
-                    <Button
-                      variant="default"
-                      size="sm"
-                      className="mt-3 w-full"
-                      style={{ backgroundColor: chatbot.accentColor }}
-                      onClick={() => window.open(message.upgradeUrl, '_blank')}
-                      data-testid="button-upgrade-pro"
-                    >
-                      Upgrade to Pro Plan
-                    </Button>
-                  )}
                   {message.content && chatbot.supportPhoneNumber && 
                     message.content.includes(chatbot.supportPhoneNumber) && (
                       <Button
