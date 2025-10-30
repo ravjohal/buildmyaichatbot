@@ -31,7 +31,17 @@ function PublicRouter() {
 function ProtectedRouter() {
   const { isAuthenticated, isLoading } = useAuth();
 
-  if (isLoading || !isAuthenticated) {
+  // Show loading state while checking auth
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" aria-label="Loading" />
+      </div>
+    );
+  }
+
+  // If not authenticated, show public routes
+  if (!isAuthenticated) {
     return <PublicRouter />;
   }
 
