@@ -7,6 +7,7 @@ import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PRICING_PLANS } from "@shared/pricing";
+import { DashboardHeader } from "@/components/DashboardHeader";
 
 if (!import.meta.env.VITE_STRIPE_PUBLIC_KEY) {
   throw new Error('Missing required Stripe key: VITE_STRIPE_PUBLIC_KEY');
@@ -125,15 +126,19 @@ export default function Subscribe() {
 
   if (!clientSecret) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" aria-label="Loading"/>
+      <div className="min-h-screen bg-background">
+        <DashboardHeader />
+        <div className="flex items-center justify-center py-16">
+          <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" aria-label="Loading"/>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background py-16">
-      <div className="container mx-auto px-4 max-w-2xl">
+    <div className="min-h-screen bg-background">
+      <DashboardHeader />
+      <div className="container mx-auto px-4 max-w-2xl py-16">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold mb-2">Complete Your Subscription</h1>
           <p className="text-muted-foreground">

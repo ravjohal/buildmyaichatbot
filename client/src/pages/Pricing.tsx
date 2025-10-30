@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/useAuth";
 import { useLocation } from "wouter";
 import { PRICING_PLANS } from "@shared/pricing";
+import { DashboardHeader } from "@/components/DashboardHeader";
 
 export default function Pricing() {
   const { user } = useAuth();
@@ -25,6 +26,7 @@ export default function Pricing() {
 
   return (
     <div className="min-h-screen bg-background">
+      {user && <DashboardHeader />}
       <div className="container mx-auto px-4 py-16">
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold mb-4">Simple, Transparent Pricing</h1>

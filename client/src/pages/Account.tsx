@@ -19,6 +19,7 @@ import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { DashboardHeader } from "@/components/DashboardHeader";
 
 interface AccountDetails {
   id: string;
@@ -110,6 +111,7 @@ export default function Account() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background">
+        <DashboardHeader />
         <div className="container max-w-4xl mx-auto py-8 px-4">
           <div className="mb-6">
             <Skeleton className="h-8 w-48 mb-2" />
@@ -131,8 +133,10 @@ export default function Account() {
 
   if (isError) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Card className="max-w-md">
+      <div className="min-h-screen bg-background">
+        <DashboardHeader />
+        <div className="flex items-center justify-center py-12">
+          <Card className="max-w-md">
           <CardHeader>
             <CardTitle>Error Loading Account</CardTitle>
             <CardDescription>
@@ -155,6 +159,7 @@ export default function Account() {
             </Link>
           </CardContent>
         </Card>
+        </div>
       </div>
     );
   }
@@ -167,14 +172,9 @@ export default function Account() {
 
   return (
     <div className="min-h-screen bg-background">
+      <DashboardHeader />
       <div className="container max-w-4xl mx-auto py-8 px-4">
         <div className="mb-6">
-          <Link href="/">
-            <Button variant="ghost" size="sm" className="gap-2 mb-4" data-testid="button-back-dashboard">
-              <ArrowLeft className="w-4 h-4" />
-              Back to Dashboard
-            </Button>
-          </Link>
           <h1 className="text-3xl font-bold mb-2">Account Settings</h1>
           <p className="text-muted-foreground">
             Manage your account details and subscription
