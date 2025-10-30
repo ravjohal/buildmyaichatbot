@@ -1,5 +1,5 @@
 import { Link } from "wouter";
-import { Crown, LogOut, User as UserIcon, Shield } from "lucide-react";
+import { Crown, LogOut, User as UserIcon, Shield, LayoutDashboard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import type { User } from "@shared/schema";
@@ -22,6 +22,16 @@ export function DashboardHeader() {
             </h1>
           </Link>
           <div className="flex gap-3 flex-wrap">
+            <Link href="/">
+              <Button 
+                variant="outline" 
+                size="default"
+                data-testid="button-dashboard"
+              >
+                <LayoutDashboard className="w-4 h-4 mr-2" />
+                Dashboard
+              </Button>
+            </Link>
             {isFreeTier && (
               <Link href="/pricing">
                 <Button size="default" variant="default" data-testid="button-upgrade-pro">
