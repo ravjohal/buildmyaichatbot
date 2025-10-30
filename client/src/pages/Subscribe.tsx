@@ -36,7 +36,7 @@ const SubscribeForm = ({ billingCycle }: { billingCycle: "monthly" | "annual" })
     const { error } = await stripe.confirmPayment({
       elements,
       confirmParams: {
-        return_url: `${window.location.origin}/dashboard?payment=success`,
+        return_url: `${window.location.origin}/?payment=success`,
       },
     });
 
@@ -52,7 +52,7 @@ const SubscribeForm = ({ billingCycle }: { billingCycle: "monthly" | "annual" })
         title: "Payment Successful",
         description: "You are now subscribed to the Pro plan!",
       });
-      navigate("/dashboard");
+      navigate("/");
     }
   };
 
