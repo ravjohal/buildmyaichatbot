@@ -641,9 +641,9 @@ Generate 3-5 short, natural questions that would help the user learn more. Retur
         return res.status(404).json({ error: "Chatbot not found" });
       }
 
-      // Verify user has paid subscription for analytics access
+      // Verify user has paid subscription for analytics access (or is admin)
       const user = await storage.getUser(userId);
-      if (!user || user.subscriptionTier !== "paid") {
+      if (!user || (user.subscriptionTier !== "paid" && user.isAdmin !== "true")) {
         return res.status(403).json({ 
           error: "Upgrade required",
           message: "Analytics are only available on the Pro plan. Please upgrade to access this feature."
