@@ -164,6 +164,8 @@ export const leads = pgTable("leads", {
   company: text("company"),
   message: text("message"),
   customFields: jsonb("custom_fields"),
+  source: text("source").notNull().default("unknown"), // widget, direct_link, test, unknown
+  sourceUrl: text("source_url"), // The referrer URL or page where lead was captured
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

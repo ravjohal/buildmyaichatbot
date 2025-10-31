@@ -249,7 +249,28 @@ export default function ChatWidget() {
     e.preventDefault();
     const fields = chatbot?.leadCaptureFields || [];
     
-    const submissionData: any = { chatbotId, sessionId };
+    // Detect source based on URL path
+    let source = "unknown";
+    let sourceUrl = window.location.href;
+    
+    if (window.location.pathname.includes("/widget/")) {
+      source = "widget";
+      // For widget (iframe), use the referrer URL (parent page)
+      sourceUrl = document.referrer || window.location.href;
+    } else if (window.location.pathname.includes("/chat/")) {
+      source = "direct_link";
+    } else if (window.location.pathname.includes("/test/")) {
+      source = "test";
+    }
+    
+    const submissionData: any = { 
+      chatbotId, 
+      sessionId,
+      conversationId,
+      source,
+      sourceUrl
+    };
+    
     fields.forEach((field) => {
       if (leadFormData[field as keyof typeof leadFormData]) {
         submissionData[field] = leadFormData[field as keyof typeof leadFormData];
