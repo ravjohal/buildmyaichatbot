@@ -2273,6 +2273,187 @@ Generate 3-5 short, natural questions that would help the user learn more. Retur
     res.json({ received: true });
   });
 
+  // Get aggregate analytics overview (all chatbots)
+  app.get("/api/analytics/overview", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const days = parseInt(req.query.days as string) || 7;
+      
+      const dateStart = new Date();
+      dateStart.setDate(dateStart.getDate() - days);
+      const dateEnd = new Date();
+
+      // Get all user's chatbots
+      const userChatbots = await db.select()
+        .from(chatbots)
+        .where(eq(chatbots.userId, userId));
+
+      if (userChatbots.length === 0) {
+        return res.json({
+          chatbotStats: [],
+          totalStats: {
+            totalConversations: 0,
+            totalMessages: 0,
+            totalLeads: 0,
+            averageRating: 0,
+            ratingCount: 0,
+          },
+          dateStart,
+          dateEnd,
+        });
+      }
+
+      const chatbotStats = await Promise.all(
+        userChatbots.map(async (chatbot) => {
+          // Count conversations
+          const conversationsData = await db.select({
+            count: sql<number>`count(*)::int`,
+          })
+            .from(conversations)
+            .where(
+              and(
+                eq(conversations.chatbotId, chatbot.id),
+                gte(conversations.startedAt, dateStart)
+              )
+            );
+
+          const totalConversations = conversationsData[0]?.count || 0;
+
+          // Count messages
+          const messagesData = await db.select({
+            count: sql<number>`count(*)::int`,
+          })
+            .from(conversationMessages)
+            .innerJoin(conversations, eq(conversationMessages.conversationId, conversations.id))
+            .where(
+              and(
+                eq(conversations.chatbotId, chatbot.id),
+                gte(conversationMessages.createdAt, dateStart)
+              )
+            );
+
+          const totalMessages = messagesData[0]?.count || 0;
+
+          // Count leads
+          const leadsData = await db.select({
+            count: sql<number>`count(*)::int`,
+          })
+            .from(leads)
+            .where(
+              and(
+                eq(leads.chatbotId, chatbot.id),
+                gte(leads.createdAt, dateStart)
+              )
+            );
+
+          const totalLeads = leadsData[0]?.count || 0;
+
+          // Calculate average rating
+          const ratingsData = await db.select({
+            avgRating: sql<number>`COALESCE(AVG(CAST(${conversationRatings.rating} AS INTEGER)), 0)`,
+            count: sql<number>`count(*)::int`,
+          })
+            .from(conversationRatings)
+            .innerJoin(conversations, eq(conversationRatings.conversationId, conversations.id))
+            .where(
+              and(
+                eq(conversations.chatbotId, chatbot.id),
+                gte(conversationRatings.createdAt, dateStart)
+              )
+            );
+
+          const averageRating = Number(ratingsData[0]?.avgRating || 0);
+          const ratingCount = ratingsData[0]?.count || 0;
+
+          // Get top 5 most asked questions
+          const topQuestionsData = await db.select({
+            question: conversationMessages.content,
+            count: sql<number>`count(*)::int`,
+          })
+            .from(conversationMessages)
+            .innerJoin(conversations, eq(conversationMessages.conversationId, conversations.id))
+            .where(
+              and(
+                eq(conversations.chatbotId, chatbot.id),
+                eq(conversationMessages.role, "user"),
+                gte(conversationMessages.createdAt, dateStart)
+              )
+            )
+            .groupBy(conversationMessages.content)
+            .orderBy(sql`count(*) DESC`)
+            .limit(5);
+
+          return {
+            chatbotId: chatbot.id,
+            chatbotName: chatbot.name,
+            totalConversations,
+            totalMessages,
+            totalLeads,
+            averageRating,
+            ratingCount,
+            topQuestions: topQuestionsData.map(q => ({
+              question: q.question,
+              count: q.count,
+            })),
+          };
+        })
+      );
+
+      // Calculate totals
+      const totalStats = {
+        totalConversations: chatbotStats.reduce((sum, s) => sum + s.totalConversations, 0),
+        totalMessages: chatbotStats.reduce((sum, s) => sum + s.totalMessages, 0),
+        totalLeads: chatbotStats.reduce((sum, s) => sum + s.totalLeads, 0),
+        ratingCount: chatbotStats.reduce((sum, s) => sum + s.ratingCount, 0),
+        averageRating: 0,
+      };
+
+      // Calculate weighted average rating
+      const weightedRatingSum = chatbotStats.reduce((sum, s) => sum + (s.averageRating * s.ratingCount), 0);
+      totalStats.averageRating = totalStats.ratingCount > 0 ? weightedRatingSum / totalStats.ratingCount : 0;
+
+      res.json({
+        chatbotStats,
+        totalStats,
+        dateStart,
+        dateEnd,
+      });
+    } catch (error) {
+      console.error("Error fetching analytics overview:", error);
+      res.status(500).json({ error: "Failed to fetch analytics overview" });
+    }
+  });
+
+  // Generate on-demand analytics report (sends email immediately)
+  app.post("/api/analytics/generate-report", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      
+      // Import the sendWeeklyReport function dynamically
+      const { sendWeeklyReport } = await import("./emails/weekly-report-service");
+      
+      const sent = await sendWeeklyReport(userId, storage);
+      
+      if (sent) {
+        res.json({ 
+          success: true, 
+          message: "Analytics report has been sent to your email" 
+        });
+      } else {
+        res.status(400).json({ 
+          success: false,
+          message: "No activity to report or email service not configured" 
+        });
+      }
+    } catch (error) {
+      console.error("Error generating on-demand report:", error);
+      res.status(500).json({ 
+        success: false,
+        error: "Failed to generate report" 
+      });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;

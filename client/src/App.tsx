@@ -9,6 +9,7 @@ import EditChatbot from "@/pages/EditChatbot";
 import ChatWidget from "@/pages/ChatWidget";
 import TestChatbot from "@/pages/TestChatbot";
 import Analytics from "@/pages/Analytics";
+import AnalyticsDashboard from "@/pages/AnalyticsDashboard";
 import Leads from "@/pages/Leads";
 import Pricing from "@/pages/Pricing";
 import Subscribe from "@/pages/Subscribe";
@@ -60,6 +61,7 @@ function ProtectedRouter() {
       <Route path="/create" component={CreateChatbot} />
       <Route path="/edit/:id" component={EditChatbot} />
       <Route path="/test/:id" component={TestChatbot} />
+      <Route path="/analytics" component={AnalyticsDashboard} />
       <Route path="/analytics/:id" component={Analytics} />
       <Route path="/leads" component={Leads} />
       <Route path="/pricing" component={Pricing} />

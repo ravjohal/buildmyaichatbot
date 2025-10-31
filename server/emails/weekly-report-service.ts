@@ -270,7 +270,7 @@ function generateWeeklyReportEmail(data: WeeklyReportData): string {
 /**
  * Send weekly report email to a user
  */
-async function sendWeeklyReport(userId: string, storage: IStorage): Promise<boolean> {
+export async function sendWeeklyReport(userId: string, storage: IStorage): Promise<boolean> {
   try {
     if (!resend) {
       console.warn('[WeeklyReport] Resend API key not configured, skipping email');
@@ -352,5 +352,3 @@ export async function checkAndSendWeeklyReports(storage: IStorage): Promise<void
     console.error('[WeeklyReport] Error checking weekly reports:', error);
   }
 }
-
-export { sendWeeklyReport, generateWeeklyReportData };
