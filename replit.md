@@ -25,6 +25,7 @@ The application uses PostgreSQL with Drizzle ORM for all persistent data. Key ta
 - `chatbots`: Contains core chatbot configurations, including name, source URLs, content, styling, behavior, and free-tier specific limits.
 - `conversations`: Records session metadata for user interactions with chatbots.
 - `conversation_messages`: Stores individual chat messages, roles, and suggested questions within conversations.
+- `qa_cache`: Stores cached question-answer pairs to reduce redundant LLM API calls, with MD5 hashing for question normalization and hit count tracking for cache effectiveness monitoring.
 
 ### AI Integration
 
@@ -55,6 +56,7 @@ Frontend assets are built with Vite, and server code is bundled with esbuild. Th
 -   **Account Management:** Users can view profile information, subscription status, and manage billing via an integrated Stripe billing portal.
 -   **Shareable Links & QR Codes:** Enables easy distribution of chatbots via direct links and QR codes, with a full-page chat interface.
 -   **Intelligent SPA Crawler:** A dual-mode website crawler that automatically detects and renders JavaScript-heavy Single Page Applications using Playwright, with robust SSRF protection and resource limits.
+-   **Q&A Caching System:** Reduces LLM API costs by caching question-answer pairs with MD5-based question normalization. Features automatic cache invalidation on knowledge base updates, hit count tracking, and admin-accessible cache statistics endpoint showing total cached questions, cache hits, hit rate, and estimated cost savings.
 
 ## External Dependencies
 
