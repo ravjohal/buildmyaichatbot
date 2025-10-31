@@ -12,7 +12,8 @@ import {
   XCircle, 
   ArrowLeft,
   Crown,
-  ExternalLink
+  ExternalLink,
+  Bell
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -330,6 +331,24 @@ export default function Account() {
                   </div>
                 </>
               )}
+            </CardContent>
+          </Card>
+
+          <Card data-testid="card-notifications">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Bell className="w-5 h-5" />
+                Email Notifications
+              </CardTitle>
+              <CardDescription>Manage how you receive alerts about your chatbots</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Link href="/notifications">
+                <Button variant="outline" className="w-full gap-2" data-testid="button-manage-notifications">
+                  <Bell className="w-4 h-4" />
+                  Manage Notification Settings
+                </Button>
+              </Link>
             </CardContent>
           </Card>
         </div>

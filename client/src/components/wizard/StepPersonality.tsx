@@ -1,7 +1,9 @@
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Sparkles } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
+import { Sparkles, Zap } from "lucide-react";
 import type { InsertChatbot } from "@shared/schema";
 
 interface StepPersonalityProps {
@@ -64,6 +66,73 @@ export function StepPersonality({ formData, updateFormData }: StepPersonalityPro
             <li>Include any specific policies or guidelines</li>
           </ul>
         </div>
+      </div>
+
+      <div className="border-t pt-6 space-y-4">
+        <div className="flex items-center gap-2">
+          <Zap className="w-5 h-5 text-primary" />
+          <h3 className="text-lg font-semibold">Proactive Chat</h3>
+        </div>
+        <p className="text-sm text-muted-foreground">
+          Automatically greet visitors with a popup message after a delay
+        </p>
+
+        <div className="flex items-center justify-between rounded-lg border p-4">
+          <div className="space-y-0.5">
+            <Label htmlFor="proactiveChatEnabled" className="text-base font-medium">
+              Enable Proactive Popup
+            </Label>
+            <p className="text-sm text-muted-foreground">
+              Show chat widget automatically to engage visitors
+            </p>
+          </div>
+          <Switch
+            id="proactiveChatEnabled"
+            checked={formData.proactiveChatEnabled === "true"}
+            onCheckedChange={(checked) =>
+              updateFormData({ proactiveChatEnabled: checked ? "true" : "false" })
+            }
+            data-testid="switch-proactive-chat"
+          />
+        </div>
+
+        {formData.proactiveChatEnabled === "true" && (
+          <div className="space-y-4 pl-4 border-l-2">
+            <div className="space-y-2">
+              <Label htmlFor="proactiveChatDelay">
+                Delay Before Popup (seconds)
+              </Label>
+              <Input
+                id="proactiveChatDelay"
+                type="number"
+                min="0"
+                max="60"
+                value={formData.proactiveChatDelay || "5"}
+                onChange={(e) => updateFormData({ proactiveChatDelay: e.target.value })}
+                data-testid="input-proactive-delay"
+              />
+              <p className="text-sm text-muted-foreground">
+                How long to wait before showing the chat popup (0-60 seconds)
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="proactiveChatMessage">
+                Popup Message
+              </Label>
+              <Input
+                id="proactiveChatMessage"
+                placeholder="Hi! Need any help?"
+                value={formData.proactiveChatMessage || ""}
+                onChange={(e) => updateFormData({ proactiveChatMessage: e.target.value })}
+                data-testid="input-proactive-message"
+              />
+              <p className="text-sm text-muted-foreground">
+                The message shown in the popup notification
+              </p>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

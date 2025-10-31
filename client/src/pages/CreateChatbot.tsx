@@ -73,6 +73,9 @@ export default function CreateChatbot() {
     leadCaptureMessage: "Leave your contact information and we'll get back to you.",
     leadCaptureTiming: "after_first_message",
     leadCaptureMessageCount: "1",
+    proactiveChatEnabled: "false",
+    proactiveChatDelay: "5",
+    proactiveChatMessage: "Hi! Need any help?",
   });
 
   const updateFormData = (updates: Partial<InsertChatbot>) => {
