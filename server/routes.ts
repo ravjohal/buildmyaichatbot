@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertChatbotSchema, insertLeadSchema, type ChatRequest, type ChatResponse, chatbots, conversations, conversationMessages, users, leads, urlCrawlMetadata } from "@shared/schema";
+import { insertChatbotSchema, insertLeadSchema, type ChatRequest, type ChatResponse, chatbots, conversations, conversationMessages, users, leads, urlCrawlMetadata, manualQaOverrides } from "@shared/schema";
 import { ZodError } from "zod";
 import { GoogleGenAI } from "@google/genai";
 import multer from "multer";
@@ -938,43 +938,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const normalizedQuestion = message.trim().toLowerCase();
       const questionHash = crypto.createHash('md5').update(normalizedQuestion).digest('hex');
       
-      // Generate embedding for semantic caching
-      let questionEmbedding: number[] | null = null;
-      try {
-        questionEmbedding = await embeddingService.generateEmbedding(normalizedQuestion);
-      } catch (error) {
-        console.error("[EMBEDDING] Error generating embedding, falling back to exact match only:", error);
-      }
-      
-      // Check cache for existing answer
-      // Strategy: Try exact match first (fast), then semantic match (slower but catches paraphrases)
-      let cachedAnswer = await storage.getCachedAnswer(chatbotId, questionHash);
-      let cacheType = "none";
-      
-      if (!cachedAnswer && questionEmbedding) {
-        // No exact match, try semantic similarity (threshold: 0.85 = 85% similar)
-        cachedAnswer = await storage.findSimilarCachedAnswer(chatbotId, questionEmbedding, 0.85);
-        if (cachedAnswer) {
-          cacheType = "semantic";
-        }
-      } else if (cachedAnswer) {
-        cacheType = "exact";
-      }
+      // 1. FIRST: Check for manual override (highest priority - human-corrected answers)
+      const manualOverride = await storage.getManualOverride(chatbotId, questionHash);
       
       let aiMessage: string;
       let suggestedQuestions: string[] = [];
       
-      if (cachedAnswer) {
-        // Cache hit! Use cached answer
-        console.log(`[CACHE ${cacheType.toUpperCase()} HIT] Using cached answer for question: "${message.substring(0, 50)}..."`);
-        aiMessage = cachedAnswer.answer;
-        suggestedQuestions = cachedAnswer.suggestedQuestions || [];
+      if (manualOverride) {
+        // Manual override found! Use human-trained answer
+        console.log(`[MANUAL OVERRIDE] Using manually trained answer for question: "${message.substring(0, 50)}..."`);
+        aiMessage = manualOverride.manualAnswer;
         
-        // Update cache hit count asynchronously (don't await to keep response fast)
-        storage.updateCacheHitCount(cachedAnswer.id).catch(err => {
-          console.error("Error updating cache hit count:", err);
+        // Update use count asynchronously
+        storage.incrementOverrideUseCount(manualOverride.id).catch(err => {
+          console.error("Error updating override use count:", err);
         });
       } else {
+        // 2. No manual override, check automated cache
+        // Generate embedding for semantic caching
+        let questionEmbedding: number[] | null = null;
+        try {
+          questionEmbedding = await embeddingService.generateEmbedding(normalizedQuestion);
+        } catch (error) {
+          console.error("[EMBEDDING] Error generating embedding, falling back to exact match only:", error);
+        }
+        
+        // Check cache for existing answer
+        // Strategy: Try exact match first (fast), then semantic match (slower but catches paraphrases)
+        let cachedAnswer = await storage.getCachedAnswer(chatbotId, questionHash);
+        let cacheType = "none";
+        
+        if (!cachedAnswer && questionEmbedding) {
+          // No exact match, try semantic similarity (threshold: 0.85 = 85% similar)
+          cachedAnswer = await storage.findSimilarCachedAnswer(chatbotId, questionEmbedding, 0.85);
+          if (cachedAnswer) {
+            cacheType = "semantic";
+          }
+        } else if (cachedAnswer) {
+          cacheType = "exact";
+        }
+        
+        if (cachedAnswer) {
+          // Cache hit! Use cached answer
+          console.log(`[CACHE ${cacheType.toUpperCase()} HIT] Using cached answer for question: "${message.substring(0, 50)}..."`);
+          aiMessage = cachedAnswer.answer;
+          suggestedQuestions = cachedAnswer.suggestedQuestions || [];
+          
+          // Update cache hit count asynchronously (don't await to keep response fast)
+          storage.updateCacheHitCount(cachedAnswer.id).catch(err => {
+            console.error("Error updating cache hit count:", err);
+          });
+        } else {
         // Cache miss - call LLM
         console.log(`[CACHE MISS] Calling LLM for question hash: ${questionHash}`);
         
@@ -1030,18 +1044,19 @@ Generate 3-5 short, natural questions that would help the user learn more. Retur
           }
         }
         
-        // Store in cache for future use (async, don't await)
-        storage.createCacheEntry({
-          chatbotId,
-          question: normalizedQuestion,
-          questionHash,
-          embedding: questionEmbedding || undefined,
-          answer: aiMessage,
-          suggestedQuestions,
-          lastUsedAt: new Date(),
-        }).catch(err => {
-          console.error("Error storing answer in cache:", err);
-        });
+          // Store in cache for future use (async, don't await)
+          storage.createCacheEntry({
+            chatbotId,
+            question: normalizedQuestion,
+            questionHash,
+            embedding: questionEmbedding || undefined,
+            answer: aiMessage,
+            suggestedQuestions,
+            lastUsedAt: new Date(),
+          }).catch(err => {
+            console.error("Error storing answer in cache:", err);
+          });
+        }
       }
 
       // Check if we should escalate (basic heuristic)
@@ -1285,6 +1300,135 @@ Generate 3-5 short, natural questions that would help the user learn more. Retur
     } catch (error) {
       console.error("Error fetching cache stats:", error);
       res.status(500).json({ error: "Failed to fetch cache statistics" });
+    }
+  });
+
+  // Get all manual Q&A overrides for a chatbot (protected)
+  app.get("/api/chatbots/:id/manual-overrides", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const chatbotId = req.params.id;
+
+      // Verify user owns this chatbot or is admin
+      const user = await storage.getUser(userId);
+      const chatbot = await storage.getChatbot(chatbotId, userId);
+      
+      if (!chatbot && (!user || user.isAdmin !== "true")) {
+        return res.status(404).json({ error: "Chatbot not found" });
+      }
+
+      const overrides = await storage.getAllManualOverrides(chatbotId);
+      res.json(overrides);
+    } catch (error) {
+      console.error("Error fetching manual overrides:", error);
+      res.status(500).json({ error: "Failed to fetch manual overrides" });
+    }
+  });
+
+  // Create a manual Q&A override (protected)
+  app.post("/api/chatbots/:id/manual-overrides", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const chatbotId = req.params.id;
+      const { question, manualAnswer, originalAnswer, conversationId } = req.body;
+
+      if (!question || !manualAnswer) {
+        return res.status(400).json({ error: "Question and manual answer are required" });
+      }
+
+      // Verify user owns this chatbot
+      const chatbot = await storage.getChatbot(chatbotId, userId);
+      if (!chatbot) {
+        return res.status(404).json({ error: "Chatbot not found" });
+      }
+
+      // Normalize question and create hash
+      const normalizedQuestion = question.toLowerCase().trim();
+      const questionHash = crypto.createHash('md5').update(normalizedQuestion).digest('hex');
+
+      // Create override
+      const override = await storage.createManualOverride({
+        chatbotId,
+        question: normalizedQuestion,
+        questionHash,
+        manualAnswer,
+        originalAnswer: originalAnswer || null,
+        conversationId: conversationId || null,
+        createdBy: userId,
+      });
+
+      console.log(`[MANUAL OVERRIDE CREATED] Chatbot: ${chatbotId}, Question: "${normalizedQuestion}"`);
+      
+      res.status(201).json(override);
+    } catch (error) {
+      console.error("Error creating manual override:", error);
+      res.status(500).json({ error: "Failed to create manual override" });
+    }
+  });
+
+  // Update a manual Q&A override (protected)
+  app.put("/api/manual-overrides/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const overrideId = req.params.id;
+      const { manualAnswer } = req.body;
+
+      if (!manualAnswer) {
+        return res.status(400).json({ error: "Manual answer is required" });
+      }
+
+      // Get the override first to verify ownership
+      const overrides = await db.select().from(manualQaOverrides).where(eq(manualQaOverrides.id, overrideId)).limit(1);
+      const override = overrides[0];
+
+      if (!override) {
+        return res.status(404).json({ error: "Override not found" });
+      }
+
+      // Verify user owns the chatbot this override belongs to
+      const chatbot = await storage.getChatbot(override.chatbotId, userId);
+      if (!chatbot) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+
+      const updatedOverride = await storage.updateManualOverride(overrideId, manualAnswer);
+      res.json(updatedOverride);
+    } catch (error) {
+      console.error("Error updating manual override:", error);
+      res.status(500).json({ error: "Failed to update manual override" });
+    }
+  });
+
+  // Delete a manual Q&A override (protected)
+  app.delete("/api/manual-overrides/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const overrideId = req.params.id;
+
+      // Get the override first to verify ownership
+      const overrides = await db.select().from(manualQaOverrides).where(eq(manualQaOverrides.id, overrideId)).limit(1);
+      const override = overrides[0];
+
+      if (!override) {
+        return res.status(404).json({ error: "Override not found" });
+      }
+
+      // Verify user owns the chatbot this override belongs to
+      const chatbot = await storage.getChatbot(override.chatbotId, userId);
+      if (!chatbot) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+
+      const deleted = await storage.deleteManualOverride(overrideId, userId);
+      
+      if (deleted) {
+        res.json({ success: true });
+      } else {
+        res.status(404).json({ error: "Override not found" });
+      }
+    } catch (error) {
+      console.error("Error deleting manual override:", error);
+      res.status(500).json({ error: "Failed to delete manual override" });
     }
   });
 
