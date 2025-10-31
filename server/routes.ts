@@ -1019,6 +1019,117 @@ Generate 3-5 short, natural questions that would help the user learn more. Retur
     }
   });
 
+  // Toggle admin status for a user (admin only)
+  app.post('/api/admin/users/:userId/toggle-admin', isAdmin, async (req: any, res) => {
+    try {
+      const { userId } = req.params;
+      const currentUser = req.user;
+
+      // Prevent admin from removing their own admin status
+      if (currentUser.id === userId) {
+        return res.status(400).json({ error: "You cannot modify your own admin status" });
+      }
+
+      // Get current user
+      const userResult = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+      const user = userResult[0];
+
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Toggle admin status
+      const newAdminStatus = user.isAdmin === "true" ? "false" : "true";
+      await db.update(users)
+        .set({ isAdmin: newAdminStatus })
+        .where(eq(users.id, userId));
+
+      res.json({ 
+        success: true, 
+        isAdmin: newAdminStatus,
+        message: `User ${newAdminStatus === "true" ? "promoted to" : "removed from"} admin` 
+      });
+    } catch (error) {
+      console.error("Error toggling admin status:", error);
+      res.status(500).json({ error: "Failed to toggle admin status" });
+    }
+  });
+
+  // Delete a user (admin only)
+  app.delete('/api/admin/users/:userId', isAdmin, async (req: any, res) => {
+    try {
+      const { userId } = req.params;
+      const currentUser = req.user;
+
+      // Prevent admin from deleting themselves
+      if (currentUser.id === userId) {
+        return res.status(400).json({ error: "You cannot delete your own account" });
+      }
+
+      // Check if user exists
+      const userResult = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+      if (!userResult[0]) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Delete user's chatbots first (cascade delete)
+      await db.delete(chatbots).where(eq(chatbots.userId, userId));
+
+      // Delete user's conversations
+      const userChatbots = await db.select({ id: chatbots.id }).from(chatbots).where(eq(chatbots.userId, userId));
+      const chatbotIds = userChatbots.map(c => c.id);
+      
+      if (chatbotIds.length > 0) {
+        for (const chatbotId of chatbotIds) {
+          await db.delete(conversationMessages).where(eq(conversationMessages.conversationId, 
+            sql`(SELECT id FROM ${conversations} WHERE chatbot_id = ${chatbotId})`
+          ));
+          await db.delete(conversations).where(eq(conversations.chatbotId, chatbotId));
+        }
+      }
+
+      // Delete the user
+      await db.delete(users).where(eq(users.id, userId));
+
+      res.json({ success: true, message: "User and all associated data deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting user:", error);
+      res.status(500).json({ error: "Failed to delete user" });
+    }
+  });
+
+  // Update user subscription tier (admin only)
+  app.patch('/api/admin/users/:userId/subscription', isAdmin, async (req: any, res) => {
+    try {
+      const { userId } = req.params;
+      const { tier } = req.body;
+
+      if (!tier || !['free', 'paid'].includes(tier)) {
+        return res.status(400).json({ error: "Invalid subscription tier. Must be 'free' or 'paid'" });
+      }
+
+      // Check if user exists
+      const userResult = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+      if (!userResult[0]) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Update subscription tier
+      await db.update(users)
+        .set({ subscriptionTier: tier })
+        .where(eq(users.id, userId));
+
+      res.json({ 
+        success: true, 
+        tier,
+        message: `User subscription updated to ${tier} tier` 
+      });
+    } catch (error) {
+      console.error("Error updating subscription:", error);
+      res.status(500).json({ error: "Failed to update subscription" });
+    }
+  });
+
   // Stripe webhook handler for subscription updates
   app.post("/api/stripe-webhook", async (req, res) => {
     if (!stripe) {

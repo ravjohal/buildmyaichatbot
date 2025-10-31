@@ -1,7 +1,7 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Shield, Users, MessageSquare, Bot, TrendingUp, Crown, AlertTriangle } from "lucide-react";
+import { Shield, Users, MessageSquare, Bot, Trash2, Crown, AlertTriangle, ShieldCheck, ShieldOff } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
@@ -14,6 +14,27 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useState } from "react";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 interface AdminStats {
   totalUsers: number;
@@ -46,6 +67,11 @@ interface AdminChatbot {
 }
 
 export default function Admin() {
+  const { toast } = useToast();
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [adminToggleDialogOpen, setAdminToggleDialogOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
+
   const { data: currentUser } = useQuery<User>({
     queryKey: ["/api/auth/user"],
   });
@@ -64,6 +90,102 @@ export default function Admin() {
     queryKey: ["/api/admin/chatbots"],
     enabled: currentUser?.isAdmin === "true",
   });
+
+  // Toggle admin status mutation
+  const toggleAdminMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      return await apiRequest("POST", `/api/admin/users/${userId}/toggle-admin`, {});
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+      toast({
+        title: "Success",
+        description: "User admin status updated successfully",
+      });
+      setAdminToggleDialogOpen(false);
+      setSelectedUser(null);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update admin status",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Delete user mutation
+  const deleteUserMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      return await apiRequest("DELETE", `/api/admin/users/${userId}`, {});
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/stats"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/chatbots"] });
+      toast({
+        title: "Success",
+        description: "User and all associated data deleted successfully",
+      });
+      setDeleteDialogOpen(false);
+      setSelectedUser(null);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete user",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Change subscription tier mutation
+  const changeSubscriptionMutation = useMutation({
+    mutationFn: async ({ userId, tier }: { userId: string; tier: string }) => {
+      return await apiRequest("PATCH", `/api/admin/users/${userId}/subscription`, { tier });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/stats"] });
+      toast({
+        title: "Success",
+        description: "User subscription tier updated successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update subscription tier",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleToggleAdmin = (user: AdminUser) => {
+    setSelectedUser(user);
+    setAdminToggleDialogOpen(true);
+  };
+
+  const handleDeleteUser = (user: AdminUser) => {
+    setSelectedUser(user);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleChangeSubscription = (user: AdminUser, tier: "free" | "paid") => {
+    changeSubscriptionMutation.mutate({ userId: user.id, tier });
+  };
+
+  const confirmToggleAdmin = () => {
+    if (selectedUser) {
+      toggleAdminMutation.mutate(selectedUser.id);
+    }
+  };
+
+  const confirmDeleteUser = () => {
+    if (selectedUser) {
+      deleteUserMutation.mutate(selectedUser.id);
+    }
+  };
 
   // Check if user is not an admin
   if (currentUser && currentUser.isAdmin !== "true") {
@@ -201,6 +323,7 @@ export default function Admin() {
                       <TableHead>Tier</TableHead>
                       <TableHead>Admin</TableHead>
                       <TableHead>Joined</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -232,11 +355,77 @@ export default function Admin() {
                           <TableCell className="text-sm text-muted-foreground">
                             {formatDate(user.createdAt)}
                           </TableCell>
+                          <TableCell className="text-right">
+                            {currentUser?.id !== user.id && (
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="sm" data-testid={`button-actions-${user.id}`}>
+                                    Actions
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuLabel>User Management</DropdownMenuLabel>
+                                  <DropdownMenuSeparator />
+                                  
+                                  <DropdownMenuItem
+                                    onClick={() => handleToggleAdmin(user)}
+                                    data-testid={`action-toggle-admin-${user.id}`}
+                                  >
+                                    {user.isAdmin === "true" ? (
+                                      <>
+                                        <ShieldOff className="w-4 h-4 mr-2" />
+                                        Remove Admin
+                                      </>
+                                    ) : (
+                                      <>
+                                        <ShieldCheck className="w-4 h-4 mr-2" />
+                                        Make Admin
+                                      </>
+                                    )}
+                                  </DropdownMenuItem>
+                                  
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuLabel>Subscription</DropdownMenuLabel>
+                                  
+                                  {user.subscriptionTier === "free" ? (
+                                    <DropdownMenuItem
+                                      onClick={() => handleChangeSubscription(user, "paid")}
+                                      data-testid={`action-upgrade-${user.id}`}
+                                    >
+                                      <Crown className="w-4 h-4 mr-2" />
+                                      Upgrade to Pro
+                                    </DropdownMenuItem>
+                                  ) : (
+                                    <DropdownMenuItem
+                                      onClick={() => handleChangeSubscription(user, "free")}
+                                      data-testid={`action-downgrade-${user.id}`}
+                                    >
+                                      Downgrade to Free
+                                    </DropdownMenuItem>
+                                  )}
+                                  
+                                  <DropdownMenuSeparator />
+                                  
+                                  <DropdownMenuItem
+                                    onClick={() => handleDeleteUser(user)}
+                                    className="text-destructive focus:text-destructive"
+                                    data-testid={`action-delete-${user.id}`}
+                                  >
+                                    <Trash2 className="w-4 h-4 mr-2" />
+                                    Delete User
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            )}
+                            {currentUser?.id === user.id && (
+                              <span className="text-xs text-muted-foreground">(You)</span>
+                            )}
+                          </TableCell>
                         </TableRow>
                       ))
                     ) : (
                       <TableRow>
-                        <TableCell colSpan={5} className="text-center text-muted-foreground">
+                        <TableCell colSpan={6} className="text-center text-muted-foreground">
                           No users found
                         </TableCell>
                       </TableRow>
@@ -316,6 +505,82 @@ export default function Admin() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Delete User Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete User</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete <strong>{selectedUser?.firstName} {selectedUser?.lastName}</strong> ({selectedUser?.email})?
+              <br /><br />
+              This action cannot be undone. This will permanently delete:
+              <ul className="list-disc list-inside mt-2 space-y-1">
+                <li>The user account</li>
+                <li>All chatbots created by this user</li>
+                <li>All conversations and messages</li>
+                <li>All associated data</li>
+              </ul>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-cancel-delete">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteUser}
+              className="bg-destructive hover:bg-destructive/90"
+              data-testid="button-confirm-delete"
+            >
+              {deleteUserMutation.isPending ? "Deleting..." : "Delete User"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Toggle Admin Confirmation Dialog */}
+      <AlertDialog open={adminToggleDialogOpen} onOpenChange={setAdminToggleDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {selectedUser?.isAdmin === "true" ? "Remove Admin Access" : "Grant Admin Access"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {selectedUser?.isAdmin === "true" ? (
+                <>
+                  Are you sure you want to remove admin access from <strong>{selectedUser?.firstName} {selectedUser?.lastName}</strong> ({selectedUser?.email})?
+                  <br /><br />
+                  They will lose access to:
+                  <ul className="list-disc list-inside mt-2 space-y-1">
+                    <li>Admin dashboard and statistics</li>
+                    <li>User management capabilities</li>
+                    <li>System-wide analytics</li>
+                  </ul>
+                </>
+              ) : (
+                <>
+                  Are you sure you want to grant admin access to <strong>{selectedUser?.firstName} {selectedUser?.lastName}</strong> ({selectedUser?.email})?
+                  <br /><br />
+                  They will gain access to:
+                  <ul className="list-disc list-inside mt-2 space-y-1">
+                    <li>Admin dashboard and statistics</li>
+                    <li>User management capabilities</li>
+                    <li>System-wide analytics</li>
+                    <li>Ability to manage other users</li>
+                  </ul>
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-cancel-toggle-admin">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmToggleAdmin}
+              data-testid="button-confirm-toggle-admin"
+            >
+              {toggleAdminMutation.isPending ? "Updating..." : "Confirm"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

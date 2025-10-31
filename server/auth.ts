@@ -107,6 +107,14 @@ export async function setupAuth(app: Express) {
     }
   });
 
+  // Helper function to sanitize user data before sending to client
+  // SECURITY: Never expose password hashes or sensitive internal fields
+  const sanitizeUser = (user: any) => {
+    if (!user) return null;
+    const { password, googleId, ...safeUser } = user;
+    return safeUser;
+  };
+
   // Registration route
   app.post('/api/auth/register', async (req, res) => {
     try {
@@ -143,7 +151,7 @@ export async function setupAuth(app: Express) {
         if (err) {
           return res.status(500).json({ message: 'Registration successful but login failed' });
         }
-        res.status(201).json({ message: 'Registration successful', user: newUser });
+        res.status(201).json({ message: 'Registration successful', user: sanitizeUser(newUser) });
       });
     } catch (error) {
       console.error('Registration error:', error);
@@ -166,7 +174,7 @@ export async function setupAuth(app: Express) {
         if (err) {
           return res.status(500).json({ message: 'Login failed' });
         }
-        return res.json({ message: 'Login successful', user });
+        return res.json({ message: 'Login successful', user: sanitizeUser(user) });
       });
     })(req, res, next);
   });
