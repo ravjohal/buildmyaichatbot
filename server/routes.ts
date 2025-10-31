@@ -12,6 +12,7 @@ import { eq, sql } from "drizzle-orm";
 import { crawlMultipleWebsitesRecursive, refreshWebsites, calculateContentHash, normalizeUrl } from "./crawler";
 import Stripe from "stripe";
 import crypto from "crypto";
+import { embeddingService } from "./embedding";
 
 const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
 const upload = multer({ 
@@ -937,15 +938,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const normalizedQuestion = message.trim().toLowerCase();
       const questionHash = crypto.createHash('md5').update(normalizedQuestion).digest('hex');
       
+      // Generate embedding for semantic caching
+      let questionEmbedding: number[] | null = null;
+      try {
+        questionEmbedding = await embeddingService.generateEmbedding(normalizedQuestion);
+      } catch (error) {
+        console.error("[EMBEDDING] Error generating embedding, falling back to exact match only:", error);
+      }
+      
       // Check cache for existing answer
-      const cachedAnswer = await storage.getCachedAnswer(chatbotId, questionHash);
+      // Strategy: Try exact match first (fast), then semantic match (slower but catches paraphrases)
+      let cachedAnswer = await storage.getCachedAnswer(chatbotId, questionHash);
+      let cacheType = "none";
+      
+      if (!cachedAnswer && questionEmbedding) {
+        // No exact match, try semantic similarity (threshold: 0.85 = 85% similar)
+        cachedAnswer = await storage.findSimilarCachedAnswer(chatbotId, questionEmbedding, 0.85);
+        if (cachedAnswer) {
+          cacheType = "semantic";
+        }
+      } else if (cachedAnswer) {
+        cacheType = "exact";
+      }
       
       let aiMessage: string;
       let suggestedQuestions: string[] = [];
       
       if (cachedAnswer) {
         // Cache hit! Use cached answer
-        console.log(`[CACHE HIT] Using cached answer for question hash: ${questionHash}`);
+        console.log(`[CACHE ${cacheType.toUpperCase()} HIT] Using cached answer for question: "${message.substring(0, 50)}..."`);
         aiMessage = cachedAnswer.answer;
         suggestedQuestions = cachedAnswer.suggestedQuestions || [];
         
@@ -1014,6 +1035,7 @@ Generate 3-5 short, natural questions that would help the user learn more. Retur
           chatbotId,
           question: normalizedQuestion,
           questionHash,
+          embedding: questionEmbedding || undefined,
           answer: aiMessage,
           suggestedQuestions,
           lastUsedAt: new Date(),

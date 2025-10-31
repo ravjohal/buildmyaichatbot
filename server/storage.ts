@@ -20,6 +20,7 @@ export interface IStorage {
   
   // QA Cache operations
   getCachedAnswer(chatbotId: string, questionHash: string): Promise<QaCache | undefined>;
+  findSimilarCachedAnswer(chatbotId: string, embedding: number[], threshold?: number): Promise<QaCache | undefined>;
   createCacheEntry(cacheEntry: InsertQaCache): Promise<QaCache>;
   updateCacheHitCount(cacheId: string): Promise<void>;
   getCacheStats(chatbotId: string): Promise<{ totalEntries: number; totalHits: number }>;
@@ -149,7 +150,63 @@ export class DbStorage implements IStorage {
     return result[0];
   }
 
+  async findSimilarCachedAnswer(chatbotId: string, embedding: number[], threshold: number = 0.85): Promise<QaCache | undefined> {
+    // Convert embedding array to PostgreSQL vector format: [0.1, 0.2, ...]
+    const embeddingStr = `[${embedding.join(',')}]`;
+    
+    // Use pgvector's cosine distance operator (<=>)
+    // Cosine distance = 1 - cosine similarity
+    // So distance <= (1 - threshold) means similarity >= threshold
+    const maxDistance = 1 - threshold;
+    
+    const result = await db
+      .select()
+      .from(qaCache)
+      .where(
+        and(
+          eq(qaCache.chatbotId, chatbotId),
+          sql`${qaCache.embedding} IS NOT NULL`,
+          sql`${qaCache.embedding} <=> ${embeddingStr}::vector <= ${maxDistance}`
+        )
+      )
+      .orderBy(sql`${qaCache.embedding} <=> ${embeddingStr}::vector`)
+      .limit(1);
+    
+    return result[0];
+  }
+
   async createCacheEntry(cacheEntry: InsertQaCache): Promise<QaCache> {
+    // If embedding is provided as an array, convert it to pgvector format
+    if (cacheEntry.embedding && Array.isArray(cacheEntry.embedding)) {
+      const embeddingStr = `[${cacheEntry.embedding.join(',')}]`;
+      
+      // Build complete SQL statement with all values inline to avoid parameter mixing
+      const suggestedQuestionsStr = cacheEntry.suggestedQuestions && cacheEntry.suggestedQuestions.length > 0
+        ? `ARRAY[${cacheEntry.suggestedQuestions.map(q => `'${q.replace(/'/g, "''")}'`).join(',')}]::text[]`
+        : 'ARRAY[]::text[]';
+      
+      const result = await db.execute(sql.raw(`
+        INSERT INTO qa_cache (
+          chatbot_id, question, question_hash, embedding, answer, 
+          suggested_questions, hit_count, last_used_at, created_at
+        )
+        VALUES (
+          '${cacheEntry.chatbotId}',
+          '${cacheEntry.question.replace(/'/g, "''")}',
+          '${cacheEntry.questionHash}',
+          '${embeddingStr}'::vector,
+          '${cacheEntry.answer.replace(/'/g, "''")}',
+          ${suggestedQuestionsStr},
+          '0',
+          NOW(),
+          NOW()
+        )
+        RETURNING *
+      `));
+      return result.rows[0] as QaCache;
+    }
+    
+    // Fallback for null embedding or non-array (exact match only)
     const result = await db
       .insert(qaCache)
       .values(cacheEntry)
