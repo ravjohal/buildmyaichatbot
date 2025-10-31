@@ -21,7 +21,7 @@ export default function Landing() {
               </Link>
               <Button
                 variant="default"
-                onClick={() => window.location.href = "/api/login"}
+                onClick={() => window.location.href = "/login"}
                 data-testid="button-login-header"
               >
                 Sign In
@@ -48,7 +48,7 @@ export default function Landing() {
           <div className="flex justify-center gap-4">
             <Button
               size="lg"
-              onClick={() => window.location.href = "/api/login"}
+              onClick={() => window.location.href = "/register"}
               data-testid="button-get-started"
             >
               Get Started Free
@@ -128,7 +128,7 @@ export default function Landing() {
               <Button
                 variant="outline"
                 className="w-full"
-                onClick={() => window.location.href = "/api/login"}
+                onClick={() => window.location.href = "/register"}
                 data-testid="button-start-free"
               >
                 Get Started Free

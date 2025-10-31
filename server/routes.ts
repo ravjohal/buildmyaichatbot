@@ -6,7 +6,7 @@ import { ZodError } from "zod";
 import { GoogleGenAI } from "@google/genai";
 import multer from "multer";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
-import { isAuthenticated } from "./replitAuth";
+import { isAuthenticated } from "./auth";
 import { db } from "./db";
 import { eq, sql } from "drizzle-orm";
 import { crawlMultipleWebsitesRecursive } from "./crawler";
@@ -25,7 +25,7 @@ const isAdmin = async (req: any, res: any, next: any) => {
       return res.status(401).json({ error: "Unauthorized" });
     }
     
-    const userId = req.user.claims.sub;
+    const userId = req.user.id;
     const user = await storage.getUser(userId);
     
     if (!user || user.isAdmin !== "true") {
@@ -44,11 +44,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/auth/user', async (req: any, res) => {
     try {
       // Check if user is authenticated
-      if (!req.isAuthenticated() || !req.user?.claims?.sub) {
+      if (!req.isAuthenticated() || !req.user?.id) {
         return res.json(null); // Return null for unauthenticated users (200 OK)
       }
       
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const user = await storage.getUser(userId);
       res.json(user);
     } catch (error) {
@@ -60,7 +60,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get account details with subscription info (protected)
   app.get('/api/account', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const user = await storage.getUser(userId);
       
       if (!user) {
@@ -115,7 +115,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(503).json({ error: "Stripe is not configured" });
       }
 
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const user = await storage.getUser(userId);
       
       if (!user || !user.stripeCustomerId) {
@@ -141,7 +141,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get all chatbots (protected)
   app.get("/api/chatbots", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const chatbots = await storage.getAllChatbots(userId);
       res.json(chatbots);
     } catch (error) {
@@ -153,7 +153,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get single chatbot (protected)
   app.get("/api/chatbots/:id", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const chatbot = await storage.getChatbot(req.params.id, userId);
       if (!chatbot) {
         return res.status(404).json({ error: "Chatbot not found" });
@@ -205,7 +205,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("User ID:", req.user?.claims?.sub);
       console.log("Request body keys:", Object.keys(req.body));
       
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const validatedData = insertChatbotSchema.parse(req.body);
       console.log("Data validated successfully");
       
@@ -304,7 +304,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Update chatbot (protected)
   app.put("/api/chatbots/:id", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const validatedData = insertChatbotSchema.partial().parse(req.body);
       
       // Check if user is trying to update Pro-only features (colors, logo)
@@ -369,7 +369,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Delete chatbot (protected)
   app.delete("/api/chatbots/:id", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const deleted = await storage.deleteChatbot(req.params.id, userId);
       if (!deleted) {
         return res.status(404).json({ error: "Chatbot not found" });
@@ -411,7 +411,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Update chatbot with uploaded logo URL (protected - Pro plan only)
   app.put("/api/chatbots/:id/logo", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       
       // Verify user has paid subscription for logo customization
       const user = await storage.getUser(userId);
@@ -633,7 +633,7 @@ Generate 3-5 short, natural questions that would help the user learn more. Retur
   // Get analytics overview for a chatbot
   app.get("/api/chatbots/:id/analytics", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const chatbotId = req.params.id;
 
       // Verify user owns this chatbot
@@ -686,7 +686,7 @@ Generate 3-5 short, natural questions that would help the user learn more. Retur
   // Get conversation details with all messages - Pro plan only
   app.get("/api/conversations/:id", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const conversationId = req.params.id;
 
       // Get conversation
@@ -734,7 +734,7 @@ Generate 3-5 short, natural questions that would help the user learn more. Retur
   // Get all conversations for a chatbot (with pagination) - Pro plan only
   app.get("/api/chatbots/:id/conversations", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const chatbotId = req.params.id;
       const limit = parseInt(req.query.limit as string) || 50;
       const offset = parseInt(req.query.offset as string) || 0;
@@ -776,7 +776,7 @@ Generate 3-5 short, natural questions that would help the user learn more. Retur
         return res.status(503).json({ error: "Stripe is not configured" });
       }
 
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const { billingCycle } = req.body;
       
       const user = await storage.getUser(userId);

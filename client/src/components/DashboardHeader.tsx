@@ -2,6 +2,7 @@ import { Link } from "wouter";
 import { Crown, LogOut, User as UserIcon, Shield, LayoutDashboard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { User } from "@shared/schema";
 
 export function DashboardHeader() {
@@ -11,6 +12,12 @@ export function DashboardHeader() {
 
   const isAdmin = user?.isAdmin === "true";
   const isFreeTier = user?.subscriptionTier === "free" && !isAdmin;
+
+  const handleLogout = async () => {
+    await apiRequest("POST", "/api/auth/logout", {});
+    queryClient.clear();
+    window.location.href = "/";
+  };
 
   return (
     <div className="border-b">
@@ -65,7 +72,7 @@ export function DashboardHeader() {
             <Button 
               variant="outline" 
               size="default"
-              onClick={() => window.location.href = "/api/logout"}
+              onClick={handleLogout}
               data-testid="button-logout"
             >
               <LogOut className="w-4 h-4 mr-2" />

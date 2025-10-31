@@ -14,6 +14,8 @@ import Subscribe from "@/pages/Subscribe";
 import Account from "@/pages/Account";
 import Admin from "@/pages/Admin";
 import Landing from "@/pages/Landing";
+import Login from "@/pages/Login";
+import Register from "@/pages/Register";
 import NotFound from "@/pages/not-found";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -21,6 +23,8 @@ function PublicRouter() {
   return (
     <Switch>
       <Route path="/" component={Landing} />
+      <Route path="/login" component={Login} />
+      <Route path="/register" component={Register} />
       <Route path="/pricing" component={Pricing} />
       <Route path="/widget/:id" component={ChatWidget} />
       <Route component={Landing} />
@@ -64,9 +68,11 @@ function ProtectedRouter() {
 function Router() {
   const [location] = useLocation();
   
-  // Only skip authentication for truly public routes (widget and pricing)
-  // Homepage (/) should check authentication to show Dashboard vs Landing
-  const isPublicRoute = location.startsWith('/widget/') || location === '/pricing';
+  // Public routes that don't require authentication
+  const isPublicRoute = location.startsWith('/widget/') || 
+                        location === '/pricing' || 
+                        location === '/login' || 
+                        location === '/register';
   
   if (isPublicRoute) {
     return <PublicRouter />;
