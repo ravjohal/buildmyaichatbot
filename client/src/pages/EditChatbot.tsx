@@ -13,8 +13,9 @@ import { StepKnowledgeBase } from "@/components/wizard/StepKnowledgeBase";
 import { StepPersonality } from "@/components/wizard/StepPersonality";
 import { StepCustomization } from "@/components/wizard/StepCustomization";
 import { StepEscalation } from "@/components/wizard/StepEscalation";
+import { StepLeadCapture } from "@/components/wizard/StepLeadCapture";
 
-type WizardStep = "name" | "knowledge" | "personality" | "customization" | "escalation";
+type WizardStep = "name" | "knowledge" | "personality" | "customization" | "escalation" | "leadcapture";
 
 const steps: { id: WizardStep; label: string; number: number }[] = [
   { id: "name", label: "Name & Description", number: 1 },
@@ -22,6 +23,7 @@ const steps: { id: WizardStep; label: string; number: number }[] = [
   { id: "personality", label: "Personality & Tone", number: 3 },
   { id: "customization", label: "Customization", number: 4 },
   { id: "escalation", label: "Escalation", number: 5 },
+  { id: "leadcapture", label: "Lead Capture", number: 6 },
 ];
 
 export default function EditChatbot() {
@@ -54,6 +56,12 @@ export default function EditChatbot() {
         suggestedQuestions: chatbot.suggestedQuestions || [],
         supportPhoneNumber: chatbot.supportPhoneNumber || undefined,
         escalationMessage: chatbot.escalationMessage || undefined,
+        leadCaptureEnabled: chatbot.leadCaptureEnabled || "false",
+        leadCaptureFields: chatbot.leadCaptureFields || ["name", "email"],
+        leadCaptureTitle: chatbot.leadCaptureTitle || "Get in Touch",
+        leadCaptureMessage: chatbot.leadCaptureMessage || "Leave your contact information and we'll get back to you.",
+        leadCaptureTiming: chatbot.leadCaptureTiming || "after_first_message",
+        leadCaptureMessageCount: chatbot.leadCaptureMessageCount || "1",
       });
     }
   }, [chatbot]);
@@ -182,6 +190,9 @@ export default function EditChatbot() {
           )}
           {currentStep === "escalation" && (
             <StepEscalation formData={formData} updateFormData={handleUpdateData} />
+          )}
+          {currentStep === "leadcapture" && (
+            <StepLeadCapture formData={formData} updateFormData={handleUpdateData} />
           )}
         </div>
 

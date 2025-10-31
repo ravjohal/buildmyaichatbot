@@ -9,6 +9,7 @@ import { StepKnowledgeBase } from "@/components/wizard/StepKnowledgeBase";
 import { StepPersonality } from "@/components/wizard/StepPersonality";
 import { StepCustomization } from "@/components/wizard/StepCustomization";
 import { StepEscalation } from "@/components/wizard/StepEscalation";
+import { StepLeadCapture } from "@/components/wizard/StepLeadCapture";
 import { StepComplete } from "@/components/wizard/StepComplete";
 import type { InsertChatbot, User } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -21,6 +22,7 @@ const STEPS = [
   { number: 3, title: "Personality", description: "Define behavior" },
   { number: 4, title: "Customization", description: "Brand your widget" },
   { number: 5, title: "Escalation", description: "Set up support" },
+  { number: 6, title: "Lead Capture", description: "Collect contact info" },
 ];
 
 export default function CreateChatbot() {
@@ -48,6 +50,12 @@ export default function CreateChatbot() {
     suggestedQuestions: [],
     supportPhoneNumber: "",
     escalationMessage: "If you need more help, you can reach our team at {phone}.",
+    leadCaptureEnabled: "false",
+    leadCaptureFields: ["name", "email"],
+    leadCaptureTitle: "Get in Touch",
+    leadCaptureMessage: "Leave your contact information and we'll get back to you.",
+    leadCaptureTiming: "after_first_message",
+    leadCaptureMessageCount: "1",
   });
 
   const updateFormData = (updates: Partial<InsertChatbot>) => {
@@ -66,13 +74,15 @@ export default function CreateChatbot() {
         return formData.primaryColor && formData.accentColor && formData.welcomeMessage;
       case 5:
         return true; // Escalation is optional
+      case 6:
+        return true; // Lead capture is optional
       default:
         return false;
     }
   };
 
   const handleNext = () => {
-    if (currentStep < 5) {
+    if (currentStep < 6) {
       setCurrentStep(currentStep + 1);
     }
   };
@@ -144,7 +154,7 @@ export default function CreateChatbot() {
               </div>
               <div>
                 <h1 className="text-2xl font-bold">Create Chatbot</h1>
-                <p className="text-sm text-muted-foreground">Step {currentStep} of 5</p>
+                <p className="text-sm text-muted-foreground">Step {currentStep} of 6</p>
               </div>
             </div>
           </div>
@@ -171,6 +181,9 @@ export default function CreateChatbot() {
             {currentStep === 5 && (
               <StepEscalation formData={formData} updateFormData={updateFormData} />
             )}
+            {currentStep === 6 && (
+              <StepLeadCapture formData={formData} updateFormData={updateFormData} />
+            )}
           </CardContent>
         </Card>
 
@@ -184,7 +197,7 @@ export default function CreateChatbot() {
             Back
           </Button>
 
-          {currentStep < 5 ? (
+          {currentStep < 6 ? (
             <Button
               onClick={handleNext}
               disabled={!canProceed()}
