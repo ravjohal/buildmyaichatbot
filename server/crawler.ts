@@ -352,3 +352,114 @@ export async function crawlMultipleWebsitesRecursive(
   
   return allResults;
 }
+
+// Calculate MD5 hash of content for change detection
+export function calculateContentHash(content: string): string {
+  const crypto = require('crypto');
+  return crypto.createHash('md5').update(content).digest('hex');
+}
+
+// Check if URL content has changed by comparing hash
+export async function hasUrlChanged(
+  url: string,
+  previousHash: string
+): Promise<{ changed: boolean; newHash?: string; error?: string }> {
+  try {
+    const result = await crawlWebsite(url);
+    
+    if (result.error) {
+      return { changed: false, error: result.error };
+    }
+    
+    const newHash = calculateContentHash(result.content);
+    return {
+      changed: newHash !== previousHash,
+      newHash,
+    };
+  } catch (error: any) {
+    return { changed: false, error: error.message };
+  }
+}
+
+export interface RefreshResult {
+  url: string;
+  changed: boolean;
+  content?: string;
+  title?: string;
+  contentHash?: string;
+  error?: string;
+}
+
+// Intelligently refresh URLs - only re-crawl if content has changed
+export async function refreshWebsites(
+  urls: string[],
+  previousCrawlData?: Map<string, { hash: string; etag?: string; lastModified?: string }>
+): Promise<RefreshResult[]> {
+  const results: RefreshResult[] = [];
+  
+  for (const url of urls) {
+    try {
+      const previousData = previousCrawlData?.get(url);
+      
+      // If we have previous crawl data, check if content changed
+      if (previousData) {
+        const changeCheck = await hasUrlChanged(url, previousData.hash);
+        
+        if (changeCheck.error) {
+          results.push({
+            url,
+            changed: false,
+            error: changeCheck.error,
+          });
+          continue;
+        }
+        
+        if (!changeCheck.changed) {
+          // Content hasn't changed, skip re-crawling
+          console.log(`[Refresh] No changes detected for ${url}`);
+          results.push({
+            url,
+            changed: false,
+          });
+          continue;
+        }
+        
+        console.log(`[Refresh] Changes detected for ${url}, re-crawling...`);
+      }
+      
+      // Content changed or first time crawling - fetch fresh content
+      const crawlResult = await crawlWebsite(url);
+      
+      if (crawlResult.error) {
+        results.push({
+          url,
+          changed: true,
+          error: crawlResult.error,
+        });
+        continue;
+      }
+      
+      const contentHash = calculateContentHash(crawlResult.content);
+      
+      results.push({
+        url,
+        changed: true,
+        content: crawlResult.content,
+        title: crawlResult.title,
+        contentHash,
+      });
+      
+    } catch (error: any) {
+      results.push({
+        url,
+        changed: false,
+        error: error.message,
+      });
+    }
+    
+    // Small delay between requests
+    await new Promise(resolve => setTimeout(resolve, 100));
+  }
+  
+  return results;
+}

@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertChatbotSchema, insertLeadSchema, type ChatRequest, type ChatResponse, chatbots, conversations, conversationMessages, users, leads } from "@shared/schema";
+import { insertChatbotSchema, insertLeadSchema, type ChatRequest, type ChatResponse, chatbots, conversations, conversationMessages, users, leads, urlCrawlMetadata } from "@shared/schema";
 import { ZodError } from "zod";
 import { GoogleGenAI } from "@google/genai";
 import multer from "multer";
@@ -9,7 +9,7 @@ import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import { isAuthenticated } from "./auth";
 import { db } from "./db";
 import { eq, sql } from "drizzle-orm";
-import { crawlMultipleWebsitesRecursive } from "./crawler";
+import { crawlMultipleWebsitesRecursive, refreshWebsites, calculateContentHash } from "./crawler";
 import Stripe from "stripe";
 
 const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
@@ -298,6 +298,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         websiteContent,
       }, userId);
       
+      // Store initial crawl metadata for future refresh operations
+      if (validatedData.websiteUrls && validatedData.websiteUrls.length > 0) {
+        try {
+          const crawlMetadataRecords = validatedData.websiteUrls.map(url => ({
+            chatbotId: chatbot.id,
+            url: url,
+            contentHash: calculateContentHash(websiteContent),
+            lastCrawledAt: new Date(),
+          }));
+          
+          await db.insert(urlCrawlMetadata).values(crawlMetadataRecords);
+          console.log(`[CRAWLER] Stored crawl metadata for ${crawlMetadataRecords.length} URLs`);
+        } catch (metaError) {
+          console.error("[CRAWLER] Failed to store crawl metadata:", metaError);
+          // Don't fail the request if metadata storage fails
+        }
+      }
+      
       console.log("✓ Chatbot created successfully:", chatbot.id);
       console.log("=== CHATBOT CREATION REQUEST COMPLETED ===");
       res.status(201).json(chatbot);
@@ -378,6 +396,122 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       console.error("Error updating chatbot:", error);
       res.status(500).json({ error: "Failed to update chatbot" });
+    }
+  });
+
+  // Refresh knowledge base on-demand (protected)
+  app.post("/api/chatbots/:id/refresh-knowledge", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const chatbotId = req.params.id;
+      
+      console.log(`[Refresh] Starting knowledge base refresh for chatbot ${chatbotId}`);
+      
+      // Get the chatbot
+      const chatbot = await storage.getChatbot(chatbotId, userId);
+      if (!chatbot) {
+        return res.status(404).json({ error: "Chatbot not found" });
+      }
+      
+      // Get existing URL crawl metadata
+      const existingMetadata = await db.select()
+        .from(urlCrawlMetadata)
+        .where(eq(urlCrawlMetadata.chatbotId, chatbotId));
+      
+      console.log(`[Refresh] Found ${existingMetadata.length} existing crawl metadata records`);
+      
+      // Create a map of previous crawl data for efficient lookup
+      const previousCrawlData = new Map(
+        existingMetadata.map(meta => [
+          meta.url,
+          { 
+            hash: meta.contentHash,
+            etag: meta.etag || undefined,
+            lastModified: meta.lastModified || undefined
+          }
+        ])
+      );
+      
+      // Refresh website URLs with intelligent change detection
+      let updatedContent = chatbot.websiteContent || '';
+      let changedCount = 0;
+      let unchangedCount = 0;
+      
+      if (chatbot.websiteUrls && chatbot.websiteUrls.length > 0) {
+        console.log(`[Refresh] Refreshing ${chatbot.websiteUrls.length} website URLs`);
+        
+        const refreshResults = await refreshWebsites(chatbot.websiteUrls, previousCrawlData);
+        
+        // Count changes
+        changedCount = refreshResults.filter(r => r.changed && !r.error).length;
+        unchangedCount = refreshResults.filter(r => !r.changed).length;
+        
+        console.log(`[Refresh] Results: ${changedCount} changed, ${unchangedCount} unchanged`);
+        
+        // If any URLs changed, rebuild the website content
+        if (changedCount > 0) {
+          const changedUrls = refreshResults.filter(r => r.changed && r.content);
+          
+          // Build new content from changed URLs
+          updatedContent = changedUrls
+            .map(result => `URL: ${result.url}\nTitle: ${result.title || 'N/A'}\n\n${result.content}`)
+            .join('\n\n---\n\n');
+          
+          // Update or insert crawl metadata for changed URLs
+          for (const result of refreshResults) {
+            if (result.changed && result.contentHash) {
+              const existing = existingMetadata.find(m => m.url === result.url);
+              
+              if (existing) {
+                // Update existing metadata
+                await db.update(urlCrawlMetadata)
+                  .set({
+                    contentHash: result.contentHash,
+                    lastCrawledAt: new Date(),
+                  })
+                  .where(eq(urlCrawlMetadata.id, existing.id));
+              } else {
+                // Insert new metadata
+                await db.insert(urlCrawlMetadata).values({
+                  chatbotId: chatbotId,
+                  url: result.url,
+                  contentHash: result.contentHash,
+                  lastCrawledAt: new Date(),
+                });
+              }
+            }
+          }
+          
+          // Update chatbot with new content and timestamp
+          await db.update(chatbots)
+            .set({
+              websiteContent: updatedContent,
+              lastKnowledgeUpdate: new Date(),
+            })
+            .where(eq(chatbots.id, chatbotId));
+          
+          console.log(`[Refresh] Knowledge base updated successfully`);
+        } else {
+          console.log(`[Refresh] No changes detected, knowledge base is up to date`);
+        }
+      }
+      
+      // Note: Documents are not refreshed unless new ones are uploaded via the edit page
+      // This matches the requirement: "do not do a re-index of the documents unless a new document was uploaded"
+      
+      res.json({
+        success: true,
+        message: changedCount > 0 
+          ? `Knowledge base refreshed successfully. ${changedCount} URL(s) updated.`
+          : "Knowledge base is already up to date.",
+        changedUrls: changedCount,
+        unchangedUrls: unchangedCount,
+        lastUpdate: new Date(),
+      });
+      
+    } catch (error) {
+      console.error("Error refreshing knowledge base:", error);
+      res.status(500).json({ error: "Failed to refresh knowledge base" });
     }
   });
 
