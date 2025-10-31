@@ -182,3 +182,25 @@ export const urlCrawlMetadata = pgTable("url_crawl_metadata", {
 
 export type UrlCrawlMetadata = typeof urlCrawlMetadata.$inferSelect;
 export type InsertUrlCrawlMetadata = typeof urlCrawlMetadata.$inferInsert;
+
+// Q&A Cache - stores question-answer pairs to reduce LLM API calls
+export const qaCache = pgTable("qa_cache", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  chatbotId: varchar("chatbot_id").notNull().references(() => chatbots.id, { onDelete: "cascade" }),
+  question: text("question").notNull(), // Normalized question for exact matching
+  questionHash: text("question_hash").notNull(), // MD5 hash for fast lookups
+  answer: text("answer").notNull(),
+  suggestedQuestions: text("suggested_questions").array().default(sql`ARRAY[]::text[]`),
+  hitCount: text("hit_count").notNull().default("0"), // Track how many times this cache entry was used
+  lastUsedAt: timestamp("last_used_at").defaultNow().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertQaCacheSchema = createInsertSchema(qaCache).omit({
+  id: true,
+  createdAt: true,
+  hitCount: true,
+});
+
+export type QaCache = typeof qaCache.$inferSelect;
+export type InsertQaCache = z.infer<typeof insertQaCacheSchema>;

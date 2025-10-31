@@ -1,6 +1,6 @@
-import { type Chatbot, type InsertChatbot, chatbots, users, type User, type UpsertUser } from "@shared/schema";
+import { type Chatbot, type InsertChatbot, chatbots, users, type User, type UpsertUser, type QaCache, type InsertQaCache, qaCache } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and } from "drizzle-orm";
+import { eq, desc, and, sql } from "drizzle-orm";
 
 export interface IStorage {
   // User operations
@@ -17,6 +17,12 @@ export interface IStorage {
   updateChatbot(id: string, userId: string, chatbot: Partial<InsertChatbot>): Promise<Chatbot | undefined>;
   deleteChatbot(id: string, userId: string): Promise<boolean>;
   incrementChatbotQuestionCount(chatbotId: string): Promise<void>;
+  
+  // QA Cache operations
+  getCachedAnswer(chatbotId: string, questionHash: string): Promise<QaCache | undefined>;
+  createCacheEntry(cacheEntry: InsertQaCache): Promise<QaCache>;
+  updateCacheHitCount(cacheId: string): Promise<void>;
+  getCacheStats(chatbotId: string): Promise<{ totalEntries: number; totalHits: number }>;
 }
 
 export class DbStorage implements IStorage {
@@ -130,6 +136,58 @@ export class DbStorage implements IStorage {
         .set({ questionCount: newCount })
         .where(eq(chatbots.id, chatbotId));
     }
+  }
+
+  // QA Cache operations
+  async getCachedAnswer(chatbotId: string, questionHash: string): Promise<QaCache | undefined> {
+    const result = await db
+      .select()
+      .from(qaCache)
+      .where(and(eq(qaCache.chatbotId, chatbotId), eq(qaCache.questionHash, questionHash)))
+      .limit(1);
+    return result[0];
+  }
+
+  async createCacheEntry(cacheEntry: InsertQaCache): Promise<QaCache> {
+    const result = await db
+      .insert(qaCache)
+      .values(cacheEntry)
+      .returning();
+    return result[0];
+  }
+
+  async updateCacheHitCount(cacheId: string): Promise<void> {
+    const current = await db
+      .select({ hitCount: qaCache.hitCount })
+      .from(qaCache)
+      .where(eq(qaCache.id, cacheId))
+      .limit(1);
+    
+    if (current[0]) {
+      const newCount = (parseInt(current[0].hitCount) + 1).toString();
+      await db
+        .update(qaCache)
+        .set({ 
+          hitCount: newCount,
+          lastUsedAt: new Date()
+        })
+        .where(eq(qaCache.id, cacheId));
+    }
+  }
+
+  async getCacheStats(chatbotId: string): Promise<{ totalEntries: number; totalHits: number }> {
+    const result = await db
+      .select({
+        totalEntries: sql<number>`count(*)`,
+        totalHits: sql<number>`sum(cast(${qaCache.hitCount} as integer))`,
+      })
+      .from(qaCache)
+      .where(eq(qaCache.chatbotId, chatbotId));
+    
+    return {
+      totalEntries: Number(result[0]?.totalEntries || 0),
+      totalHits: Number(result[0]?.totalHits || 0),
+    };
   }
 }
 
