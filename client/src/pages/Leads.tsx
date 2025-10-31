@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Download, UserPlus, Mail, Phone, Building2, MessageSquare, Calendar, ExternalLink, Link as LinkIcon, TestTube } from "lucide-react";
+import { Download, UserPlus, Mail, Phone, Building2, MessageSquare, Calendar, ExternalLink, Link as LinkIcon, TestTube, ArrowLeft, LogOut, User as UserIcon, Settings, Crown } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -118,6 +119,11 @@ export default function Leads() {
   const selectedChatbot = chatbots?.find((c) => c.id.toString() === selectedChatbotId);
   const canViewLeads = user?.subscriptionTier === "paid" || user?.isAdmin === "true";
 
+  const handleLogout = async () => {
+    await fetch("/api/auth/logout", { method: "POST" });
+    window.location.href = "/login";
+  };
+
   if (loadingChatbots) {
     return (
       <div className="flex items-center justify-center h-96">
@@ -127,13 +133,63 @@ export default function Leads() {
   }
 
   return (
-    <div className="container mx-auto p-6 max-w-7xl">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold mb-2">Leads</h1>
-        <p className="text-muted-foreground">
-          View and export leads captured through your chatbot conversations.
-        </p>
+    <div className="min-h-screen bg-background">
+      <div className="border-b">
+        <div className="max-w-7xl mx-auto px-6 md:px-12 py-6">
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+            <div className="flex items-center gap-4">
+              <Link href="/">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  data-testid="button-back-dashboard"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                </Button>
+              </Link>
+              <div>
+                <h1 className="text-3xl font-bold tracking-tight">Leads</h1>
+                <p className="text-muted-foreground mt-1">
+                  View and export leads captured through your chatbot conversations
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-3 flex-wrap">
+              {user?.isAdmin === "true" && (
+                <Link href="/admin">
+                  <Button variant="outline" className="gap-2" data-testid="button-admin">
+                    <Crown className="w-4 h-4" />
+                    Admin
+                  </Button>
+                </Link>
+              )}
+              <Link href="/account">
+                <Button variant="outline" className="gap-2" data-testid="button-account">
+                  <UserIcon className="w-4 h-4" />
+                  Account
+                </Button>
+              </Link>
+              <Link href="/account/notifications">
+                <Button variant="outline" className="gap-2" data-testid="button-notifications">
+                  <Settings className="w-4 h-4" />
+                  Notifications
+                </Button>
+              </Link>
+              <Button
+                variant="outline"
+                onClick={handleLogout}
+                className="gap-2"
+                data-testid="button-logout"
+              >
+                <LogOut className="w-4 h-4" />
+                Logout
+              </Button>
+            </div>
+          </div>
+        </div>
       </div>
+
+      <div className="max-w-7xl mx-auto px-6 md:px-12 py-8">
 
       {!canViewLeads && (
         <Card className="mb-6 border-primary">
@@ -327,6 +383,7 @@ export default function Leads() {
           )}
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 }
