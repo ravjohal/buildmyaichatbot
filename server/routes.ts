@@ -13,6 +13,7 @@ import { crawlMultipleWebsitesRecursive, refreshWebsites, calculateContentHash, 
 import Stripe from "stripe";
 import crypto from "crypto";
 import { embeddingService } from "./embedding";
+import { notificationService } from "./emails/notification-service";
 
 const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
 const upload = multer({ 
@@ -1468,8 +1469,40 @@ Generate 3-5 short, natural questions that would help the user learn more. Retur
         return res.status(404).json({ error: "Chatbot not found" });
       }
 
+      const chatbot = chatbotResult[0];
+
       // Insert lead
       const newLead = await db.insert(leads).values(validatedData).returning();
+      
+      // Feature 13: Send email notification for new lead
+      try {
+        const user = await storage.getUser(chatbot.userId);
+        if (user) {
+          const settings = await storage.getEmailNotificationSettings(user.id);
+          
+          if (settings && settings.enableNewLeadNotifications === "true") {
+            const emailAddress = settings.emailAddress || user.email;
+            
+            // Build conversation URL
+            const conversationUrl = validatedData.conversationId 
+              ? `${process.env.REPL_SLUG ? `https://${process.env.REPL_SLUG}.${process.env.REPLIT_DEV_DOMAIN}` : 'http://localhost:5000'}/analytics/${chatbot.id}?conversation=${validatedData.conversationId}`
+              : `${process.env.REPL_SLUG ? `https://${process.env.REPL_SLUG}.${process.env.REPLIT_DEV_DOMAIN}` : 'http://localhost:5000'}/analytics/${chatbot.id}`;
+
+            await notificationService.sendNewLeadNotification(emailAddress, {
+              chatbotName: chatbot.name,
+              leadName: validatedData.name || undefined,
+              leadEmail: validatedData.email || undefined,
+              leadPhone: validatedData.phone || undefined,
+              leadCompany: validatedData.company || undefined,
+              leadMessage: validatedData.message || undefined,
+              conversationUrl,
+            });
+          }
+        }
+      } catch (emailError) {
+        // Don't fail lead submission if email fails
+        console.error("Failed to send lead notification email:", emailError);
+      }
       
       res.status(201).json(newLead[0]);
     } catch (error) {
@@ -1748,6 +1781,219 @@ Generate 3-5 short, natural questions that would help the user learn more. Retur
     } catch (error: any) {
       console.error("Subscription creation error:", error);
       res.status(400).json({ error: error.message });
+    }
+  });
+
+  // ===== CONVERSATION RATING ENDPOINTS (Feature 3) =====
+  
+  // Submit a rating for a conversation
+  app.post("/api/conversations/:id/rating", async (req, res) => {
+    try {
+      const { id: conversationId } = req.params;
+      const { rating, feedback } = req.body;
+
+      if (!rating || !["1", "2", "3", "4", "5"].includes(rating)) {
+        return res.status(400).json({ error: "Invalid rating. Must be 1-5." });
+      }
+
+      // Check if conversation exists
+      const conversation = await db
+        .select()
+        .from(conversations)
+        .where(eq(conversations.id, conversationId))
+        .limit(1);
+
+      if (!conversation[0]) {
+        return res.status(404).json({ error: "Conversation not found" });
+      }
+
+      // Check if rating already exists
+      const existingRating = await storage.getConversationRating(conversationId);
+      if (existingRating) {
+        return res.status(400).json({ error: "Rating already submitted for this conversation" });
+      }
+
+      const newRating = await storage.createConversationRating({
+        conversationId,
+        rating,
+        feedback: feedback || null,
+      });
+
+      res.status(201).json(newRating);
+    } catch (error) {
+      console.error("Error creating conversation rating:", error);
+      res.status(500).json({ error: "Failed to create rating" });
+    }
+  });
+
+  // Get average rating for a chatbot (Pro feature)
+  app.get("/api/chatbots/:id/average-rating", isAuthenticated, async (req: any, res) => {
+    try {
+      const { id: chatbotId } = req.params;
+      const userId = req.user.id;
+
+      const chatbot = await storage.getChatbot(chatbotId, userId);
+      if (!chatbot) {
+        return res.status(404).json({ error: "Chatbot not found" });
+      }
+
+      const averageRating = await storage.getAverageRatingForChatbot(chatbotId);
+      res.json({ averageRating });
+    } catch (error) {
+      console.error("Error fetching average rating:", error);
+      res.status(500).json({ error: "Failed to fetch average rating" });
+    }
+  });
+
+  // ===== EMAIL NOTIFICATION SETTINGS ENDPOINTS (Feature 13) =====
+  
+  // Get user's email notification settings
+  app.get("/api/notification-settings", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      
+      let settings = await storage.getEmailNotificationSettings(userId);
+      
+      // Create default settings if none exist
+      if (!settings) {
+        settings = await storage.createEmailNotificationSettings({
+          userId,
+          enableNewLeadNotifications: "true",
+          enableUnansweredQuestionNotifications: "true",
+          unansweredThresholdMinutes: "30",
+          emailAddress: null,
+        });
+      }
+      
+      res.json(settings);
+    } catch (error) {
+      console.error("Error fetching notification settings:", error);
+      res.status(500).json({ error: "Failed to fetch notification settings" });
+    }
+  });
+
+  // Update email notification settings
+  app.put("/api/notification-settings", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const updates = req.body;
+
+      const settings = await storage.updateEmailNotificationSettings(userId, updates);
+      if (!settings) {
+        return res.status(404).json({ error: "Settings not found" });
+      }
+
+      res.json(settings);
+    } catch (error) {
+      console.error("Error updating notification settings:", error);
+      res.status(500).json({ error: "Failed to update notification settings" });
+    }
+  });
+
+  // ===== CONVERSATION FLOW ENDPOINTS (Feature 5) =====
+  
+  // Get all flows for a chatbot
+  app.get("/api/chatbots/:id/flows", isAuthenticated, async (req: any, res) => {
+    try {
+      const { id: chatbotId } = req.params;
+      const userId = req.user.id;
+
+      const chatbot = await storage.getChatbot(chatbotId, userId);
+      if (!chatbot) {
+        return res.status(404).json({ error: "Chatbot not found" });
+      }
+
+      const flows = await storage.getConversationFlows(chatbotId);
+      res.json(flows);
+    } catch (error) {
+      console.error("Error fetching conversation flows:", error);
+      res.status(500).json({ error: "Failed to fetch flows" });
+    }
+  });
+
+  // Create a new conversation flow
+  app.post("/api/chatbots/:id/flows", isAuthenticated, async (req: any, res) => {
+    try {
+      const { id: chatbotId } = req.params;
+      const userId = req.user.id;
+      const { name, description, flowData } = req.body;
+
+      const chatbot = await storage.getChatbot(chatbotId, userId);
+      if (!chatbot) {
+        return res.status(404).json({ error: "Chatbot not found" });
+      }
+
+      if (!name || !flowData) {
+        return res.status(400).json({ error: "Name and flow data are required" });
+      }
+
+      const flow = await storage.createConversationFlow({
+        chatbotId,
+        name,
+        description: description || null,
+        isActive: "false",
+        flowData,
+      });
+
+      res.status(201).json(flow);
+    } catch (error) {
+      console.error("Error creating conversation flow:", error);
+      res.status(500).json({ error: "Failed to create flow" });
+    }
+  });
+
+  // Update a conversation flow
+  app.put("/api/flows/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const { id: flowId } = req.params;
+      const userId = req.user.id;
+      const updates = req.body;
+
+      const flow = await storage.getConversationFlow(flowId);
+      if (!flow) {
+        return res.status(404).json({ error: "Flow not found" });
+      }
+
+      // Verify user owns the chatbot
+      const chatbot = await storage.getChatbot(flow.chatbotId, userId);
+      if (!chatbot) {
+        return res.status(403).json({ error: "Unauthorized" });
+      }
+
+      const updatedFlow = await storage.updateConversationFlow(flowId, updates);
+      res.json(updatedFlow);
+    } catch (error) {
+      console.error("Error updating conversation flow:", error);
+      res.status(500).json({ error: "Failed to update flow" });
+    }
+  });
+
+  // Delete a conversation flow
+  app.delete("/api/flows/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const { id: flowId } = req.params;
+      const userId = req.user.id;
+
+      const flow = await storage.getConversationFlow(flowId);
+      if (!flow) {
+        return res.status(404).json({ error: "Flow not found" });
+      }
+
+      // Verify user owns the chatbot
+      const chatbot = await storage.getChatbot(flow.chatbotId, userId);
+      if (!chatbot) {
+        return res.status(403).json({ error: "Unauthorized" });
+      }
+
+      const deleted = await storage.deleteConversationFlow(flowId);
+      if (!deleted) {
+        return res.status(404).json({ error: "Flow not found" });
+      }
+
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting conversation flow:", error);
+      res.status(500).json({ error: "Failed to delete flow" });
     }
   });
 
