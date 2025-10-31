@@ -533,25 +533,41 @@ export default function ChatWidget() {
         )}
 
         <div className="p-6 border-t bg-background">
-          <div className="max-w-3xl mx-auto flex gap-3">
-            <Input
-              placeholder="Type your message..."
-              className="flex-1"
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              onKeyPress={(e) => e.key === "Enter" && handleSend()}
-              data-testid="input-chat-message"
-            />
-            <Button
-              size="icon"
-              style={{ backgroundColor: chatbot.accentColor }}
-              className="text-white"
-              onClick={handleSend}
-              disabled={!inputValue.trim() || chatMutation.isPending}
-              data-testid="button-send-message"
-            >
-              <Send className="w-5 h-5" />
-            </Button>
+          <div className="max-w-3xl mx-auto">
+            {chatbot.leadCaptureEnabled === "true" && !leadCaptured && !showLeadForm && (
+              <div className="mb-3">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full"
+                  onClick={() => setShowLeadForm(true)}
+                  data-testid="button-open-lead-form"
+                >
+                  <UserPlus className="w-4 h-4 mr-2" />
+                  Leave Your Contact Details
+                </Button>
+              </div>
+            )}
+            <div className="flex gap-3">
+              <Input
+                placeholder="Type your message..."
+                className="flex-1"
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                onKeyPress={(e) => e.key === "Enter" && handleSend()}
+                data-testid="input-chat-message"
+              />
+              <Button
+                size="icon"
+                style={{ backgroundColor: chatbot.accentColor }}
+                className="text-white"
+                onClick={handleSend}
+                disabled={!inputValue.trim() || chatMutation.isPending}
+                data-testid="button-send-message"
+              >
+                <Send className="w-5 h-5" />
+              </Button>
+            </div>
           </div>
         </div>
       </div>
@@ -711,6 +727,20 @@ export default function ChatWidget() {
           )}
 
           <div className="p-4 border-t">
+            {chatbot.leadCaptureEnabled === "true" && !leadCaptured && !showLeadForm && (
+              <div className="mb-3">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full text-xs"
+                  onClick={() => setShowLeadForm(true)}
+                  data-testid="button-open-lead-form"
+                >
+                  <UserPlus className="w-3 h-3 mr-1" />
+                  Leave Your Contact Details
+                </Button>
+              </div>
+            )}
             <div className="flex gap-2">
               <Input
                 placeholder="Type your message..."
