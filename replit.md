@@ -25,6 +25,8 @@ The application uses PostgreSQL with Drizzle ORM for all persistent data. Key ta
 - `chatbots`: Contains core chatbot configurations, including name, source URLs, content, styling, behavior, and free-tier specific limits.
 - `conversations`: Records session metadata for user interactions with chatbots.
 - `conversation_messages`: Stores individual chat messages, roles, and suggested questions within conversations.
+- `conversation_ratings`: Stores user satisfaction ratings (1-5 stars) for individual conversations, enabling analytics on chatbot performance.
+- `email_notification_settings`: Stores per-user email notification preferences for new leads and unanswered questions, with configurable thresholds and custom email addresses.
 - `qa_cache`: Stores cached question-answer pairs with hybrid caching (exact + semantic matching) to reduce redundant LLM API calls. Uses MD5 hashing for exact matches and pgvector (384-dimensional embeddings via all-MiniLM-L6-v2) for semantic similarity search with 85% threshold. Features hit count tracking and cache effectiveness monitoring.
 - `manual_qa_overrides`: Stores manually corrected/trained answers for improving chatbot accuracy. Includes question normalization, MD5 hashing for exact matches, and pgvector embeddings for semantic similarity. Tracks use counts and links to source conversations and users who created the override.
 
@@ -59,6 +61,9 @@ Frontend assets are built with Vite, and server code is bundled with esbuild. Th
 -   **Intelligent SPA Crawler:** A dual-mode website crawler that automatically detects and renders JavaScript-heavy Single Page Applications using Playwright, with robust SSRF protection and resource limits.
 -   **Q&A Caching System:** Reduces LLM API costs by caching question-answer pairs with hybrid caching (exact + semantic matching). Uses MD5-based question normalization for exact matches and pgvector embeddings for semantic similarity (85% threshold). Automatically matches paraphrased questions (e.g., "What are your hours?" matches "What time are you open?"). Features automatic cache invalidation on knowledge base updates, hit count tracking, and admin-accessible cache statistics endpoint showing total cached questions, cache hits, hit rate, and estimated cost savings.
 -   **Manual Answer Training:** Enables chatbot owners to improve accuracy by manually correcting AI responses through the Analytics interface. Corrected answers are stored in the `manual_qa_overrides` table and take highest priority in the response pipeline (Manual Override → Exact Cache → Semantic Cache → LLM). Supports both exact matching (MD5 hash) and semantic matching (pgvector embeddings at 85% threshold) for paraphrased questions. Features include: edit button on assistant messages in Analytics, visual "Manually trained" badge indicators, use count tracking, and automatic embedding generation for semantic similarity search. Pro-tier feature accessible through the Analytics dashboard.
+-   **Satisfaction Ratings:** Allows visitors to rate their chat experience with 1-5 stars after engaging in a conversation (triggered after 3+ messages). Ratings are stored per conversation and can be analyzed through the Analytics dashboard to measure chatbot effectiveness and customer satisfaction.
+-   **Proactive Chat Popup:** Automatically displays a friendly popup notification to website visitors after a configurable delay (0-60 seconds), encouraging them to start a conversation. Fully customizable message and delay settings configured through the chatbot wizard's Personality step. Only appears when the chat widget is initially closed.
+-   **Email Notifications:** Sends automated email alerts to chatbot owners via Resend integration for two key events: (1) New lead submissions - immediate notification when visitors submit contact information; (2) Unanswered questions - alerts when chatbot may have provided insufficient answers after a configurable threshold (default 30 minutes). Users can manage notification preferences, timing thresholds, and custom email addresses through Account Settings → Email Notifications page.
 
 ## External Dependencies
 
@@ -68,15 +73,16 @@ Frontend assets are built with Vite, and server code is bundled with esbuild. Th
     -   **Gemini AI API:** Core AI model for natural language processing.
     -   **Google Cloud Storage:** Used for storing user files (logos, documents).
 -   **Stripe:** Payment gateway for subscription management and billing.
+-   **Resend:** Transactional email service for sending notification emails to chatbot owners.
 -   **Replit Infrastructure:**
     -   **Replit Object Storage:** Managed object storage service, built on Google Cloud Storage.
 
 ### Key NPM Packages
 
 -   **Frontend:** `@tanstack/react-query`, `@radix-ui/*`, `tailwindcss`, `wouter`, `@uppy/*`, `class-variance-authority`, `react-hook-form`, `zod`.
--   **Backend:** `express`, `@google/genai`, `@google-cloud/storage`, `drizzle-orm`, `@neondatabase/serverless`, `multer`, `passport`, `bcrypt`, `@xenova/transformers`.
+-   **Backend:** `express`, `@google/genai`, `@google-cloud/storage`, `drizzle-orm`, `@neondatabase/serverless`, `multer`, `passport`, `bcrypt`, `@xenova/transformers`, `resend`.
 -   **Build Tools:** `vite`, `esbuild`, `tsx`, `drizzle-kit`, `playwright`.
 
 ### Environment Requirements
 
-`DATABASE_URL`, `GEMINI_API_KEY`, `SESSION_SECRET`, `STRIPE_SECRET_KEY`, `VITE_STRIPE_PUBLIC_KEY`, `PUBLIC_OBJECT_SEARCH_PATHS`, `PRIVATE_OBJECT_DIR`, `DEFAULT_OBJECT_STORAGE_BUCKET_ID`.
+`DATABASE_URL`, `GEMINI_API_KEY`, `SESSION_SECRET`, `STRIPE_SECRET_KEY`, `VITE_STRIPE_PUBLIC_KEY`, `RESEND_API_KEY`, `PUBLIC_OBJECT_SEARCH_PATHS`, `PRIVATE_OBJECT_DIR`, `DEFAULT_OBJECT_STORAGE_BUCKET_ID`.
