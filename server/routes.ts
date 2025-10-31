@@ -658,14 +658,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (fileExtension === '.pdf') {
         // Extract text from PDF
         try {
-          const pdfParseModule: any = await import('pdf-parse');
-          const pdfParse = pdfParseModule.default || pdfParseModule;
+          // Import pdf-parse (CommonJS module)
+          const pdfParse = (await import('pdf-parse')).default;
+          
+          if (typeof pdfParse !== 'function') {
+            throw new Error('pdf-parse module did not export a valid function');
+          }
+          
           const pdfData = await pdfParse(file.buffer);
           extractedText = pdfData.text.trim();
           console.log(`[Document Upload] Extracted ${extractedText.length} characters from PDF`);
         } catch (error: any) {
           console.error("[Document Upload] PDF extraction error:", error);
-          return res.status(500).json({ error: "Failed to extract text from PDF" });
+          console.error("[Document Upload] Error stack:", error.stack);
+          return res.status(500).json({ 
+            error: "Failed to extract text from PDF: " + error.message 
+          });
         }
       } else {
         // Text or Markdown file
