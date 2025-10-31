@@ -60,6 +60,11 @@ export const chatbots = pgTable("chatbots", {
   leadCaptureTiming: text("lead_capture_timing").notNull().default("after_first_message"),
   leadCaptureMessageCount: text("lead_capture_message_count").notNull().default("1"),
   lastKnowledgeUpdate: timestamp("last_knowledge_update"),
+  // Feature 9: Proactive Chat
+  proactiveChatEnabled: text("proactive_chat_enabled").notNull().default("false"),
+  proactiveChatDelay: text("proactive_chat_delay").notNull().default("5"), // seconds before popup
+  proactiveChatMessage: text("proactive_chat_message").default("Hi! Need any help?"),
+  proactiveChatTriggerUrls: text("proactive_chat_trigger_urls").array().default(sql`ARRAY[]::text[]`), // URL patterns for triggering
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -231,3 +236,45 @@ export const insertManualQaOverrideSchema = createInsertSchema(manualQaOverrides
 
 export type ManualQaOverride = typeof manualQaOverrides.$inferSelect;
 export type InsertManualQaOverride = z.infer<typeof insertManualQaOverrideSchema>;
+
+// Conversation Satisfaction Ratings (Feature 3)
+export const conversationRatings = pgTable("conversation_ratings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  conversationId: varchar("conversation_id").notNull().references(() => conversations.id, { onDelete: "cascade" }),
+  rating: text("rating", { enum: ["1", "2", "3", "4", "5"] }).notNull(), // 1-5 stars
+  feedback: text("feedback"), // Optional text feedback
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export type ConversationRating = typeof conversationRatings.$inferSelect;
+export type InsertConversationRating = typeof conversationRatings.$inferInsert;
+
+// Email Notification Settings (Feature 13)
+export const emailNotificationSettings = pgTable("email_notification_settings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }).unique(),
+  enableNewLeadNotifications: text("enable_new_lead_notifications").notNull().default("true"),
+  enableUnansweredQuestionNotifications: text("enable_unanswered_question_notifications").notNull().default("true"),
+  unansweredThresholdMinutes: text("unanswered_threshold_minutes").notNull().default("30"), // Alert if no response within X minutes
+  emailAddress: text("email_address"), // Custom email, defaults to user.email
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export type EmailNotificationSettings = typeof emailNotificationSettings.$inferSelect;
+export type InsertEmailNotificationSettings = typeof emailNotificationSettings.$inferInsert;
+
+// Conversation Flow Builder (Feature 5)
+export const conversationFlows = pgTable("conversation_flows", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  chatbotId: varchar("chatbot_id").notNull().references(() => chatbots.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  description: text("description"),
+  isActive: text("is_active").notNull().default("false"),
+  flowData: jsonb("flow_data").notNull(), // { nodes: [], edges: [] }
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export type ConversationFlow = typeof conversationFlows.$inferSelect;
+export type InsertConversationFlow = typeof conversationFlows.$inferInsert;
