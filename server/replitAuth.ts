@@ -29,7 +29,7 @@ const getOidcConfig = memoize(
 );
 
 export function getSession() {
-  const sessionTtl = 7 * 24 * 60 * 60 * 1000; // 1 week
+  const sessionTtl = 30 * 24 * 60 * 60 * 1000; // 30 days
   
   // Ensure SESSION_SECRET is set
   if (!process.env.SESSION_SECRET) {
