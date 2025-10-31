@@ -939,14 +939,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const questionHash = crypto.createHash('md5').update(normalizedQuestion).digest('hex');
       
       // 1. FIRST: Check for manual override (highest priority - human-corrected answers)
-      const manualOverride = await storage.getManualOverride(chatbotId, questionHash);
+      console.log(`[MANUAL OVERRIDE CHECK] Looking for override with hash: ${questionHash} for question: "${normalizedQuestion}"`);
+      
+      // Generate embedding for semantic matching
+      let questionEmbedding: number[] | null = null;
+      try {
+        questionEmbedding = await embeddingService.generateEmbedding(normalizedQuestion);
+      } catch (error) {
+        console.error("[EMBEDDING] Error generating embedding for override check:", error);
+      }
+      
+      // Try exact match first
+      let manualOverride = await storage.getManualOverride(chatbotId, questionHash);
+      let overrideMatchType = "none";
+      
+      if (!manualOverride && questionEmbedding) {
+        // No exact match, try semantic similarity
+        manualOverride = await storage.findSimilarManualOverride(chatbotId, questionEmbedding, 0.85);
+        if (manualOverride) {
+          overrideMatchType = "semantic";
+        }
+      } else if (manualOverride) {
+        overrideMatchType = "exact";
+      }
       
       let aiMessage: string;
       let suggestedQuestions: string[] = [];
       
       if (manualOverride) {
         // Manual override found! Use human-trained answer
-        console.log(`[MANUAL OVERRIDE] Using manually trained answer for question: "${message.substring(0, 50)}..."`);
+        console.log(`[MANUAL OVERRIDE ${overrideMatchType.toUpperCase()} HIT] Using manually trained answer for question: "${message.substring(0, 50)}..."`);
         aiMessage = manualOverride.manualAnswer;
         
         // Update use count asynchronously
@@ -955,13 +977,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       } else {
         // 2. No manual override, check automated cache
-        // Generate embedding for semantic caching
-        let questionEmbedding: number[] | null = null;
-        try {
-          questionEmbedding = await embeddingService.generateEmbedding(normalizedQuestion);
-        } catch (error) {
-          console.error("[EMBEDDING] Error generating embedding, falling back to exact match only:", error);
-        }
+        // (embedding already generated above for override check)
         
         // Check cache for existing answer
         // Strategy: Try exact match first (fast), then semantic match (slower but catches paraphrases)
@@ -1346,11 +1362,20 @@ Generate 3-5 short, natural questions that would help the user learn more. Retur
       const normalizedQuestion = question.toLowerCase().trim();
       const questionHash = crypto.createHash('md5').update(normalizedQuestion).digest('hex');
 
+      // Generate embedding for semantic matching
+      let embedding: number[] | undefined = undefined;
+      try {
+        embedding = await embeddingService.generateEmbedding(normalizedQuestion);
+      } catch (error) {
+        console.error("Error generating embedding for manual override, will use exact match only:", error);
+      }
+
       // Create override
       const override = await storage.createManualOverride({
         chatbotId,
         question: normalizedQuestion,
         questionHash,
+        embedding,
         manualAnswer,
         originalAnswer: originalAnswer || null,
         conversationId: conversationId || null,

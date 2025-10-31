@@ -212,6 +212,7 @@ export const manualQaOverrides = pgTable("manual_qa_overrides", {
   chatbotId: varchar("chatbot_id").notNull().references(() => chatbots.id, { onDelete: "cascade" }),
   question: text("question").notNull(), // Normalized question
   questionHash: text("question_hash").notNull(), // MD5 hash for fast lookups
+  embedding: vector("embedding", { dimensions: 384 }), // Semantic embedding for similarity search (same as cache)
   manualAnswer: text("manual_answer").notNull(), // Human-corrected answer
   originalAnswer: text("original_answer"), // Original AI answer (for reference)
   conversationId: varchar("conversation_id").references(() => conversations.id, { onDelete: "set null" }), // Link to source conversation

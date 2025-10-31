@@ -26,6 +26,7 @@ The application uses PostgreSQL with Drizzle ORM for all persistent data. Key ta
 - `conversations`: Records session metadata for user interactions with chatbots.
 - `conversation_messages`: Stores individual chat messages, roles, and suggested questions within conversations.
 - `qa_cache`: Stores cached question-answer pairs with hybrid caching (exact + semantic matching) to reduce redundant LLM API calls. Uses MD5 hashing for exact matches and pgvector (384-dimensional embeddings via all-MiniLM-L6-v2) for semantic similarity search with 85% threshold. Features hit count tracking and cache effectiveness monitoring.
+- `manual_qa_overrides`: Stores manually corrected/trained answers for improving chatbot accuracy. Includes question normalization, MD5 hashing for exact matches, and pgvector embeddings for semantic similarity. Tracks use counts and links to source conversations and users who created the override.
 
 ### AI Integration
 
@@ -57,6 +58,7 @@ Frontend assets are built with Vite, and server code is bundled with esbuild. Th
 -   **Shareable Links & QR Codes:** Enables easy distribution of chatbots via direct links and QR codes, with a full-page chat interface.
 -   **Intelligent SPA Crawler:** A dual-mode website crawler that automatically detects and renders JavaScript-heavy Single Page Applications using Playwright, with robust SSRF protection and resource limits.
 -   **Q&A Caching System:** Reduces LLM API costs by caching question-answer pairs with hybrid caching (exact + semantic matching). Uses MD5-based question normalization for exact matches and pgvector embeddings for semantic similarity (85% threshold). Automatically matches paraphrased questions (e.g., "What are your hours?" matches "What time are you open?"). Features automatic cache invalidation on knowledge base updates, hit count tracking, and admin-accessible cache statistics endpoint showing total cached questions, cache hits, hit rate, and estimated cost savings.
+-   **Manual Answer Training:** Enables chatbot owners to improve accuracy by manually correcting AI responses through the Analytics interface. Corrected answers are stored in the `manual_qa_overrides` table and take highest priority in the response pipeline (Manual Override → Exact Cache → Semantic Cache → LLM). Supports both exact matching (MD5 hash) and semantic matching (pgvector embeddings at 85% threshold) for paraphrased questions. Features include: edit button on assistant messages in Analytics, visual "Manually trained" badge indicators, use count tracking, and automatic embedding generation for semantic similarity search. Pro-tier feature accessible through the Analytics dashboard.
 
 ## External Dependencies
 

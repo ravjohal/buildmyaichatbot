@@ -336,6 +336,26 @@ export class DbStorage implements IStorage {
         .where(eq(manualQaOverrides.id, id));
     }
   }
+
+  async findSimilarManualOverride(
+    chatbotId: string,
+    questionEmbedding: number[],
+    similarityThreshold: number = 0.85
+  ): Promise<ManualQaOverride | undefined> {
+    const embeddingStr = `[${questionEmbedding.join(",")}]`;
+    const result = await db.execute<ManualQaOverride>(
+      sql`
+        SELECT *
+        FROM ${manualQaOverrides}
+        WHERE ${manualQaOverrides.chatbotId} = ${chatbotId}
+          AND ${manualQaOverrides.embedding} IS NOT NULL
+          AND 1 - (${manualQaOverrides.embedding} <=> ${embeddingStr}::vector) >= ${similarityThreshold}
+        ORDER BY ${manualQaOverrides.embedding} <=> ${embeddingStr}::vector
+        LIMIT 1
+      `
+    );
+    return result.rows[0];
+  }
 }
 
 export const storage = new DbStorage();
