@@ -220,7 +220,11 @@ export default function Dashboard() {
               <Button 
                 variant="outline" 
                 size="lg"
-                onClick={() => window.location.href = "/api/logout"}
+                onClick={async () => {
+                  await apiRequest("POST", "/api/auth/logout", {});
+                  queryClient.clear();
+                  window.location.href = "/";
+                }}
                 data-testid="button-logout"
               >
                 <LogOut className="w-5 h-5 mr-2" />
