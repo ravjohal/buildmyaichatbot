@@ -2,6 +2,8 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { setupAuth } from "./auth";
+import { checkAndSendWeeklyReports } from "./emails/weekly-report-service";
+import { storage } from "./storage";
 
 const app = express();
 app.use(express.json());
@@ -131,9 +133,6 @@ app.use((req, res, next) => {
     log(`serving on port ${port}`);
     
     // Start weekly report scheduler
-    const { checkAndSendWeeklyReports } = require('./emails/weekly-report-service');
-    const { storage } = require('./storage');
-    
     // Check immediately on startup
     checkAndSendWeeklyReports(storage).catch((err: Error) => {
       console.error('[WeeklyReport] Error in initial check:', err);

@@ -4,7 +4,11 @@ import { db } from "../db";
 import { eq, and, gte, sql } from "drizzle-orm";
 import { conversations, conversationMessages, leads, conversationRatings, chatbots, users, emailNotificationSettings } from "@shared/schema";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Initialize Resend only if API key is available
+let resend: Resend | null = null;
+if (process.env.RESEND_API_KEY) {
+  resend = new Resend(process.env.RESEND_API_KEY);
+}
 
 interface WeeklyReportData {
   userId: string;
@@ -268,6 +272,11 @@ function generateWeeklyReportEmail(data: WeeklyReportData): string {
  */
 async function sendWeeklyReport(userId: string, storage: IStorage): Promise<boolean> {
   try {
+    if (!resend) {
+      console.warn('[WeeklyReport] Resend API key not configured, skipping email');
+      return false;
+    }
+
     const reportData = await generateWeeklyReportData(userId, storage);
     
     if (!reportData) {

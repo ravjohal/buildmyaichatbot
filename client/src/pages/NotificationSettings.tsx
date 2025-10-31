@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Mail, Bell, AlertCircle } from "lucide-react";
+import { Loader2, Mail, Bell, AlertCircle, BarChart3 } from "lucide-react";
 
 interface EmailSettings {
   id: string;
@@ -15,6 +15,7 @@ interface EmailSettings {
   enableNewLeadNotifications: string;
   enableUnansweredQuestionNotifications: string;
   unansweredThresholdMinutes: string;
+  enableWeeklyReports: string;
   emailAddress: string | null;
   createdAt: string;
   updatedAt: string;
@@ -31,6 +32,7 @@ export default function NotificationSettings() {
     enableNewLeadNotifications: true,
     enableUnansweredQuestionNotifications: true,
     unansweredThresholdMinutes: "30",
+    enableWeeklyReports: true,
     emailAddress: "",
   });
 
@@ -41,6 +43,7 @@ export default function NotificationSettings() {
         enableNewLeadNotifications: settings.enableNewLeadNotifications === "true",
         enableUnansweredQuestionNotifications: settings.enableUnansweredQuestionNotifications === "true",
         unansweredThresholdMinutes: settings.unansweredThresholdMinutes || "30",
+        enableWeeklyReports: settings.enableWeeklyReports === "true",
         emailAddress: settings.emailAddress || "",
       });
     }
@@ -79,6 +82,7 @@ export default function NotificationSettings() {
       enableNewLeadNotifications: formData.enableNewLeadNotifications ? "true" : "false",
       enableUnansweredQuestionNotifications: formData.enableUnansweredQuestionNotifications ? "true" : "false",
       unansweredThresholdMinutes: formData.unansweredThresholdMinutes,
+      enableWeeklyReports: formData.enableWeeklyReports ? "true" : "false",
       emailAddress: formData.emailAddress || null,
     });
   };
@@ -198,6 +202,38 @@ export default function NotificationSettings() {
                   </p>
                 </div>
               )}
+            </CardContent>
+          </Card>
+
+          <Card data-testid="card-weekly-reports">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <BarChart3 className="w-5 h-5" />
+                Weekly Analytics Reports
+              </CardTitle>
+              <CardDescription>
+                Receive comprehensive weekly summaries of your chatbot performance
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between">
+                <div className="flex-1">
+                  <Label htmlFor="weeklyReports" className="font-medium">
+                    Send me weekly performance reports
+                  </Label>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Includes conversation stats, lead captures, satisfaction ratings, and popular questions
+                  </p>
+                </div>
+                <Switch
+                  id="weeklyReports"
+                  checked={formData.enableWeeklyReports}
+                  onCheckedChange={(checked) =>
+                    setFormData({ ...formData, enableWeeklyReports: checked })
+                  }
+                  data-testid="switch-weekly-reports"
+                />
+              </div>
             </CardContent>
           </Card>
 

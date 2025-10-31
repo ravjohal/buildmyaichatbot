@@ -1862,6 +1862,7 @@ Generate 3-5 short, natural questions that would help the user learn more. Retur
           enableNewLeadNotifications: "true",
           enableUnansweredQuestionNotifications: "true",
           unansweredThresholdMinutes: "30",
+          enableWeeklyReports: "true",
           emailAddress: null,
         });
       }
