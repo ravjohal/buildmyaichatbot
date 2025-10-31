@@ -1,13 +1,15 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { Link } from "wouter";
 import { queryClient } from "@/lib/queryClient";
+import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Mail, Bell, AlertCircle, BarChart3 } from "lucide-react";
+import { Loader2, Mail, Bell, AlertCircle, BarChart3, ArrowLeft, LogOut, User as UserIcon, Crown, UserPlus } from "lucide-react";
 
 interface EmailSettings {
   id: string;
@@ -23,10 +25,16 @@ interface EmailSettings {
 
 export default function NotificationSettings() {
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const { data: settings, isLoading } = useQuery<EmailSettings>({
     queryKey: ['/api/notification-settings'],
   });
+
+  const handleLogout = async () => {
+    await fetch("/api/auth/logout", { method: "POST" });
+    window.location.href = "/login";
+  };
 
   const [formData, setFormData] = useState({
     enableNewLeadNotifications: true,
@@ -96,15 +104,64 @@ export default function NotificationSettings() {
   }
 
   return (
-    <div className="container max-width mx-auto p-6">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2" data-testid="text-page-title">Email Notifications</h1>
-        <p className="text-muted-foreground">
-          Configure how and when you receive email alerts about your chatbots
-        </p>
+    <div className="min-h-screen bg-background">
+      <div className="border-b">
+        <div className="max-w-7xl mx-auto px-6 md:px-12 py-6">
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+            <div className="flex items-center gap-4">
+              <Link href="/">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  data-testid="button-back-dashboard"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                </Button>
+              </Link>
+              <div>
+                <h1 className="text-3xl font-bold tracking-tight" data-testid="text-page-title">Email Notifications</h1>
+                <p className="text-muted-foreground mt-1">
+                  Configure how and when you receive email alerts about your chatbots
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-3 flex-wrap">
+              {user?.isAdmin === "true" && (
+                <Link href="/admin">
+                  <Button variant="outline" className="gap-2" data-testid="button-admin">
+                    <Crown className="w-4 h-4" />
+                    Admin
+                  </Button>
+                </Link>
+              )}
+              <Link href="/leads">
+                <Button variant="outline" className="gap-2" data-testid="button-leads">
+                  <UserPlus className="w-4 h-4" />
+                  Leads
+                </Button>
+              </Link>
+              <Link href="/account">
+                <Button variant="outline" className="gap-2" data-testid="button-account">
+                  <UserIcon className="w-4 h-4" />
+                  Account
+                </Button>
+              </Link>
+              <Button
+                variant="outline"
+                onClick={handleLogout}
+                className="gap-2"
+                data-testid="button-logout"
+              >
+                <LogOut className="w-4 h-4" />
+                Logout
+              </Button>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <form onSubmit={handleSubmit}>
+      <div className="max-w-7xl mx-auto px-6 md:px-12 py-8">
+        <form onSubmit={handleSubmit}>
         <div className="grid gap-6 max-w-2xl">
           <Card data-testid="card-email-address">
             <CardHeader>
@@ -253,7 +310,8 @@ export default function NotificationSettings() {
             )}
           </Button>
         </div>
-      </form>
+        </form>
+      </div>
     </div>
   );
 }

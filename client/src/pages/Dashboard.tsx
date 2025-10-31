@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { Plus, Bot, Trash2, ExternalLink, Copy, LogOut, Pencil, MessageSquare, FileText, BarChart3, Globe, Crown, Share2, QrCode, User as UserIcon, Shield, UserPlus, RefreshCw } from "lucide-react";
+import { Plus, Bot, Trash2, ExternalLink, Copy, LogOut, Pencil, MessageSquare, FileText, BarChart3, Globe, Crown, Share2, QrCode, User as UserIcon, Shield, UserPlus, RefreshCw, Settings } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
@@ -203,6 +203,16 @@ export default function Dashboard() {
                 >
                   <UserIcon className="w-5 h-5 mr-2" />
                   Account
+                </Button>
+              </Link>
+              <Link href="/account/notifications">
+                <Button 
+                  variant="outline" 
+                  size="lg"
+                  data-testid="button-notifications"
+                >
+                  <Settings className="w-5 h-5 mr-2" />
+                  Notifications
                 </Button>
               </Link>
               {user?.isAdmin === "true" && (
