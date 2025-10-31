@@ -13,7 +13,12 @@ import { crawlMultipleWebsitesRecursive, refreshWebsites, calculateContentHash, 
 import Stripe from "stripe";
 
 const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
-const upload = multer({ storage: multer.memoryStorage() });
+const upload = multer({ 
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB limit
+  }
+});
 
 // Initialize Stripe only if the secret is available
 const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY) : null;
@@ -617,6 +622,96 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Upload and process documents (protected)
+  app.post("/api/documents/upload", isAuthenticated, upload.single('file'), async (req: any, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "No file uploaded" });
+      }
+
+      const file = req.file;
+      const allowedTypes = ['application/pdf', 'text/plain', 'text/markdown'];
+      const allowedExtensions = ['.pdf', '.txt', '.md'];
+      const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB limit
+
+      // Validate file size
+      if (file.size > MAX_FILE_SIZE) {
+        return res.status(400).json({ 
+          error: `File too large. Maximum file size is ${MAX_FILE_SIZE / 1024 / 1024}MB.` 
+        });
+      }
+
+      // Validate file type
+      const fileExtension = file.originalname.toLowerCase().slice(file.originalname.lastIndexOf('.'));
+      if (!allowedTypes.includes(file.mimetype) && !allowedExtensions.includes(fileExtension)) {
+        return res.status(400).json({ 
+          error: "Invalid file type. Only PDF, TXT, and MD files are supported." 
+        });
+      }
+
+      console.log(`[Document Upload] Processing file: ${file.originalname} (${file.size} bytes)`);
+
+      // Extract text based on file type
+      let extractedText = '';
+      let title = file.originalname.replace(/\.[^/.]+$/, ""); // Remove extension
+
+      if (fileExtension === '.pdf') {
+        // Extract text from PDF
+        try {
+          const pdfParseModule: any = await import('pdf-parse');
+          const pdfParse = pdfParseModule.default || pdfParseModule;
+          const pdfData = await pdfParse(file.buffer);
+          extractedText = pdfData.text.trim();
+          console.log(`[Document Upload] Extracted ${extractedText.length} characters from PDF`);
+        } catch (error: any) {
+          console.error("[Document Upload] PDF extraction error:", error);
+          return res.status(500).json({ error: "Failed to extract text from PDF" });
+        }
+      } else {
+        // Text or Markdown file
+        extractedText = file.buffer.toString('utf-8').trim();
+        console.log(`[Document Upload] Read ${extractedText.length} characters from text file`);
+      }
+
+      if (!extractedText) {
+        return res.status(400).json({ error: "Could not extract any text from the document" });
+      }
+
+      // Upload file to object storage
+      const objectStorageService = new ObjectStorageService();
+      const uploadURL = await objectStorageService.getObjectEntityUploadURL();
+      const objectPath = objectStorageService.extractObjectPath(uploadURL);
+
+      // Upload the file buffer directly to object storage
+      const storage = objectStorageService.getObjectEntityFile(objectPath);
+      await storage.save(file.buffer, {
+        contentType: file.mimetype,
+        metadata: {
+          originalName: file.originalname,
+          uploadedAt: new Date().toISOString(),
+        },
+      });
+
+      console.log(`[Document Upload] Uploaded to object storage: ${objectPath}`);
+
+      res.json({
+        success: true,
+        document: {
+          path: objectPath,
+          originalName: file.originalname,
+          title: title,
+          text: extractedText,
+          size: file.size,
+          type: fileExtension,
+        },
+      });
+
+    } catch (error) {
+      console.error("Error uploading document:", error);
+      res.status(500).json({ error: "Failed to upload document" });
+    }
+  });
+
   // Chat endpoint - handle conversation with Gemini AI (public for widget embedding)
   app.post("/api/chat", async (req, res) => {
     try {
@@ -675,8 +770,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (chatbot.websiteContent) {
         knowledgeContext += `Website Content:\n${chatbot.websiteContent}\n\n`;
       }
-      if (chatbot.documents && chatbot.documents.length > 0) {
-        knowledgeContext += `Documents:\n${chatbot.documents.join("\n")}\n\n`;
+      if (chatbot.documentContent) {
+        knowledgeContext += `Document Content:\n${chatbot.documentContent}\n\n`;
       }
 
       // Build conversation history for context
