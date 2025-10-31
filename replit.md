@@ -44,11 +44,13 @@ Frontend assets are built with Vite, and server code is bundled with esbuild. Th
 
 ### Application Features
 
--   **Chatbot Creation Wizard:** A guided multi-step process for configuring chatbot name, knowledge base (website URLs, document uploads), personality, visual customization, and support escalation options.
--   **Chat Widget:** An embeddable, customizable, and mobile-responsive AI chat interface with conversation history and escalation detection.
--   **Dashboard:** Manages chatbots, provides quick actions (edit, delete, embed code, analytics), and visual feature indicators.
+-   **Chatbot Creation Wizard:** A guided multi-step process for configuring chatbot name, knowledge base (website URLs, document uploads), personality, visual customization, support escalation options, and lead capture settings.
+-   **Chat Widget:** An embeddable, customizable, and mobile-responsive AI chat interface with conversation history, escalation detection, and configurable lead capture forms.
+-   **Dashboard:** Manages chatbots, provides quick actions (edit, delete, embed code, analytics, knowledge base refresh), and visual feature indicators.
+-   **On-Demand Knowledge Base Refresh:** Intelligently updates chatbot knowledge from website URLs by detecting content changes via MD5 hashing. Only re-crawls URLs with modified content, preserving unchanged data and avoiding unnecessary document re-indexing.
+-   **Lead Capture System:** Collects visitor contact information through configurable forms with customizable fields (name, email, phone, company, message) and timing triggers (immediately, after first message, after N messages). Includes lead management dashboard with CSV export functionality.
 -   **Analytics Dashboard:** Offers comprehensive chatbot analytics including key metrics, detailed conversation transcripts, and message-level tracking.
--   **Freemium Pricing System:** Implements Free and Pro tiers with Stripe integration for subscription management, with server-side enforcement of Pro-only features (e.g., unlimited chatbots, full customization, analytics).
+-   **Freemium Pricing System:** Implements Free and Pro tiers with Stripe integration for subscription management, with server-side enforcement of Pro-only features (e.g., unlimited chatbots, full customization, analytics, lead capture).
 -   **Admin System:** Provides administrators with full user management capabilities (promote/demote users, delete accounts, change subscriptions), system-wide statistics, and access to all chatbots, bypassing tier restrictions.
 -   **Account Management:** Users can view profile information, subscription status, and manage billing via an integrated Stripe billing portal.
 -   **Shareable Links & QR Codes:** Enables easy distribution of chatbots via direct links and QR codes, with a full-page chat interface.

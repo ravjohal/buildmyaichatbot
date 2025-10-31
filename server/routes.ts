@@ -9,7 +9,7 @@ import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import { isAuthenticated } from "./auth";
 import { db } from "./db";
 import { eq, sql } from "drizzle-orm";
-import { crawlMultipleWebsitesRecursive, refreshWebsites, calculateContentHash } from "./crawler";
+import { crawlMultipleWebsitesRecursive, refreshWebsites, calculateContentHash, normalizeUrl } from "./crawler";
 import Stripe from "stripe";
 
 const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
@@ -242,6 +242,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Crawl websites if URLs are provided (recursive crawling)
       let websiteContent = "";
+      let crawlResults: any[] = [];
       if (validatedData.websiteUrls && validatedData.websiteUrls.length > 0) {
         console.log(`[CRAWLER] Starting recursive crawl for ${validatedData.websiteUrls.length} website(s)`);
         console.log("[CRAWLER] URLs to crawl:", validatedData.websiteUrls);
@@ -259,7 +260,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log("[CRAWLER] Starting crawl with options: maxDepth=2, maxPages=50, sameDomainOnly=true");
         
         try {
-          const crawlResults = await crawlMultipleWebsitesRecursive(validatedData.websiteUrls, {
+          crawlResults = await crawlMultipleWebsitesRecursive(validatedData.websiteUrls, {
             maxDepth: 2,
             maxPages: 50,
             sameDomainOnly: true,
@@ -299,17 +300,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }, userId);
       
       // Store initial crawl metadata for future refresh operations
-      if (validatedData.websiteUrls && validatedData.websiteUrls.length > 0) {
+      // Only store metadata for the root URLs (not all recursive results)
+      if (validatedData.websiteUrls && validatedData.websiteUrls.length > 0 && crawlResults.length > 0) {
         try {
-          const crawlMetadataRecords = validatedData.websiteUrls.map(url => ({
-            chatbotId: chatbot.id,
-            url: url,
-            contentHash: calculateContentHash(websiteContent),
-            lastCrawledAt: new Date(),
-          }));
+          const crawlMetadataRecords = [];
+          for (const url of validatedData.websiteUrls) {
+            // Normalize URL to match crawler's normalization
+            const normalizedUrl = normalizeUrl(url);
+            
+            // Find this URL in the crawl results using normalized comparison
+            const urlResult = crawlResults.find(r => normalizeUrl(r.url) === normalizedUrl);
+            if (urlResult && !urlResult.error && urlResult.content) {
+              const hash = calculateContentHash(urlResult.content);
+              crawlMetadataRecords.push({
+                chatbotId: chatbot.id,
+                url: normalizedUrl, // Store normalized URL
+                contentHash: hash,
+                lastCrawledAt: new Date(),
+              });
+              console.log(`[CRAWLER] Storing metadata for ${normalizedUrl} with hash ${hash.substring(0, 8)}...`);
+            } else {
+              console.warn(`[CRAWLER] No matching crawl result found for ${url} (normalized: ${normalizedUrl})`);
+            }
+          }
           
-          await db.insert(urlCrawlMetadata).values(crawlMetadataRecords);
-          console.log(`[CRAWLER] Stored crawl metadata for ${crawlMetadataRecords.length} URLs`);
+          if (crawlMetadataRecords.length > 0) {
+            await db.insert(urlCrawlMetadata).values(crawlMetadataRecords);
+            console.log(`[CRAWLER] ✓ Successfully stored crawl metadata for ${crawlMetadataRecords.length} URLs`);
+          } else {
+            console.warn(`[CRAWLER] No metadata records to store - check URL normalization`);
+          }
         } catch (metaError) {
           console.error("[CRAWLER] Failed to store crawl metadata:", metaError);
           // Don't fail the request if metadata storage fails
@@ -440,7 +460,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (chatbot.websiteUrls && chatbot.websiteUrls.length > 0) {
         console.log(`[Refresh] Refreshing ${chatbot.websiteUrls.length} website URLs`);
         
-        const refreshResults = await refreshWebsites(chatbot.websiteUrls, previousCrawlData);
+        // Normalize URLs before refreshing to match stored metadata
+        const normalizedUrls = chatbot.websiteUrls.map(url => normalizeUrl(url));
+        
+        const refreshResults = await refreshWebsites(normalizedUrls, previousCrawlData);
         
         // Count changes
         changedCount = refreshResults.filter(r => r.changed && !r.error).length;
@@ -460,7 +483,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Update or insert crawl metadata for changed URLs
           for (const result of refreshResults) {
             if (result.changed && result.contentHash) {
-              const existing = existingMetadata.find(m => m.url === result.url);
+              // Normalize result URL to match stored metadata
+              const normalizedResultUrl = normalizeUrl(result.url);
+              const existing = existingMetadata.find(m => m.url === normalizedResultUrl);
               
               if (existing) {
                 // Update existing metadata
@@ -470,14 +495,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
                     lastCrawledAt: new Date(),
                   })
                   .where(eq(urlCrawlMetadata.id, existing.id));
+                console.log(`[Refresh] Updated metadata for ${normalizedResultUrl}`);
               } else {
-                // Insert new metadata
+                // Insert new metadata (for newly added URLs)
                 await db.insert(urlCrawlMetadata).values({
                   chatbotId: chatbotId,
-                  url: result.url,
+                  url: normalizedResultUrl,
                   contentHash: result.contentHash,
                   lastCrawledAt: new Date(),
                 });
+                console.log(`[Refresh] Inserted new metadata for ${normalizedResultUrl}`);
               }
             }
           }

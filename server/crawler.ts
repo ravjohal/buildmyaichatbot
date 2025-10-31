@@ -62,7 +62,7 @@ export async function crawlWebsite(url: string): Promise<CrawlResult & { html?: 
   };
 }
 
-function normalizeUrl(url: string): string {
+export function normalizeUrl(url: string): string {
   try {
     const parsed = new URL(url);
     parsed.pathname = parsed.pathname.replace(/\/$/, '') || '/';
