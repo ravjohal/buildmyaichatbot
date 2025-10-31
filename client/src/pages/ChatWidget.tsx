@@ -32,6 +32,7 @@ export default function ChatWidget() {
   // Lead capture state
   const [showLeadForm, setShowLeadForm] = useState(false);
   const [leadCaptured, setLeadCaptured] = useState(false);
+  const [leadFormSkipped, setLeadFormSkipped] = useState(false);
   const [leadFormData, setLeadFormData] = useState({
     name: "",
     email: "",
@@ -109,6 +110,7 @@ export default function ChatWidget() {
     onSuccess: () => {
       setLeadCaptured(true);
       setShowLeadForm(false);
+      setLeadFormSkipped(false);
     },
   });
 
@@ -131,7 +133,7 @@ export default function ChatWidget() {
 
   // Determine when to show lead capture form
   useEffect(() => {
-    if (!chatbot || leadCaptured || showLeadForm || chatbot.leadCaptureEnabled !== "true") {
+    if (!chatbot || leadCaptured || leadFormSkipped || showLeadForm || chatbot.leadCaptureEnabled !== "true") {
       return;
     }
 
@@ -158,7 +160,7 @@ export default function ChatWidget() {
         // Don't auto-show, only manual trigger
         break;
     }
-  }, [messages, chatbot, leadCaptured, showLeadForm, isOpen]);
+  }, [messages, chatbot, leadCaptured, leadFormSkipped, showLeadForm, isOpen]);
 
   useEffect(() => {
     if (isOpen && chatbot && messages.length === 0) {
@@ -386,7 +388,10 @@ export default function ChatWidget() {
               <Button
                 type="button"
                 variant="ghost"
-                onClick={() => setShowLeadForm(false)}
+                onClick={() => {
+                  setShowLeadForm(false);
+                  setLeadFormSkipped(true);
+                }}
                 data-testid="button-skip-lead"
               >
                 Skip
@@ -561,7 +566,10 @@ export default function ChatWidget() {
                   variant="outline"
                   size="sm"
                   className="w-full"
-                  onClick={() => setShowLeadForm(true)}
+                  onClick={() => {
+                    setShowLeadForm(true);
+                    setLeadFormSkipped(false);
+                  }}
                   data-testid="button-open-lead-form"
                 >
                   <UserPlus className="w-4 h-4 mr-2" />
@@ -754,7 +762,10 @@ export default function ChatWidget() {
                   variant="outline"
                   size="sm"
                   className="w-full text-xs"
-                  onClick={() => setShowLeadForm(true)}
+                  onClick={() => {
+                    setShowLeadForm(true);
+                    setLeadFormSkipped(false);
+                  }}
                   data-testid="button-open-lead-form"
                 >
                   <UserPlus className="w-3 h-3 mr-1" />
