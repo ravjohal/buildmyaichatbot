@@ -201,6 +201,15 @@ export const isAuthenticated: RequestHandler = async (req, res, next) => {
     expiresAt: user?.expires_at,
   });
 
+  // Check if session exists - critical for production
+  if (!req.session) {
+    console.log("[AUTH] ✗ No session available");
+    return res.status(401).json({ 
+      message: "Session unavailable. Please log in again.",
+      requireLogin: true 
+    });
+  }
+
   if (!req.isAuthenticated() || !user?.expires_at) {
     console.log("[AUTH] ✗ Not authenticated or missing expires_at");
     return res.status(401).json({ message: "Unauthorized" });
@@ -229,12 +238,18 @@ export const isAuthenticated: RequestHandler = async (req, res, next) => {
   } catch (error) {
     console.log("[AUTH] ✗ Token refresh failed:", error);
     // Clear the invalid session and require re-login
-    req.logout((err) => {
-      if (err) console.error("[AUTH] Logout error:", err);
-    });
-    req.session.destroy((err) => {
-      if (err) console.error("[AUTH] Session destroy error:", err);
-    });
+    // Check if session exists before trying to destroy it
+    if (req.session) {
+      req.logout((err) => {
+        if (err) console.error("[AUTH] Logout error:", err);
+        // Destroy session after logout completes
+        if (req.session) {
+          req.session.destroy((err) => {
+            if (err) console.error("[AUTH] Session destroy error:", err);
+          });
+        }
+      });
+    }
     res.status(401).json({ 
       message: "Session expired. Please log in again.",
       requireLogin: true 

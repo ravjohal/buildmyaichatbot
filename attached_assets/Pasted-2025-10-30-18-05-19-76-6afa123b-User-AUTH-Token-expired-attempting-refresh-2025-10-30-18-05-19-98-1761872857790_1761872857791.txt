@@ -1,0 +1,131 @@
+2025-10-30 18:05:19.76
+6afa123b
+User
+[AUTH] Token expired, attempting refresh
+2025-10-30 18:05:19.98
+6afa123b
+User
+[AUTH] ✗ Token refresh failed: ResponseBodyError: server responded with an error in the response body
+2025-10-30 18:05:19.98
+6afa123b
+User
+at checkOAuthBodyError (file:///home/runner/workspace/node_modules/oauth4webapi/build/index.js:924:19)
+2025-10-30 18:05:19.98
+6afa123b
+User
+at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+2025-10-30 18:05:19.98
+6afa123b
+User
+at async processGenericAccessTokenResponse (file:///home/runner/workspace/node_modules/oauth4webapi/build/index.js:1202:5)
+2025-10-30 18:05:19.98
+6afa123b
+User
+at async Module.refreshTokenGrant (file:///home/runner/workspace/node_modules/openid-client/build/index.js:1048:18)
+2025-10-30 18:05:19.98
+6afa123b
+User
+at async isAuthenticated (file:///home/runner/workspace/dist/index.js:472:27) {
+2025-10-30 18:05:19.98
+6afa123b
+User
+cause: {
+2025-10-30 18:05:19.98
+6afa123b
+User
+error: 'invalid_grant',
+
+2025-10-30 18:05:19.98
+6afa123b
+User
+error_description: 'grant request is invalid'
+2025-10-30 18:05:19.98
+6afa123b
+User
+},
+2025-10-30 18:05:19.98
+6afa123b
+User
+code: 'OAUTH_RESPONSE_BODY_ERROR',
+2025-10-30 18:05:19.98
+6afa123b
+User
+error: 'invalid_grant',
+2025-10-30 18:05:19.98
+6afa123b
+User
+status: 400,
+2025-10-30 18:05:19.98
+6afa123b
+User
+error_description: 'grant request is invalid'
+2025-10-30 18:05:19.98
+6afa123b
+User
+}
+2025-10-30 18:05:19.98
+6afa123b
+User
+1:05:19 AM [express] GET /api/chatbots 401 in 381ms :: {"message":"Session expired. Please log in ag…
+2025-10-30 18:05:20.01
+6afa123b
+User
+/home/runner/workspace/node_modules/passport/lib/sessionmanager.js:83
+2025-10-30 18:05:20.01
+6afa123b
+User
+req.session.regenerate(function(err) {
+2025-10-30 18:05:20.01
+6afa123b
+User
+^
+2025-10-30 18:05:20.01
+6afa123b
+User
+2025-10-30 18:05:20.01
+6afa123b
+User
+TypeError: Cannot read properties of undefined (reading 'regenerate')
+2025-10-30 18:05:20.01
+6afa123b
+User
+at /home/runner/workspace/node_modules/passport/lib/sessionmanager.js:83:17
+2025-10-30 18:05:20.01
+6afa123b
+User
+at /home/runner/workspace/node_modules/connect-pg-simple/index.js:394:24
+2025-10-30 18:05:20.01
+6afa123b
+User
+at process.processTicksAndRejections (node:internal/process/task_queues:82:21)
+2025-10-30 18:05:20.01
+6afa123b
+User
+2025-10-30 18:05:20.01
+6afa123b
+User
+Node.js v20.19.3
+2025-10-30 18:05:20.04
+6afa123b
+User
+npm notice
+2025-10-30 18:05:20.04
+6afa123b
+User
+npm notice New major version of npm available! 10.8.2 -> 11.6.2
+2025-10-30 18:05:20.04
+6afa123b
+User
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v11.6.2
+2025-10-30 18:05:20.04
+6afa123b
+User
+npm notice To update run: npm install -g npm@11.6.2
+2025-10-30 18:05:20.04
+6afa123b
+User
+npm notice
+2025-10-30 18:05:20.06
+6afa123b
+System
+command finished with error [npm run start]: exit status 1
