@@ -1,4 +1,4 @@
-import { type Chatbot, type InsertChatbot, chatbots, users, type User, type UpsertUser, type QaCache, type InsertQaCache, qaCache, type ManualQaOverride, type InsertManualQaOverride, manualQaOverrides } from "@shared/schema";
+import { type Chatbot, type InsertChatbot, chatbots, users, type User, type UpsertUser, type QaCache, type InsertQaCache, qaCache, type ManualQaOverride, type InsertManualQaOverride, manualQaOverrides, type ConversationRating, type InsertConversationRating, conversationRatings, type EmailNotificationSettings, type InsertEmailNotificationSettings, emailNotificationSettings, type ConversationFlow, type InsertConversationFlow, conversationFlows } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sql } from "drizzle-orm";
 
@@ -33,6 +33,25 @@ export interface IStorage {
   updateManualOverride(id: string, manualAnswer: string): Promise<ManualQaOverride | undefined>;
   deleteManualOverride(id: string, userId: string): Promise<boolean>;
   incrementOverrideUseCount(id: string): Promise<void>;
+  findSimilarManualOverride(chatbotId: string, embedding: number[], threshold?: number): Promise<ManualQaOverride | undefined>;
+  
+  // Conversation Rating operations (Feature 3)
+  createConversationRating(rating: InsertConversationRating): Promise<ConversationRating>;
+  getConversationRating(conversationId: string): Promise<ConversationRating | undefined>;
+  getAverageRatingForChatbot(chatbotId: string): Promise<number>;
+  
+  // Email Notification Settings operations (Feature 13)
+  getEmailNotificationSettings(userId: string): Promise<EmailNotificationSettings | undefined>;
+  createEmailNotificationSettings(settings: InsertEmailNotificationSettings): Promise<EmailNotificationSettings>;
+  updateEmailNotificationSettings(userId: string, settings: Partial<InsertEmailNotificationSettings>): Promise<EmailNotificationSettings | undefined>;
+  
+  // Conversation Flow operations (Feature 5)
+  getConversationFlows(chatbotId: string): Promise<ConversationFlow[]>;
+  getConversationFlow(id: string): Promise<ConversationFlow | undefined>;
+  getActiveConversationFlow(chatbotId: string): Promise<ConversationFlow | undefined>;
+  createConversationFlow(flow: InsertConversationFlow): Promise<ConversationFlow>;
+  updateConversationFlow(id: string, updates: Partial<InsertConversationFlow>): Promise<ConversationFlow | undefined>;
+  deleteConversationFlow(id: string): Promise<boolean>;
 }
 
 export class DbStorage implements IStorage {
@@ -355,6 +374,119 @@ export class DbStorage implements IStorage {
       `
     );
     return result.rows[0];
+  }
+
+  // Conversation Rating operations (Feature 3)
+  async createConversationRating(rating: InsertConversationRating): Promise<ConversationRating> {
+    const result = await db
+      .insert(conversationRatings)
+      .values(rating)
+      .returning();
+    return result[0];
+  }
+
+  async getConversationRating(conversationId: string): Promise<ConversationRating | undefined> {
+    const result = await db
+      .select()
+      .from(conversationRatings)
+      .where(eq(conversationRatings.conversationId, conversationId))
+      .limit(1);
+    return result[0];
+  }
+
+  async getAverageRatingForChatbot(chatbotId: string): Promise<number> {
+    const result = await db.execute<{ avg: string }>(
+      sql`
+        SELECT AVG(CAST(rating AS INTEGER)) as avg
+        FROM ${conversationRatings}
+        JOIN conversations ON conversations.id = conversation_ratings.conversation_id
+        WHERE conversations.chatbot_id = ${chatbotId}
+      `
+    );
+    return result.rows[0]?.avg ? parseFloat(result.rows[0].avg) : 0;
+  }
+
+  // Email Notification Settings operations (Feature 13)
+  async getEmailNotificationSettings(userId: string): Promise<EmailNotificationSettings | undefined> {
+    const result = await db
+      .select()
+      .from(emailNotificationSettings)
+      .where(eq(emailNotificationSettings.userId, userId))
+      .limit(1);
+    return result[0];
+  }
+
+  async createEmailNotificationSettings(settings: InsertEmailNotificationSettings): Promise<EmailNotificationSettings> {
+    const result = await db
+      .insert(emailNotificationSettings)
+      .values(settings)
+      .returning();
+    return result[0];
+  }
+
+  async updateEmailNotificationSettings(userId: string, updates: Partial<InsertEmailNotificationSettings>): Promise<EmailNotificationSettings | undefined> {
+    const result = await db
+      .update(emailNotificationSettings)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(emailNotificationSettings.userId, userId))
+      .returning();
+    return result[0];
+  }
+
+  // Conversation Flow operations (Feature 5)
+  async getConversationFlows(chatbotId: string): Promise<ConversationFlow[]> {
+    const result = await db
+      .select()
+      .from(conversationFlows)
+      .where(eq(conversationFlows.chatbotId, chatbotId))
+      .orderBy(desc(conversationFlows.updatedAt));
+    return result;
+  }
+
+  async getConversationFlow(id: string): Promise<ConversationFlow | undefined> {
+    const result = await db
+      .select()
+      .from(conversationFlows)
+      .where(eq(conversationFlows.id, id))
+      .limit(1);
+    return result[0];
+  }
+
+  async getActiveConversationFlow(chatbotId: string): Promise<ConversationFlow | undefined> {
+    const result = await db
+      .select()
+      .from(conversationFlows)
+      .where(and(
+        eq(conversationFlows.chatbotId, chatbotId),
+        eq(conversationFlows.isActive, "true")
+      ))
+      .limit(1);
+    return result[0];
+  }
+
+  async createConversationFlow(flow: InsertConversationFlow): Promise<ConversationFlow> {
+    const result = await db
+      .insert(conversationFlows)
+      .values(flow)
+      .returning();
+    return result[0];
+  }
+
+  async updateConversationFlow(id: string, updates: Partial<InsertConversationFlow>): Promise<ConversationFlow | undefined> {
+    const result = await db
+      .update(conversationFlows)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(conversationFlows.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async deleteConversationFlow(id: string): Promise<boolean> {
+    const result = await db
+      .delete(conversationFlows)
+      .where(eq(conversationFlows.id, id))
+      .returning();
+    return result.length > 0;
   }
 }
 
