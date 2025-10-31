@@ -205,3 +205,28 @@ export const insertQaCacheSchema = createInsertSchema(qaCache).omit({
 
 export type QaCache = typeof qaCache.$inferSelect;
 export type InsertQaCache = z.infer<typeof insertQaCacheSchema>;
+
+// Manual Q&A Overrides - stores manually corrected/trained answers
+export const manualQaOverrides = pgTable("manual_qa_overrides", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  chatbotId: varchar("chatbot_id").notNull().references(() => chatbots.id, { onDelete: "cascade" }),
+  question: text("question").notNull(), // Normalized question
+  questionHash: text("question_hash").notNull(), // MD5 hash for fast lookups
+  manualAnswer: text("manual_answer").notNull(), // Human-corrected answer
+  originalAnswer: text("original_answer"), // Original AI answer (for reference)
+  conversationId: varchar("conversation_id").references(() => conversations.id, { onDelete: "set null" }), // Link to source conversation
+  createdBy: varchar("created_by").notNull().references(() => users.id, { onDelete: "cascade" }), // User who created override
+  useCount: text("use_count").notNull().default("0"), // Track how many times this override was used
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertManualQaOverrideSchema = createInsertSchema(manualQaOverrides).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  useCount: true,
+});
+
+export type ManualQaOverride = typeof manualQaOverrides.$inferSelect;
+export type InsertManualQaOverride = z.infer<typeof insertManualQaOverrideSchema>;
