@@ -564,6 +564,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
             })
             .where(eq(chatbots.id, chatbotId));
           
+          // Clear Q&A cache since knowledge base has changed
+          const clearedCount = await storage.clearChatbotCache(chatbotId);
+          console.log(`[Refresh] Cleared ${clearedCount} cached Q&A entries due to knowledge base update`);
+          
           console.log(`[Refresh] Knowledge base updated successfully`);
         } else {
           console.log(`[Refresh] No changes detected, knowledge base is up to date`);
@@ -1232,9 +1236,11 @@ Generate 3-5 short, natural questions that would help the user learn more. Retur
       const userId = req.user.id;
       const chatbotId = req.params.id;
 
-      // Verify user owns this chatbot
+      // Verify user owns this chatbot or is admin
+      const user = await storage.getUser(userId);
       const chatbot = await storage.getChatbot(chatbotId, userId);
-      if (!chatbot) {
+      
+      if (!chatbot && (!user || user.isAdmin !== "true")) {
         return res.status(404).json({ error: "Chatbot not found" });
       }
 

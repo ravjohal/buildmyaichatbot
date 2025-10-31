@@ -23,6 +23,7 @@ export interface IStorage {
   createCacheEntry(cacheEntry: InsertQaCache): Promise<QaCache>;
   updateCacheHitCount(cacheId: string): Promise<void>;
   getCacheStats(chatbotId: string): Promise<{ totalEntries: number; totalHits: number }>;
+  clearChatbotCache(chatbotId: string): Promise<number>;
 }
 
 export class DbStorage implements IStorage {
@@ -188,6 +189,14 @@ export class DbStorage implements IStorage {
       totalEntries: Number(result[0]?.totalEntries || 0),
       totalHits: Number(result[0]?.totalHits || 0),
     };
+  }
+
+  async clearChatbotCache(chatbotId: string): Promise<number> {
+    const result = await db
+      .delete(qaCache)
+      .where(eq(qaCache.chatbotId, chatbotId))
+      .returning();
+    return result.length;
   }
 }
 
