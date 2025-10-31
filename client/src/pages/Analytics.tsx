@@ -51,13 +51,31 @@ export default function Analytics() {
     enabled: !!selectedConversation,
   });
 
+  const { data: manualOverrides } = useQuery<any[]>({
+    queryKey: [`/api/chatbots/${chatbotId}/manual-overrides`],
+    enabled: !!chatbotId,
+  });
+
+  // Helper to check if a question has a manual override
+  const hasManualOverride = (question: string): boolean => {
+    if (!manualOverrides) return false;
+    const normalizedQuestion = question.toLowerCase().trim();
+    return manualOverrides.some(override => 
+      override.question.toLowerCase().trim() === normalizedQuestion
+    );
+  };
+
   const saveOverrideMutation = useMutation({
     mutationFn: async ({ question, manualAnswer }: { question: string; manualAnswer: string }) => {
-      return apiRequest(`/api/chatbots/${chatbotId}/manual-overrides`, {
+      const response = await fetch(`/api/chatbots/${chatbotId}/manual-overrides`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ question, manualAnswer }),
       });
+      if (!response.ok) {
+        throw new Error("Failed to save manual override");
+      }
+      return response.json();
     },
     onSuccess: () => {
       toast({
@@ -66,6 +84,8 @@ export default function Analytics() {
       });
       setEditingMessage(null);
       setEditedAnswer("");
+      // Invalidate manual overrides cache to show the badge
+      queryClient.invalidateQueries({ queryKey: [`/api/chatbots/${chatbotId}/manual-overrides`] });
     },
     onError: (error: any) => {
       toast({
@@ -301,6 +321,11 @@ export default function Analytics() {
                           {message.wasEscalated === "true" && (
                             <Badge variant="destructive" className="mt-2 text-xs">
                               Escalation triggered
+                            </Badge>
+                          )}
+                          {message.role === "assistant" && userQuestion && hasManualOverride(userQuestion) && (
+                            <Badge variant="secondary" className="mt-2 text-xs bg-blue-500/10 text-blue-700 dark:text-blue-300">
+                              Manually trained
                             </Badge>
                           )}
                         </div>
