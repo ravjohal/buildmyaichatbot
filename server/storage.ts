@@ -1,4 +1,4 @@
-import { type Chatbot, type InsertChatbot, chatbots, users, type User, type UpsertUser, type QaCache, type InsertQaCache, qaCache } from "@shared/schema";
+import { type Chatbot, type InsertChatbot, chatbots, users, type User, type UpsertUser, type QaCache, type InsertQaCache, qaCache, type ManualQaOverride, type InsertManualQaOverride, manualQaOverrides } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sql } from "drizzle-orm";
 
@@ -25,6 +25,14 @@ export interface IStorage {
   updateCacheHitCount(cacheId: string): Promise<void>;
   getCacheStats(chatbotId: string): Promise<{ totalEntries: number; totalHits: number }>;
   clearChatbotCache(chatbotId: string): Promise<number>;
+  
+  // Manual Q&A Override operations
+  getManualOverride(chatbotId: string, questionHash: string): Promise<ManualQaOverride | undefined>;
+  getAllManualOverrides(chatbotId: string): Promise<ManualQaOverride[]>;
+  createManualOverride(override: InsertManualQaOverride): Promise<ManualQaOverride>;
+  updateManualOverride(id: string, manualAnswer: string): Promise<ManualQaOverride | undefined>;
+  deleteManualOverride(id: string, userId: string): Promise<boolean>;
+  incrementOverrideUseCount(id: string): Promise<void>;
 }
 
 export class DbStorage implements IStorage {
@@ -254,6 +262,79 @@ export class DbStorage implements IStorage {
       .where(eq(qaCache.chatbotId, chatbotId))
       .returning();
     return result.length;
+  }
+
+  // Manual Q&A Override operations
+  async getManualOverride(chatbotId: string, questionHash: string): Promise<ManualQaOverride | undefined> {
+    const result = await db
+      .select()
+      .from(manualQaOverrides)
+      .where(
+        and(
+          eq(manualQaOverrides.chatbotId, chatbotId),
+          eq(manualQaOverrides.questionHash, questionHash)
+        )
+      )
+      .limit(1);
+    return result[0];
+  }
+
+  async getAllManualOverrides(chatbotId: string): Promise<ManualQaOverride[]> {
+    const result = await db
+      .select()
+      .from(manualQaOverrides)
+      .where(eq(manualQaOverrides.chatbotId, chatbotId))
+      .orderBy(desc(manualQaOverrides.createdAt));
+    return result;
+  }
+
+  async createManualOverride(override: InsertManualQaOverride): Promise<ManualQaOverride> {
+    const result = await db
+      .insert(manualQaOverrides)
+      .values(override)
+      .returning();
+    return result[0];
+  }
+
+  async updateManualOverride(id: string, manualAnswer: string): Promise<ManualQaOverride | undefined> {
+    const result = await db
+      .update(manualQaOverrides)
+      .set({ 
+        manualAnswer,
+        updatedAt: new Date()
+      })
+      .where(eq(manualQaOverrides.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async deleteManualOverride(id: string, userId: string): Promise<boolean> {
+    const result = await db
+      .delete(manualQaOverrides)
+      .where(
+        and(
+          eq(manualQaOverrides.id, id),
+          eq(manualQaOverrides.createdBy, userId)
+        )
+      )
+      .returning();
+    return result.length > 0;
+  }
+
+  async incrementOverrideUseCount(id: string): Promise<void> {
+    const current = await db
+      .select({ useCount: manualQaOverrides.useCount })
+      .from(manualQaOverrides)
+      .where(eq(manualQaOverrides.id, id))
+      .limit(1);
+    
+    if (current[0]) {
+      const newCount = (parseInt(current[0].useCount) + 1).toString();
+      await db
+        .update(manualQaOverrides)
+        .set({ useCount: newCount })
+        .where(eq(manualQaOverrides.id, id));
+    }
   }
 }
 
