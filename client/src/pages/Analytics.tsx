@@ -1,14 +1,17 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useRoute, Link } from "wouter";
-import { ArrowLeft, MessageSquare, TrendingUp, AlertCircle, Clock } from "lucide-react";
+import { ArrowLeft, MessageSquare, TrendingUp, AlertCircle, Clock, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 import type { Chatbot, Conversation, ConversationMessage } from "@shared/schema";
 import { formatDistanceToNow } from "date-fns";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 
 interface AnalyticsData {
   metrics: {
@@ -29,6 +32,9 @@ export default function Analytics() {
   const [, params] = useRoute("/analytics/:id");
   const chatbotId = params?.id || "";
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
+  const [editingMessage, setEditingMessage] = useState<{ question: string; originalAnswer: string } | null>(null);
+  const [editedAnswer, setEditedAnswer] = useState("");
+  const { toast } = useToast();
 
   const { data: chatbot } = useQuery<Chatbot>({
     queryKey: [`/api/chatbots/${chatbotId}`],
@@ -44,6 +50,44 @@ export default function Analytics() {
     queryKey: [`/api/conversations/${selectedConversation}`],
     enabled: !!selectedConversation,
   });
+
+  const saveOverrideMutation = useMutation({
+    mutationFn: async ({ question, manualAnswer }: { question: string; manualAnswer: string }) => {
+      return apiRequest(`/api/chatbots/${chatbotId}/manual-overrides`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question, manualAnswer }),
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Answer updated",
+        description: "The chatbot will now use your corrected answer for similar questions.",
+      });
+      setEditingMessage(null);
+      setEditedAnswer("");
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to save",
+        description: error.message || "Could not save the corrected answer. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleEditAnswer = (userQuestion: string, aiAnswer: string) => {
+    setEditingMessage({ question: userQuestion, originalAnswer: aiAnswer });
+    setEditedAnswer(aiAnswer);
+  };
+
+  const handleSaveEdit = () => {
+    if (!editingMessage || !editedAnswer.trim()) return;
+    saveOverrideMutation.mutate({
+      question: editingMessage.question,
+      manualAnswer: editedAnswer.trim(),
+    });
+  };
 
   if (analyticsLoading || !chatbot || !analytics) {
     return (
@@ -210,45 +254,114 @@ export default function Analytics() {
               </div>
               <ScrollArea className="h-[400px]">
                 <div className="space-y-4 pr-4">
-                  {conversationDetail.messages.map((message) => (
-                    <div
-                      key={message.id}
-                      className={`flex gap-3 ${
-                        message.role === "user" ? "justify-end" : "justify-start"
-                      }`}
-                    >
+                  {conversationDetail.messages.map((message, index) => {
+                    const previousMessage = index > 0 ? conversationDetail.messages[index - 1] : null;
+                    const userQuestion = previousMessage?.role === "user" ? previousMessage.content : "";
+                    
+                    return (
                       <div
-                        className={`rounded-2xl p-3 max-w-[80%] ${
-                          message.role === "user"
-                            ? "bg-primary text-primary-foreground rounded-tr-sm"
-                            : "bg-muted rounded-tl-sm"
+                        key={message.id}
+                        className={`flex gap-3 ${
+                          message.role === "user" ? "justify-end" : "justify-start"
                         }`}
                       >
-                        <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                        {message.suggestedQuestions && message.suggestedQuestions.length > 0 && (
-                          <div className="mt-2 pt-2 border-t border-border/50">
-                            <p className="text-xs opacity-70 mb-1">Suggested:</p>
-                            <div className="flex flex-wrap gap-1">
-                              {message.suggestedQuestions.map((q, i) => (
-                                <Badge key={i} variant="secondary" className="text-xs">
-                                  {q}
-                                </Badge>
-                              ))}
-                            </div>
+                        <div
+                          className={`rounded-2xl p-3 max-w-[80%] ${
+                            message.role === "user"
+                              ? "bg-primary text-primary-foreground rounded-tr-sm"
+                              : "bg-muted rounded-tl-sm"
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <p className="text-sm whitespace-pre-wrap flex-1">{message.content}</p>
+                            {message.role === "assistant" && userQuestion && (
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-6 w-6 flex-shrink-0"
+                                onClick={() => handleEditAnswer(userQuestion, message.content)}
+                                data-testid={`button-edit-answer-${message.id}`}
+                              >
+                                <Pencil className="w-3 h-3" />
+                              </Button>
+                            )}
                           </div>
-                        )}
-                        {message.wasEscalated === "true" && (
-                          <Badge variant="destructive" className="mt-2 text-xs">
-                            Escalation triggered
-                          </Badge>
-                        )}
+                          {message.suggestedQuestions && message.suggestedQuestions.length > 0 && (
+                            <div className="mt-2 pt-2 border-t border-border/50">
+                              <p className="text-xs opacity-70 mb-1">Suggested:</p>
+                              <div className="flex flex-wrap gap-1">
+                                {message.suggestedQuestions.map((q, i) => (
+                                  <Badge key={i} variant="secondary" className="text-xs">
+                                    {q}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          {message.wasEscalated === "true" && (
+                            <Badge variant="destructive" className="mt-2 text-xs">
+                              Escalation triggered
+                            </Badge>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </ScrollArea>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!editingMessage} onOpenChange={(open) => !open && setEditingMessage(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Edit AI Response</DialogTitle>
+            <DialogDescription>
+              Correct this answer to improve your chatbot's accuracy. The chatbot will use your corrected answer for similar questions in the future.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium">User Question</label>
+              <p className="text-sm text-muted-foreground mt-1 p-3 bg-muted rounded-md">
+                {editingMessage?.question}
+              </p>
+            </div>
+            <div>
+              <label className="text-sm font-medium">Original AI Answer</label>
+              <p className="text-sm text-muted-foreground mt-1 p-3 bg-muted rounded-md">
+                {editingMessage?.originalAnswer}
+              </p>
+            </div>
+            <div>
+              <label className="text-sm font-medium">Corrected Answer</label>
+              <Textarea
+                value={editedAnswer}
+                onChange={(e) => setEditedAnswer(e.target.value)}
+                placeholder="Enter the corrected answer..."
+                className="mt-1 min-h-[150px]"
+                data-testid="textarea-edited-answer"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setEditingMessage(null)}
+              data-testid="button-cancel-edit"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSaveEdit}
+              disabled={!editedAnswer.trim() || saveOverrideMutation.isPending}
+              data-testid="button-save-edit"
+            >
+              {saveOverrideMutation.isPending ? "Saving..." : "Save Corrected Answer"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
