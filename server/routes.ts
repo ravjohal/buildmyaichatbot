@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertChatbotSchema, type ChatRequest, type ChatResponse, chatbots, conversations, conversationMessages, users } from "@shared/schema";
+import { insertChatbotSchema, insertLeadSchema, type ChatRequest, type ChatResponse, chatbots, conversations, conversationMessages, users, leads } from "@shared/schema";
 import { ZodError } from "zod";
 import { GoogleGenAI } from "@google/genai";
 import multer from "multer";
@@ -197,6 +197,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         supportPhoneNumber: chatbot.supportPhoneNumber,
         escalationMessage: chatbot.escalationMessage,
         systemPrompt: chatbot.systemPrompt,
+        leadCaptureEnabled: chatbot.leadCaptureEnabled,
+        leadCaptureFields: chatbot.leadCaptureFields,
+        leadCaptureTitle: chatbot.leadCaptureTitle,
+        leadCaptureMessage: chatbot.leadCaptureMessage,
+        leadCaptureTiming: chatbot.leadCaptureTiming,
+        leadCaptureMessageCount: chatbot.leadCaptureMessageCount,
       };
       
       res.json(publicConfig);
@@ -775,6 +781,111 @@ Generate 3-5 short, natural questions that would help the user learn more. Retur
     } catch (error) {
       console.error("Error fetching conversations:", error);
       res.status(500).json({ error: "Failed to fetch conversations" });
+    }
+  });
+
+  // Submit lead capture form (public endpoint - no auth required)
+  app.post("/api/leads", async (req, res) => {
+    try {
+      const validatedData = insertLeadSchema.parse(req.body);
+      
+      // Verify chatbot exists
+      const chatbotResult = await db.select().from(chatbots).where(eq(chatbots.id, validatedData.chatbotId)).limit(1);
+      if (!chatbotResult[0]) {
+        return res.status(404).json({ error: "Chatbot not found" });
+      }
+
+      // Insert lead
+      const newLead = await db.insert(leads).values(validatedData).returning();
+      
+      res.status(201).json(newLead[0]);
+    } catch (error) {
+      if (error instanceof ZodError) {
+        return res.status(400).json({ error: "Invalid data", details: error.errors });
+      }
+      console.error("Error submitting lead:", error);
+      res.status(500).json({ error: "Failed to submit lead" });
+    }
+  });
+
+  // Get all leads for a chatbot (protected - owner or admin only)
+  app.get("/api/chatbots/:id/leads", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const chatbotId = req.params.id;
+
+      // Verify user owns this chatbot or is admin
+      const user = await storage.getUser(userId);
+      const chatbot = await storage.getChatbot(chatbotId, userId);
+      
+      if (!chatbot && (!user || user.isAdmin !== "true")) {
+        return res.status(404).json({ error: "Chatbot not found" });
+      }
+
+      // Get all leads for this chatbot
+      const chatbotLeads = await db.select()
+        .from(leads)
+        .where(eq(leads.chatbotId, chatbotId))
+        .orderBy(sql`${leads.createdAt} DESC`);
+
+      res.json(chatbotLeads);
+    } catch (error) {
+      console.error("Error fetching leads:", error);
+      res.status(500).json({ error: "Failed to fetch leads" });
+    }
+  });
+
+  // Export leads to CSV (protected - owner or admin only)
+  app.get("/api/chatbots/:id/leads/export", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const chatbotId = req.params.id;
+
+      // Verify user owns this chatbot or is admin
+      const user = await storage.getUser(userId);
+      const chatbot = await storage.getChatbot(chatbotId, userId);
+      
+      if (!chatbot && (!user || user.isAdmin !== "true")) {
+        return res.status(404).json({ error: "Chatbot not found" });
+      }
+
+      // Get all leads for this chatbot
+      const chatbotLeads = await db.select()
+        .from(leads)
+        .where(eq(leads.chatbotId, chatbotId))
+        .orderBy(sql`${leads.createdAt} DESC`);
+
+      // Convert to CSV format
+      const csvHeaders = "Name,Email,Phone,Company,Message,Created At\n";
+      const csvRows = chatbotLeads.map(lead => {
+        const formatField = (field: string | null | undefined) => {
+          if (!field) return "";
+          // Escape quotes and wrap in quotes if contains comma or quote
+          if (field.includes(",") || field.includes('"') || field.includes("\n")) {
+            return `"${field.replace(/"/g, '""')}"`;
+          }
+          return field;
+        };
+        
+        return [
+          formatField(lead.name),
+          formatField(lead.email),
+          formatField(lead.phone),
+          formatField(lead.company),
+          formatField(lead.message),
+          lead.createdAt ? new Date(lead.createdAt).toISOString() : "",
+        ].join(",");
+      }).join("\n");
+
+      const csv = csvHeaders + csvRows;
+
+      // Set response headers for CSV download
+      res.setHeader("Content-Type", "text/csv");
+      res.setHeader("Content-Disposition", `attachment; filename="leads-${chatbotId}-${Date.now()}.csv"`);
+      res.send(csv);
+    } catch (error) {
+      console.error("Error exporting leads:", error);
+      res.status(500).json({ error: "Failed to export leads" });
     }
   });
 

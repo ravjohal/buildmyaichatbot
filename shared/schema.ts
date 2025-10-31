@@ -51,6 +51,12 @@ export const chatbots = pgTable("chatbots", {
   supportPhoneNumber: text("support_phone_number"),
   escalationMessage: text("escalation_message").notNull().default("If you need more help, you can reach our team at {phone}."),
   questionCount: text("question_count").notNull().default("0"),
+  leadCaptureEnabled: text("lead_capture_enabled").notNull().default("false"),
+  leadCaptureFields: text("lead_capture_fields").array().default(sql`ARRAY['name', 'email']::text[]`),
+  leadCaptureTitle: text("lead_capture_title").notNull().default("Get in Touch"),
+  leadCaptureMessage: text("lead_capture_message").notNull().default("Leave your contact information and we'll get back to you."),
+  leadCaptureTiming: text("lead_capture_timing").notNull().default("after_first_message"),
+  leadCaptureMessageCount: text("lead_capture_message_count").notNull().default("1"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -71,6 +77,12 @@ export const insertChatbotSchema = createInsertSchema(chatbots).omit({
   suggestedQuestions: z.array(z.string()).optional(),
   supportPhoneNumber: z.string().optional(),
   escalationMessage: z.string().min(1, "Escalation message is required"),
+  leadCaptureEnabled: z.string().optional(),
+  leadCaptureFields: z.array(z.string()).optional(),
+  leadCaptureTitle: z.string().optional(),
+  leadCaptureMessage: z.string().optional(),
+  leadCaptureTiming: z.string().optional(),
+  leadCaptureMessageCount: z.string().optional(),
 });
 
 export type InsertChatbot = z.infer<typeof insertChatbotSchema>;
@@ -130,3 +142,25 @@ export interface ChatResponse {
   shouldEscalate: boolean;
   suggestedQuestions?: string[];
 }
+
+// Leads table - stores captured lead information
+export const leads = pgTable("leads", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  chatbotId: varchar("chatbot_id").notNull().references(() => chatbots.id, { onDelete: "cascade" }),
+  conversationId: varchar("conversation_id").references(() => conversations.id, { onDelete: "set null" }),
+  name: text("name"),
+  email: text("email"),
+  phone: text("phone"),
+  company: text("company"),
+  message: text("message"),
+  customFields: jsonb("custom_fields"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertLeadSchema = createInsertSchema(leads).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertLead = z.infer<typeof insertLeadSchema>;
+export type Lead = typeof leads.$inferSelect;
