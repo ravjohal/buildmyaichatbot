@@ -325,7 +325,7 @@ export default function Dashboard() {
                   )}
                 </CardContent>
                 <CardFooter className="flex gap-2 flex-wrap">
-                  <Link href={`/test/${chatbot.id}`}>
+                  <Link href={`/chat/${chatbot.id}`} target="_blank">
                     <Button
                       variant="default"
                       size="sm"
