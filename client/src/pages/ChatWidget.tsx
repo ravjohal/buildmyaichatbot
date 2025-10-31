@@ -1,11 +1,13 @@
 import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { MessageCircle, X, Send, Bot, Phone } from "lucide-react";
+import { MessageCircle, X, Send, Bot, Phone, UserPlus, Mail as MailIcon, Building2 } from "lucide-react";
 import { useRoute } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import type { Chatbot, ChatMessage } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 
@@ -24,6 +26,17 @@ export default function ChatWidget() {
   const [inputValue, setInputValue] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
   const [sessionId] = useState(() => `widget-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+  
+  // Lead capture state
+  const [showLeadForm, setShowLeadForm] = useState(false);
+  const [leadCaptured, setLeadCaptured] = useState(false);
+  const [leadFormData, setLeadFormData] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    company: "",
+    message: "",
+  });
 
   const { data: chatbot, isLoading, error } = useQuery<Chatbot>({
     queryKey: [`/api/public/chatbots/${chatbotId}`],
@@ -66,11 +79,57 @@ export default function ChatWidget() {
     },
   });
 
+  const leadMutation = useMutation({
+    mutationFn: async (formData: typeof leadFormData) => {
+      const response = await apiRequest("POST", "/api/leads", {
+        chatbotId,
+        sessionId,
+        ...formData,
+      });
+      return response.json();
+    },
+    onSuccess: () => {
+      setLeadCaptured(true);
+      setShowLeadForm(false);
+    },
+  });
+
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages]);
+
+  // Determine when to show lead capture form
+  useEffect(() => {
+    if (!chatbot || leadCaptured || showLeadForm || chatbot.leadCaptureEnabled !== "true") {
+      return;
+    }
+
+    const userMessages = messages.filter(m => m.role === "user");
+    
+    switch (chatbot.leadCaptureTiming) {
+      case "immediately":
+        if (isOpen && messages.length === 1) {
+          setShowLeadForm(true);
+        }
+        break;
+      case "after_first_message":
+        if (userMessages.length === 1) {
+          setShowLeadForm(true);
+        }
+        break;
+      case "after_n_messages":
+        const targetCount = parseInt(chatbot.leadCaptureMessageCount || "1");
+        if (userMessages.length === targetCount) {
+          setShowLeadForm(true);
+        }
+        break;
+      case "manual":
+        // Don't auto-show, only manual trigger
+        break;
+    }
+  }, [messages, chatbot, leadCaptured, showLeadForm, isOpen]);
 
   useEffect(() => {
     if (isOpen && chatbot && messages.length === 0) {
@@ -126,6 +185,138 @@ export default function ChatWidget() {
 
     setMessages((prev) => [...prev, userMessage]);
     chatMutation.mutate(question);
+  };
+
+  const handleLeadSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const fields = chatbot?.leadCaptureFields || [];
+    
+    const submissionData: any = { chatbotId, sessionId };
+    fields.forEach((field) => {
+      if (leadFormData[field as keyof typeof leadFormData]) {
+        submissionData[field] = leadFormData[field as keyof typeof leadFormData];
+      }
+    });
+    
+    leadMutation.mutate(submissionData);
+  };
+
+  const renderLeadForm = () => {
+    if (!showLeadForm || !chatbot) return null;
+
+    const fields = chatbot.leadCaptureFields || [];
+
+    return (
+      <div className="p-4 border-t border-b bg-muted/30" data-testid="lead-capture-form">
+        <div className="space-y-3">
+          <div className="flex items-start gap-2">
+            <UserPlus className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: chatbot.primaryColor }} />
+            <div>
+              <h3 className="font-semibold">{chatbot.leadCaptureTitle || "Get in Touch"}</h3>
+              <p className="text-sm text-muted-foreground">
+                {chatbot.leadCaptureMessage || "Leave your contact information and we'll get back to you."}
+              </p>
+            </div>
+          </div>
+
+          <form onSubmit={handleLeadSubmit} className="space-y-3">
+            {fields.includes("name") && (
+              <div className="space-y-1">
+                <Label htmlFor="lead-name" className="text-xs">Name</Label>
+                <Input
+                  id="lead-name"
+                  placeholder="Your name"
+                  value={leadFormData.name}
+                  onChange={(e) => setLeadFormData({ ...leadFormData, name: e.target.value })}
+                  required
+                  className="h-9"
+                  data-testid="input-lead-name"
+                />
+              </div>
+            )}
+
+            {fields.includes("email") && (
+              <div className="space-y-1">
+                <Label htmlFor="lead-email" className="text-xs">Email</Label>
+                <Input
+                  id="lead-email"
+                  type="email"
+                  placeholder="your@email.com"
+                  value={leadFormData.email}
+                  onChange={(e) => setLeadFormData({ ...leadFormData, email: e.target.value })}
+                  required
+                  className="h-9"
+                  data-testid="input-lead-email"
+                />
+              </div>
+            )}
+
+            {fields.includes("phone") && (
+              <div className="space-y-1">
+                <Label htmlFor="lead-phone" className="text-xs">Phone</Label>
+                <Input
+                  id="lead-phone"
+                  type="tel"
+                  placeholder="+1 (555) 000-0000"
+                  value={leadFormData.phone}
+                  onChange={(e) => setLeadFormData({ ...leadFormData, phone: e.target.value })}
+                  className="h-9"
+                  data-testid="input-lead-phone"
+                />
+              </div>
+            )}
+
+            {fields.includes("company") && (
+              <div className="space-y-1">
+                <Label htmlFor="lead-company" className="text-xs">Company</Label>
+                <Input
+                  id="lead-company"
+                  placeholder="Your company"
+                  value={leadFormData.company}
+                  onChange={(e) => setLeadFormData({ ...leadFormData, company: e.target.value })}
+                  className="h-9"
+                  data-testid="input-lead-company"
+                />
+              </div>
+            )}
+
+            {fields.includes("message") && (
+              <div className="space-y-1">
+                <Label htmlFor="lead-message" className="text-xs">Message</Label>
+                <Textarea
+                  id="lead-message"
+                  placeholder="How can we help?"
+                  value={leadFormData.message}
+                  onChange={(e) => setLeadFormData({ ...leadFormData, message: e.target.value })}
+                  rows={2}
+                  data-testid="input-lead-message"
+                />
+              </div>
+            )}
+
+            <div className="flex gap-2">
+              <Button
+                type="submit"
+                className="flex-1"
+                style={{ backgroundColor: chatbot.accentColor }}
+                disabled={leadMutation.isPending}
+                data-testid="button-submit-lead"
+              >
+                {leadMutation.isPending ? "Submitting..." : "Submit"}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => setShowLeadForm(false)}
+                data-testid="button-skip-lead"
+              >
+                Skip
+              </Button>
+            </div>
+          </form>
+        </div>
+      </div>
+    );
   };
 
   if (isLoading || !chatbot) {
@@ -255,6 +446,8 @@ export default function ChatWidget() {
             )}
           </div>
         </ScrollArea>
+
+        {renderLeadForm()}
 
         <div className="p-6 border-t bg-background">
           <div className="max-w-3xl mx-auto flex gap-3">
@@ -406,6 +599,8 @@ export default function ChatWidget() {
               )}
             </div>
           </ScrollArea>
+
+          {renderLeadForm()}
 
           <div className="p-4 border-t">
             <div className="flex gap-2">
