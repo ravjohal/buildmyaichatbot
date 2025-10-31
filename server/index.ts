@@ -129,5 +129,24 @@ app.use((req, res, next) => {
     reusePort: true,
   }, () => {
     log(`serving on port ${port}`);
+    
+    // Start weekly report scheduler
+    const { checkAndSendWeeklyReports } = require('./emails/weekly-report-service');
+    const { storage } = require('./storage');
+    
+    // Check immediately on startup
+    checkAndSendWeeklyReports(storage).catch((err: Error) => {
+      console.error('[WeeklyReport] Error in initial check:', err);
+    });
+    
+    // Then check every 6 hours
+    const SIX_HOURS = 6 * 60 * 60 * 1000;
+    setInterval(() => {
+      checkAndSendWeeklyReports(storage).catch((err: Error) => {
+        console.error('[WeeklyReport] Error in scheduled check:', err);
+      });
+    }, SIX_HOURS);
+    
+    log('Weekly report scheduler started (checks every 6 hours)');
   });
 })();
