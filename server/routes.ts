@@ -1226,6 +1226,40 @@ Generate 3-5 short, natural questions that would help the user learn more. Retur
     }
   });
 
+  // Get cache statistics for a chatbot (protected)
+  app.get("/api/chatbots/:id/cache-stats", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const chatbotId = req.params.id;
+
+      // Verify user owns this chatbot
+      const chatbot = await storage.getChatbot(chatbotId, userId);
+      if (!chatbot) {
+        return res.status(404).json({ error: "Chatbot not found" });
+      }
+
+      // Get cache statistics
+      const cacheStats = await storage.getCacheStats(chatbotId);
+      
+      // Calculate cost savings (approximate)
+      // Assuming: $0.0001 per LLM call saved (rough estimate)
+      const estimatedCostSavings = (cacheStats.totalHits * 0.0001).toFixed(2);
+      const cacheHitRate = cacheStats.totalEntries > 0 
+        ? ((cacheStats.totalHits / (cacheStats.totalEntries + cacheStats.totalHits)) * 100).toFixed(1)
+        : "0";
+
+      res.json({
+        totalCachedQuestions: cacheStats.totalEntries,
+        totalCacheHits: cacheStats.totalHits,
+        cacheHitRate: `${cacheHitRate}%`,
+        estimatedCostSavings: `$${estimatedCostSavings}`,
+      });
+    } catch (error) {
+      console.error("Error fetching cache stats:", error);
+      res.status(500).json({ error: "Failed to fetch cache statistics" });
+    }
+  });
+
   // Submit lead capture form (public endpoint - no auth required)
   app.post("/api/leads", async (req, res) => {
     try {
