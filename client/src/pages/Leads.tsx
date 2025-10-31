@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Download, UserPlus, Mail, Phone, Building2, MessageSquare, Calendar } from "lucide-react";
+import { Download, UserPlus, Mail, Phone, Building2, MessageSquare, Calendar, ExternalLink, Link as LinkIcon, TestTube } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -32,6 +32,8 @@ interface Lead {
   company: string | null;
   message: string | null;
   customData: Record<string, any> | null;
+  source: string;
+  sourceUrl: string | null;
   createdAt: Date;
 }
 
@@ -47,6 +49,56 @@ export default function Leads() {
     queryKey: [`/api/chatbots/${selectedChatbotId}/leads`],
     enabled: !!selectedChatbotId,
   });
+
+  const getSourceBadge = (source: string, sourceUrl: string | null) => {
+    let icon;
+    let label;
+    let variant: "default" | "secondary" | "outline" = "secondary";
+
+    switch (source) {
+      case "widget":
+        icon = <ExternalLink className="w-3 h-3" />;
+        label = "Embedded Widget";
+        variant = "default";
+        break;
+      case "direct_link":
+        icon = <LinkIcon className="w-3 h-3" />;
+        label = "Direct Link";
+        variant = "outline";
+        break;
+      case "test":
+        icon = <TestTube className="w-3 h-3" />;
+        label = "Test Page";
+        variant = "secondary";
+        break;
+      default:
+        icon = <ExternalLink className="w-3 h-3" />;
+        label = "Unknown";
+        variant = "secondary";
+    }
+
+    return (
+      <div className="flex flex-col gap-1">
+        <Badge variant={variant} className="w-fit">
+          <div className="flex items-center gap-1">
+            {icon}
+            <span>{label}</span>
+          </div>
+        </Badge>
+        {sourceUrl && source === "widget" && (
+          <a 
+            href={sourceUrl} 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="text-xs text-muted-foreground hover:text-foreground truncate max-w-[200px]"
+            title={sourceUrl}
+          >
+            {sourceUrl}
+          </a>
+        )}
+      </div>
+    );
+  };
 
   const handleExport = async () => {
     if (!selectedChatbotId) return;
@@ -219,6 +271,12 @@ export default function Leads() {
                     </TableHead>
                     <TableHead>
                       <div className="flex items-center gap-2">
+                        <ExternalLink className="w-4 h-4" />
+                        Source
+                      </div>
+                    </TableHead>
+                    <TableHead>
+                      <div className="flex items-center gap-2">
                         <Calendar className="w-4 h-4" />
                         Date
                       </div>
@@ -248,6 +306,9 @@ export default function Leads() {
                         ) : (
                           <span className="text-muted-foreground">-</span>
                         )}
+                      </TableCell>
+                      <TableCell>
+                        {getSourceBadge(lead.source, lead.sourceUrl)}
                       </TableCell>
                       <TableCell className="text-muted-foreground">
                         {new Date(lead.createdAt).toLocaleDateString()}
