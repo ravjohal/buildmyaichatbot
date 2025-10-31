@@ -23,6 +23,37 @@ const upload = multer({
 // Initialize Stripe only if the secret is available
 const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY) : null;
 
+// In-memory store for background indexing jobs
+interface IndexingJob {
+  id: string;
+  userId: number;
+  status: 'pending' | 'in_progress' | 'completed' | 'failed';
+  progress: {
+    totalUrls: number;
+    processedUrls: number;
+    currentUrl?: string;
+  };
+  result?: {
+    websiteContent: string;
+    urlMetadata: any[];
+  };
+  error?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const indexingJobs = new Map<string, IndexingJob>();
+
+// Clean up old jobs (older than 1 hour)
+setInterval(() => {
+  const oneHourAgo = Date.now() - 60 * 60 * 1000;
+  for (const [id, job] of indexingJobs.entries()) {
+    if (job.updatedAt.getTime() < oneHourAgo) {
+      indexingJobs.delete(id);
+    }
+  }
+}, 5 * 60 * 1000); // Run every 5 minutes
+
 // Middleware to check if user is an admin
 const isAdmin = async (req: any, res: any, next: any) => {
   try {
@@ -245,11 +276,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      // Crawl websites if URLs are provided (recursive crawling)
-      let websiteContent = "";
+      // Use pre-indexed content if available, otherwise crawl websites
+      let websiteContent = validatedData.websiteContent || "";
       let crawlResults: any[] = [];
-      if (validatedData.websiteUrls && validatedData.websiteUrls.length > 0) {
-        console.log(`[CRAWLER] Starting recursive crawl for ${validatedData.websiteUrls.length} website(s)`);
+      
+      if (websiteContent) {
+        console.log("[CRAWLER] Using pre-indexed content from background job");
+        console.log(`[CRAWLER] Content length: ${websiteContent.length} characters`);
+        
+        // If urlMetadata is provided from background indexing, use it
+        if (validatedData.urlMetadata) {
+          crawlResults = validatedData.urlMetadata;
+          console.log(`[CRAWLER] Using ${crawlResults.length} URL metadata from background indexing`);
+        }
+      } else if (validatedData.websiteUrls && validatedData.websiteUrls.length > 0) {
+        console.log(`[CRAWLER] No pre-indexed content - starting recursive crawl for ${validatedData.websiteUrls.length} website(s)`);
         console.log("[CRAWLER] URLs to crawl:", validatedData.websiteUrls);
         console.log("[CRAWLER] Checking Playwright availability...");
         
@@ -717,6 +758,106 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error uploading document:", error);
       res.status(500).json({ error: "Failed to upload document" });
+    }
+  });
+
+  // Start background indexing for URLs (protected)
+  app.post("/api/indexing/start", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { urls } = req.body;
+
+      if (!urls || !Array.isArray(urls) || urls.length === 0) {
+        return res.status(400).json({ error: "At least one URL is required" });
+      }
+
+      // Generate unique job ID
+      const jobId = `job-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+      // Create job
+      const job: IndexingJob = {
+        id: jobId,
+        userId,
+        status: 'pending',
+        progress: {
+          totalUrls: urls.length,
+          processedUrls: 0,
+        },
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      indexingJobs.set(jobId, job);
+
+      // Start background indexing (don't await)
+      (async () => {
+        try {
+          console.log(`[Indexing ${jobId}] Starting to index ${urls.length} URLs`);
+          job.status = 'in_progress';
+          job.updatedAt = new Date();
+
+          // Crawl websites
+          const crawlResult = await crawlMultipleWebsitesRecursive(urls);
+
+          job.status = 'completed';
+          job.result = {
+            websiteContent: crawlResult.content,
+            urlMetadata: crawlResult.urlMetadata,
+          };
+          job.progress.processedUrls = urls.length;
+          job.updatedAt = new Date();
+
+          console.log(`[Indexing ${jobId}] ✓ Completed successfully`);
+        } catch (error: any) {
+          console.error(`[Indexing ${jobId}] ✗ Failed:`, error);
+          job.status = 'failed';
+          job.error = error.message || 'Unknown error occurred during indexing';
+          job.updatedAt = new Date();
+        }
+      })();
+
+      res.json({
+        jobId,
+        status: job.status,
+        progress: job.progress,
+      });
+
+    } catch (error) {
+      console.error("Error starting indexing job:", error);
+      res.status(500).json({ error: "Failed to start indexing" });
+    }
+  });
+
+  // Get indexing job status (protected)
+  app.get("/api/indexing/status/:jobId", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { jobId } = req.params;
+
+      const job = indexingJobs.get(jobId);
+
+      if (!job) {
+        return res.status(404).json({ error: "Indexing job not found" });
+      }
+
+      // Verify job belongs to user
+      if (job.userId !== userId) {
+        return res.status(403).json({ error: "Unauthorized" });
+      }
+
+      res.json({
+        jobId: job.id,
+        status: job.status,
+        progress: job.progress,
+        result: job.result,
+        error: job.error,
+        createdAt: job.createdAt,
+        updatedAt: job.updatedAt,
+      });
+
+    } catch (error) {
+      console.error("Error fetching indexing status:", error);
+      res.status(500).json({ error: "Failed to fetch indexing status" });
     }
   });
 

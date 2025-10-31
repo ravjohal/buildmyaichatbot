@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
-import { ArrowLeft, ArrowRight, Check, Bot, Loader2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, Bot, Loader2, CheckCircle, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { StepIndicator } from "@/components/StepIndicator";
@@ -25,12 +25,29 @@ const STEPS = [
   { number: 6, title: "Lead Capture", description: "Collect contact info" },
 ];
 
+interface IndexingStatus {
+  jobId: string;
+  status: 'pending' | 'in_progress' | 'completed' | 'failed';
+  progress: {
+    totalUrls: number;
+    processedUrls: number;
+    currentUrl?: string;
+  };
+  result?: {
+    websiteContent: string;
+    urlMetadata: any[];
+  };
+  error?: string;
+}
+
 export default function CreateChatbot() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [createdChatbotId, setCreatedChatbotId] = useState<string | null>(null);
+  const [indexingStatus, setIndexingStatus] = useState<IndexingStatus | null>(null);
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const { data: user } = useQuery<User>({
     queryKey: ["/api/auth/user"],
@@ -62,6 +79,67 @@ export default function CreateChatbot() {
     setFormData((prev) => ({ ...prev, ...updates }));
   };
 
+  // Poll for indexing status
+  useEffect(() => {
+    if (indexingStatus && indexingStatus.status !== 'completed' && indexingStatus.status !== 'failed') {
+      const pollStatus = async () => {
+        try {
+          const res = await fetch(`/api/indexing/status/${indexingStatus.jobId}`, {
+            credentials: 'include',
+          });
+          
+          if (res.ok) {
+            const status: IndexingStatus = await res.json();
+            // Update state with complete status including result
+            setIndexingStatus({
+              jobId: status.jobId,
+              status: status.status,
+              progress: status.progress,
+              result: status.result,
+              error: status.error,
+            });
+            
+            if (status.status === 'completed' && status.result) {
+              toast({
+                title: "Indexing complete",
+                description: "Your content has been successfully indexed.",
+              });
+              
+              // Stop polling
+              if (pollingIntervalRef.current) {
+                clearInterval(pollingIntervalRef.current);
+                pollingIntervalRef.current = null;
+              }
+            } else if (status.status === 'failed') {
+              toast({
+                title: "Indexing failed",
+                description: status.error || "Failed to index content. You can proceed without indexed URLs.",
+                variant: "destructive",
+              });
+              
+              // Stop polling
+              if (pollingIntervalRef.current) {
+                clearInterval(pollingIntervalRef.current);
+                pollingIntervalRef.current = null;
+              }
+            }
+          }
+        } catch (error) {
+          console.error("Error polling indexing status:", error);
+        }
+      };
+      
+      // Poll every 2 seconds
+      pollingIntervalRef.current = setInterval(pollStatus, 2000);
+      
+      return () => {
+        if (pollingIntervalRef.current) {
+          clearInterval(pollingIntervalRef.current);
+        }
+      };
+    }
+  }, [indexingStatus?.jobId, indexingStatus?.status]);
+
   const canProceed = () => {
     switch (currentStep) {
       case 1:
@@ -81,7 +159,39 @@ export default function CreateChatbot() {
     }
   };
 
-  const handleNext = () => {
+  const startIndexing = async (urls: string[]) => {
+    if (urls.length === 0) return;
+    
+    try {
+      const res = await apiRequest("POST", "/api/indexing/start", { urls });
+      const data = await res.json();
+      
+      setIndexingStatus({
+        jobId: data.jobId,
+        status: data.status,
+        progress: data.progress,
+      });
+      
+      toast({
+        title: "Indexing started",
+        description: "We're crawling your website content in the background.",
+      });
+    } catch (error) {
+      console.error("Error starting indexing:", error);
+      toast({
+        title: "Indexing failed",
+        description: "Failed to start indexing. You can proceed without indexed URLs.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleNext = async () => {
+    if (currentStep === 2 && formData.websiteUrls && formData.websiteUrls.length > 0) {
+      // Trigger indexing on Step 2 -> Step 3 transition
+      await startIndexing(formData.websiteUrls);
+    }
+    
     if (currentStep < 6) {
       setCurrentStep(currentStep + 1);
     }
@@ -100,7 +210,56 @@ export default function CreateChatbot() {
 
     setIsSubmitting(true);
     try {
-      const res = await apiRequest("POST", "/api/chatbots", formData as InsertChatbot);
+      // Prepare payload with current formData
+      let payload = { ...formData };
+      
+      // Wait for indexing to complete if it's still in progress
+      let finalIndexingStatus = indexingStatus;
+      if (indexingStatus && (indexingStatus.status === 'in_progress' || indexingStatus.status === 'pending')) {
+        toast({
+          title: "Waiting for indexing",
+          description: "Waiting for content indexing to complete...",
+        });
+        
+        // Poll until complete or failed
+        while (finalIndexingStatus && (finalIndexingStatus.status === 'in_progress' || finalIndexingStatus.status === 'pending')) {
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          
+          const res = await fetch(`/api/indexing/status/${finalIndexingStatus.jobId}`, {
+            credentials: 'include',
+          });
+          
+          if (res.ok) {
+            const status: IndexingStatus = await res.json();
+            finalIndexingStatus = status;
+            setIndexingStatus(status);
+            
+            if (status.status === 'completed' && status.result) {
+              // Merge indexed content directly into payload (not relying on state)
+              payload = {
+                ...payload,
+                websiteContent: status.result.websiteContent,
+                urlMetadata: status.result.urlMetadata as any,
+              };
+              break;
+            } else if (status.status === 'failed') {
+              break;
+            }
+          } else {
+            break;
+          }
+        }
+      } else if (indexingStatus?.status === 'completed' && indexingStatus.result) {
+        // Indexing already complete - use the result
+        payload = {
+          ...payload,
+          websiteContent: indexingStatus.result.websiteContent,
+          urlMetadata: indexingStatus.result.urlMetadata as any,
+        };
+      }
+      
+      // Create chatbot with pre-indexed content merged into payload
+      const res = await apiRequest("POST", "/api/chatbots", payload as InsertChatbot);
       const chatbot = await res.json();
       await queryClient.invalidateQueries({ queryKey: ["/api/chatbots"] });
       setCreatedChatbotId(chatbot.id);
@@ -163,6 +322,51 @@ export default function CreateChatbot() {
 
       <div className="max-w-4xl mx-auto px-6 py-8">
         <StepIndicator steps={STEPS} currentStep={currentStep} />
+
+        {/* Indexing Status Indicator */}
+        {indexingStatus && (
+          <div className={`mt-6 p-4 rounded-lg border ${
+            indexingStatus.status === 'completed' 
+              ? 'bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800' 
+              : indexingStatus.status === 'failed'
+              ? 'bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800'
+              : 'bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800'
+          }`} data-testid="indexing-status">
+            <div className="flex items-center gap-3">
+              {indexingStatus.status === 'in_progress' || indexingStatus.status === 'pending' ? (
+                <Loader2 className="w-5 h-5 text-blue-600 dark:text-blue-400 animate-spin" />
+              ) : indexingStatus.status === 'completed' ? (
+                <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400" />
+              ) : (
+                <XCircle className="w-5 h-5 text-red-600 dark:text-red-400" />
+              )}
+              <div className="flex-1">
+                <p className={`font-medium ${
+                  indexingStatus.status === 'completed'
+                    ? 'text-green-900 dark:text-green-100'
+                    : indexingStatus.status === 'failed'
+                    ? 'text-red-900 dark:text-red-100'
+                    : 'text-blue-900 dark:text-blue-100'
+                }`}>
+                  {indexingStatus.status === 'in_progress' && 'Indexing your content in the background...'}
+                  {indexingStatus.status === 'pending' && 'Starting content indexing...'}
+                  {indexingStatus.status === 'completed' && 'Content indexed successfully!'}
+                  {indexingStatus.status === 'failed' && 'Indexing failed'}
+                </p>
+                {(indexingStatus.status === 'in_progress' || indexingStatus.status === 'pending') && (
+                  <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
+                    Processing {indexingStatus.progress.processedUrls} of {indexingStatus.progress.totalUrls} URLs
+                  </p>
+                )}
+                {indexingStatus.status === 'failed' && indexingStatus.error && (
+                  <p className="text-sm text-red-700 dark:text-red-300 mt-1">
+                    {indexingStatus.error}
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
         <Card className="mt-8">
           <CardContent className="p-8">
