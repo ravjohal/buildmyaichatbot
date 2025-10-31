@@ -25,7 +25,7 @@ The application uses PostgreSQL with Drizzle ORM for all persistent data. Key ta
 - `chatbots`: Contains core chatbot configurations, including name, source URLs, content, styling, behavior, and free-tier specific limits.
 - `conversations`: Records session metadata for user interactions with chatbots.
 - `conversation_messages`: Stores individual chat messages, roles, and suggested questions within conversations.
-- `qa_cache`: Stores cached question-answer pairs to reduce redundant LLM API calls, with MD5 hashing for question normalization and hit count tracking for cache effectiveness monitoring.
+- `qa_cache`: Stores cached question-answer pairs with hybrid caching (exact + semantic matching) to reduce redundant LLM API calls. Uses MD5 hashing for exact matches and pgvector (384-dimensional embeddings via all-MiniLM-L6-v2) for semantic similarity search with 85% threshold. Features hit count tracking and cache effectiveness monitoring.
 
 ### AI Integration
 
@@ -56,7 +56,7 @@ Frontend assets are built with Vite, and server code is bundled with esbuild. Th
 -   **Account Management:** Users can view profile information, subscription status, and manage billing via an integrated Stripe billing portal.
 -   **Shareable Links & QR Codes:** Enables easy distribution of chatbots via direct links and QR codes, with a full-page chat interface.
 -   **Intelligent SPA Crawler:** A dual-mode website crawler that automatically detects and renders JavaScript-heavy Single Page Applications using Playwright, with robust SSRF protection and resource limits.
--   **Q&A Caching System:** Reduces LLM API costs by caching question-answer pairs with MD5-based question normalization. Features automatic cache invalidation on knowledge base updates, hit count tracking, and admin-accessible cache statistics endpoint showing total cached questions, cache hits, hit rate, and estimated cost savings.
+-   **Q&A Caching System:** Reduces LLM API costs by caching question-answer pairs with hybrid caching (exact + semantic matching). Uses MD5-based question normalization for exact matches and pgvector embeddings for semantic similarity (85% threshold). Automatically matches paraphrased questions (e.g., "What are your hours?" matches "What time are you open?"). Features automatic cache invalidation on knowledge base updates, hit count tracking, and admin-accessible cache statistics endpoint showing total cached questions, cache hits, hit rate, and estimated cost savings.
 
 ## External Dependencies
 
@@ -72,7 +72,7 @@ Frontend assets are built with Vite, and server code is bundled with esbuild. Th
 ### Key NPM Packages
 
 -   **Frontend:** `@tanstack/react-query`, `@radix-ui/*`, `tailwindcss`, `wouter`, `@uppy/*`, `class-variance-authority`, `react-hook-form`, `zod`.
--   **Backend:** `express`, `@google/genai`, `@google-cloud/storage`, `drizzle-orm`, `@neondatabase/serverless`, `multer`, `passport`, `bcrypt`.
+-   **Backend:** `express`, `@google/genai`, `@google-cloud/storage`, `drizzle-orm`, `@neondatabase/serverless`, `multer`, `passport`, `bcrypt`, `@xenova/transformers`.
 -   **Build Tools:** `vite`, `esbuild`, `tsx`, `drizzle-kit`, `playwright`.
 
 ### Environment Requirements
