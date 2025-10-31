@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, timestamp, index, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, timestamp, index, jsonb, vector } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -189,6 +189,7 @@ export const qaCache = pgTable("qa_cache", {
   chatbotId: varchar("chatbot_id").notNull().references(() => chatbots.id, { onDelete: "cascade" }),
   question: text("question").notNull(), // Normalized question for exact matching
   questionHash: text("question_hash").notNull(), // MD5 hash for fast lookups
+  embedding: vector("embedding", { dimensions: 384 }), // Semantic embedding for similarity search
   answer: text("answer").notNull(),
   suggestedQuestions: text("suggested_questions").array().default(sql`ARRAY[]::text[]`),
   hitCount: text("hit_count").notNull().default("0"), // Track how many times this cache entry was used
