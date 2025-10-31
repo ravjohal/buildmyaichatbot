@@ -39,6 +39,14 @@ const isAdmin = async (req: any, res: any, next: any) => {
   }
 };
 
+// Helper function to sanitize user data before sending to client
+// SECURITY: Never expose password hashes or sensitive internal fields
+const sanitizeUser = (user: any) => {
+  if (!user) return null;
+  const { password, googleId, ...safeUser } = user;
+  return safeUser;
+};
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Get authenticated user (NOT protected - returns null if not authenticated)
   app.get('/api/auth/user', async (req: any, res) => {
@@ -50,7 +58,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const userId = req.user.id;
       const user = await storage.getUser(userId);
-      res.json(user);
+      // SECURITY: Sanitize user data to remove password hash and sensitive fields
+      res.json(sanitizeUser(user));
     } catch (error) {
       console.error("Error fetching user:", error);
       res.status(500).json({ message: "Failed to fetch user" });
@@ -987,7 +996,9 @@ Generate 3-5 short, natural questions that would help the user learn more. Retur
   app.get('/api/admin/users', isAdmin, async (req: any, res) => {
     try {
       const allUsers = await db.select().from(users).orderBy(sql`${users.createdAt} DESC`);
-      res.json(allUsers);
+      // SECURITY: Sanitize all user data to remove sensitive fields
+      const sanitizedUsers = allUsers.map(sanitizeUser);
+      res.json(sanitizedUsers);
     } catch (error) {
       console.error("Error fetching all users:", error);
       res.status(500).json({ error: "Failed to fetch users" });
@@ -1103,6 +1114,13 @@ Generate 3-5 short, natural questions that would help the user learn more. Retur
     try {
       const { userId } = req.params;
       const { tier } = req.body;
+      const currentUser = req.user;
+
+      // Prevent admin from modifying their own subscription via admin panel
+      // (They should use the normal subscription flow)
+      if (currentUser.id === userId) {
+        return res.status(400).json({ error: "You cannot modify your own subscription via admin panel. Use the account page instead." });
+      }
 
       if (!tier || !['free', 'paid'].includes(tier)) {
         return res.status(400).json({ error: "Invalid subscription tier. Must be 'free' or 'paid'" });
