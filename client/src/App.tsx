@@ -28,6 +28,7 @@ function PublicRouter() {
       <Route path="/register" component={Register} />
       <Route path="/pricing" component={Pricing} />
       <Route path="/widget/:id" component={ChatWidget} />
+      <Route path="/chat/:id" component={ChatWidget} />
       <Route component={Landing} />
     </Switch>
   );
@@ -53,6 +54,8 @@ function ProtectedRouter() {
   return (
     <Switch>
       <Route path="/" component={Dashboard} />
+      <Route path="/dashboard" component={Dashboard} />
+      <Route path="/chatbots" component={Dashboard} />
       <Route path="/create" component={CreateChatbot} />
       <Route path="/edit/:id" component={EditChatbot} />
       <Route path="/test/:id" component={TestChatbot} />
@@ -72,6 +75,7 @@ function Router() {
   
   // Public routes that don't require authentication
   const isPublicRoute = location.startsWith('/widget/') || 
+                        location.startsWith('/chat/') ||
                         location === '/pricing' || 
                         location === '/login' || 
                         location === '/register';

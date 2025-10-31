@@ -13,7 +13,9 @@ import { apiRequest } from "@/lib/queryClient";
 
 export default function ChatWidget() {
   console.log('[ChatWidget] Function called');
-  const [, params] = useRoute("/widget/:id");
+  const [, widgetParams] = useRoute("/widget/:id");
+  const [, chatParams] = useRoute("/chat/:id");
+  const params = widgetParams || chatParams;
   const chatbotId = params?.id || "";
   console.log('[ChatWidget] Params:', params);
   console.log('[ChatWidget] Chatbot ID from route:', chatbotId);
