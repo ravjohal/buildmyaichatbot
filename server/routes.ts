@@ -1892,6 +1892,25 @@ Generate 3-5 short, natural questions that would help the user learn more. Retur
     }
   });
 
+  // Test weekly report endpoint (for testing purposes)
+  app.post("/api/test-weekly-report", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { sendWeeklyReport } = await import("./emails/weekly-report-service");
+      
+      const sent = await sendWeeklyReport(userId, storage);
+      
+      if (sent) {
+        res.json({ success: true, message: "Weekly report sent successfully" });
+      } else {
+        res.json({ success: false, message: "No activity to report or email service not configured" });
+      }
+    } catch (error) {
+      console.error("Error sending test weekly report:", error);
+      res.status(500).json({ error: "Failed to send weekly report" });
+    }
+  });
+
   // ===== CONVERSATION FLOW ENDPOINTS (Feature 5) =====
   
   // Get all flows for a chatbot
