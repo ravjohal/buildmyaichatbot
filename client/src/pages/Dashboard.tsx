@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { Plus, Bot, Trash2, ExternalLink, Copy, LogOut, Pencil, MessageSquare, FileText, BarChart3, Globe, Crown, Share2, QrCode, User as UserIcon, Shield, UserPlus } from "lucide-react";
+import { Plus, Bot, Trash2, ExternalLink, Copy, LogOut, Pencil, MessageSquare, FileText, BarChart3, Globe, Crown, Share2, QrCode, User as UserIcon, Shield, UserPlus, RefreshCw } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
@@ -38,6 +38,7 @@ export default function Dashboard() {
   const { toast } = useToast();
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [viewKnowledgeBase, setViewKnowledgeBase] = useState<Chatbot | null>(null);
+  const [refreshingId, setRefreshingId] = useState<string | null>(null);
   const [shareDialogChatbot, setShareDialogChatbot] = useState<Chatbot | null>(null);
 
   const { data: chatbots, isLoading } = useQuery<Chatbot[]>({
@@ -98,6 +99,33 @@ export default function Dashboard() {
       title: "Link copied!",
       description: "Share this link with your users to access the chatbot directly.",
     });
+  };
+
+  const handleRefreshKnowledge = async (chatbotId: string) => {
+    setRefreshingId(chatbotId);
+    try {
+      const response = await apiRequest<{
+        success: boolean;
+        message: string;
+        changedUrls: number;
+        unchangedUrls: number;
+      }>("POST", `/api/chatbots/${chatbotId}/refresh-knowledge`, {});
+      
+      await queryClient.invalidateQueries({ queryKey: ["/api/chatbots"] });
+      
+      toast({
+        title: "Knowledge base refreshed",
+        description: response.message,
+      });
+    } catch (error) {
+      toast({
+        title: "Refresh failed",
+        description: "Failed to refresh knowledge base. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setRefreshingId(null);
+    }
   };
 
   if (isLoading) {
@@ -346,6 +374,30 @@ export default function Dashboard() {
                       Edit
                     </Button>
                   </Link>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleRefreshKnowledge(chatbot.id)}
+                        disabled={refreshingId === chatbot.id || !chatbot.websiteUrls || chatbot.websiteUrls.length === 0}
+                        data-testid={`button-refresh-${chatbot.id}`}
+                        className="flex-1"
+                      >
+                        {refreshingId === chatbot.id ? (
+                          <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                        ) : (
+                          <RefreshCw className="w-4 h-4 mr-2" />
+                        )}
+                        Refresh
+                      </Button>
+                    </TooltipTrigger>
+                    {(!chatbot.websiteUrls || chatbot.websiteUrls.length === 0) && (
+                      <TooltipContent>
+                        <p>No website URLs to refresh. Add URLs in the edit page.</p>
+                      </TooltipContent>
+                    )}
+                  </Tooltip>
                   <Button
                     variant="outline"
                     size="sm"
