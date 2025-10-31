@@ -257,6 +257,8 @@ export const emailNotificationSettings = pgTable("email_notification_settings", 
   enableNewLeadNotifications: text("enable_new_lead_notifications").notNull().default("true"),
   enableUnansweredQuestionNotifications: text("enable_unanswered_question_notifications").notNull().default("true"),
   unansweredThresholdMinutes: text("unanswered_threshold_minutes").notNull().default("30"), // Alert if no response within X minutes
+  enableWeeklyReports: text("enable_weekly_reports").notNull().default("true"),
+  lastWeeklyReportSent: timestamp("last_weekly_report_sent"),
   emailAddress: text("email_address"), // Custom email, defaults to user.email
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
