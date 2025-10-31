@@ -11,6 +11,7 @@ import { db } from "./db";
 import { eq, sql } from "drizzle-orm";
 import { crawlMultipleWebsitesRecursive, refreshWebsites, calculateContentHash, normalizeUrl } from "./crawler";
 import Stripe from "stripe";
+import crypto from "crypto";
 
 const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
 const upload = multer({ 
@@ -928,8 +929,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .map((msg) => `${msg.role === "user" ? "User" : "Assistant"}: ${msg.content}`)
         .join("\n");
 
-      // Create the full prompt for the main response
-      const fullPrompt = `${chatbot.systemPrompt}
+      // Normalize question for caching (lowercase + trim)
+      const normalizedQuestion = message.trim().toLowerCase();
+      const questionHash = crypto.createHash('md5').update(normalizedQuestion).digest('hex');
+      
+      // Check cache for existing answer
+      const cachedAnswer = await storage.getCachedAnswer(chatbotId, questionHash);
+      
+      let aiMessage: string;
+      let suggestedQuestions: string[] = [];
+      
+      if (cachedAnswer) {
+        // Cache hit! Use cached answer
+        console.log(`[CACHE HIT] Using cached answer for question hash: ${questionHash}`);
+        aiMessage = cachedAnswer.answer;
+        suggestedQuestions = cachedAnswer.suggestedQuestions || [];
+        
+        // Update cache hit count asynchronously (don't await to keep response fast)
+        storage.updateCacheHitCount(cachedAnswer.id).catch(err => {
+          console.error("Error updating cache hit count:", err);
+        });
+      } else {
+        // Cache miss - call LLM
+        console.log(`[CACHE MISS] Calling LLM for question hash: ${questionHash}`);
+        
+        // Create the full prompt for the main response
+        const fullPrompt = `${chatbot.systemPrompt}
 
 Knowledge Base:
 ${knowledgeContext || "No specific knowledge base provided."}
@@ -941,17 +966,17 @@ User Question: ${message}
 
 Please answer based on the knowledge base provided. If you cannot find the answer in the knowledge base, politely let the user know and suggest they contact support${chatbot.supportPhoneNumber ? ` at ${chatbot.supportPhoneNumber}` : ""}.`;
 
-      // Call both Gemini AI requests in parallel for faster response
-      const [mainResult, suggestionsResult] = await Promise.all([
+        // Call both Gemini AI requests in parallel for faster response
+        const [mainResult, suggestionsResult] = await Promise.all([
         // Main response
         genAI.models.generateContent({
           model: "gemini-2.5-flash",
           contents: fullPrompt,
         }),
-        // Suggested questions (run in parallel)
-        genAI.models.generateContent({
-          model: "gemini-2.5-flash",
-          contents: `Based on this conversation, suggest 3-5 relevant follow-up questions (each under 60 characters).
+          // Suggested questions (run in parallel)
+          genAI.models.generateContent({
+            model: "gemini-2.5-flash",
+            contents: `Based on this conversation, suggest 3-5 relevant follow-up questions (each under 60 characters).
 
 Knowledge Base Topics:
 ${knowledgeContext ? knowledgeContext.substring(0, 1500) : "General customer support"}
@@ -959,26 +984,38 @@ ${knowledgeContext ? knowledgeContext.substring(0, 1500) : "General customer sup
 User's Question: ${message}
 
 Generate 3-5 short, natural questions that would help the user learn more. Return only the questions, one per line, without numbering.`,
-        }).catch(err => {
-          console.error("Error generating suggested questions:", err);
-          return null;
-        })
-      ]);
+          }).catch(err => {
+            console.error("Error generating suggested questions:", err);
+            return null;
+          })
+        ]);
 
-      const aiMessage = mainResult.text || "I apologize, but I couldn't generate a response.";
-      
-      let suggestedQuestions: string[] = [];
-      if (suggestionsResult) {
-        try {
-          const suggestionsText = suggestionsResult.text || "";
-          suggestedQuestions = suggestionsText
-            .split('\n')
-            .map(q => q.trim())
-            .filter(q => q.length > 0 && q.length < 100)
-            .slice(0, 5);
-        } catch (error) {
-          console.error("Error parsing suggested questions:", error);
+        aiMessage = mainResult.text || "I apologize, but I couldn't generate a response.";
+        
+        if (suggestionsResult) {
+          try {
+            const suggestionsText = suggestionsResult.text || "";
+            suggestedQuestions = suggestionsText
+              .split('\n')
+              .map(q => q.trim())
+              .filter(q => q.length > 0 && q.length < 100)
+              .slice(0, 5);
+          } catch (error) {
+            console.error("Error parsing suggested questions:", error);
+          }
         }
+        
+        // Store in cache for future use (async, don't await)
+        storage.createCacheEntry({
+          chatbotId,
+          question: normalizedQuestion,
+          questionHash,
+          answer: aiMessage,
+          suggestedQuestions,
+          lastUsedAt: new Date(),
+        }).catch(err => {
+          console.error("Error storing answer in cache:", err);
+        });
       }
 
       // Check if we should escalate (basic heuristic)
