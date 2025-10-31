@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { MessageCircle, X, Send, Bot, Phone, UserPlus, Mail as MailIcon, Building2 } from "lucide-react";
+import { MessageCircle, X, Send, Bot, Phone, UserPlus, Mail as MailIcon, Building2, Star } from "lucide-react";
 import { useRoute } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,6 +39,16 @@ export default function ChatWidget() {
     company: "",
     message: "",
   });
+
+  // Rating state
+  const [showRating, setShowRating] = useState(false);
+  const [rating, setRating] = useState(0);
+  const [hasRated, setHasRated] = useState(false);
+  const [conversationId, setConversationId] = useState<string | null>(null);
+  
+  // Proactive popup state
+  const [showProactivePopup, setShowProactivePopup] = useState(false);
+  const proactiveTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const { data: chatbot, isLoading, error } = useQuery<Chatbot>({
     queryKey: [`/api/public/chatbots/${chatbotId}`],
@@ -93,6 +103,17 @@ export default function ChatWidget() {
     onSuccess: () => {
       setLeadCaptured(true);
       setShowLeadForm(false);
+    },
+  });
+
+  const ratingMutation = useMutation({
+    mutationFn: async ({ rating, conversationId }: { rating: number; conversationId: string }) => {
+      const response = await apiRequest("POST", `/api/conversations/${conversationId}/rating`, { rating });
+      return response.json();
+    },
+    onSuccess: () => {
+      setHasRated(true);
+      setShowRating(false);
     },
   });
 
@@ -161,6 +182,39 @@ export default function ChatWidget() {
       document.documentElement.style.background = '';
     }
   }, [isStandalone]);
+
+  // Proactive chat popup
+  useEffect(() => {
+    if (!chatbot || isStandalone || chatbot.proactiveChatEnabled !== "true") {
+      return;
+    }
+
+    const delay = parseInt(chatbot.proactiveChatDelay || "5") * 1000;
+    
+    proactiveTimerRef.current = setTimeout(() => {
+      if (!isOpen) {
+        setShowProactivePopup(true);
+      }
+    }, delay);
+
+    return () => {
+      if (proactiveTimerRef.current) {
+        clearTimeout(proactiveTimerRef.current);
+      }
+    };
+  }, [chatbot, isOpen, isStandalone]);
+
+  // Show rating after conversation
+  useEffect(() => {
+    const userMessages = messages.filter(m => m.role === "user");
+    if (userMessages.length >= 3 && !hasRated && !showRating) {
+      setShowRating(true);
+      // Create or get conversation ID
+      if (!conversationId) {
+        setConversationId(sessionId);
+      }
+    }
+  }, [messages, hasRated, showRating, conversationId, sessionId]);
 
   const handleSend = () => {
     if (!inputValue.trim() || chatMutation.isPending) return;
@@ -451,6 +505,31 @@ export default function ChatWidget() {
 
         {renderLeadForm()}
 
+        {showRating && !hasRated && (
+          <div className="p-4 border-t bg-muted/30">
+            <p className="text-sm font-medium mb-2">How was your experience?</p>
+            <div className="flex gap-1">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <Button
+                  key={star}
+                  variant="ghost"
+                  size="sm"
+                  className="p-1 h-auto"
+                  onClick={() => {
+                    setRating(star);
+                    if (conversationId) {
+                      ratingMutation.mutate({ rating: star, conversationId });
+                    }
+                  }}
+                  data-testid={`button-rate-${star}`}
+                >
+                  <Star className={`w-6 h-6 ${star <= rating ? "fill-primary text-primary" : "text-muted-foreground"}`} />
+                </Button>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="p-6 border-t bg-background">
           <div className="max-w-3xl mx-auto flex gap-3">
             <Input
@@ -604,6 +683,31 @@ export default function ChatWidget() {
 
           {renderLeadForm()}
 
+          {showRating && !hasRated && (
+            <div className="p-3 border-t bg-muted/30">
+              <p className="text-xs font-medium mb-2">How was your experience?</p>
+              <div className="flex gap-1">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <Button
+                    key={star}
+                    variant="ghost"
+                    size="sm"
+                    className="p-1 h-auto"
+                    onClick={() => {
+                      setRating(star);
+                      if (conversationId) {
+                        ratingMutation.mutate({ rating: star, conversationId });
+                      }
+                    }}
+                    data-testid={`button-rate-${star}`}
+                  >
+                    <Star className={`w-5 h-5 ${star <= rating ? "fill-primary text-primary" : "text-muted-foreground"}`} />
+                  </Button>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="p-4 border-t">
             <div className="flex gap-2">
               <Input
@@ -626,6 +730,32 @@ export default function ChatWidget() {
               </Button>
             </div>
           </div>
+        </div>
+      )}
+
+      {showProactivePopup && !isOpen && (
+        <div className="absolute bottom-20 right-0 bg-card border rounded-lg shadow-lg p-3 max-w-xs animate-in slide-in-from-bottom-5 mb-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute top-1 right-1 h-5 w-5"
+            onClick={() => setShowProactivePopup(false)}
+            data-testid="button-close-proactive"
+          >
+            <X className="w-3 h-3" />
+          </Button>
+          <p className="text-xs pr-5">{chatbot?.proactiveChatMessage || "Hi! Need any help?"}</p>
+          <Button
+            size="sm"
+            className="mt-2 w-full h-7 text-xs"
+            onClick={() => {
+              setShowProactivePopup(false);
+              setIsOpen(true);
+            }}
+            data-testid="button-start-proactive-chat"
+          >
+            Start Chat
+          </Button>
         </div>
       )}
 
