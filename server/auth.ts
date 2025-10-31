@@ -1,6 +1,5 @@
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
-import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import session from "express-session";
 import type { Express, RequestHandler } from "express";
 import connectPg from "connect-pg-simple";
@@ -93,54 +92,6 @@ export async function setupAuth(app: Express) {
     }
   ));
 
-  // Passport Google OAuth Strategy (if configured)
-  if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
-    passport.use(new GoogleStrategy({
-        clientID: process.env.GOOGLE_CLIENT_ID,
-        clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-        callbackURL: process.env.GOOGLE_CALLBACK_URL || `${process.env.NODE_ENV === 'production' ? 'https' : 'http'}://${process.env.REPLIT_DOMAINS?.split(',')[0] || 'localhost:5000'}/api/auth/google/callback`,
-        scope: ['profile', 'email']
-      },
-      async (accessToken, refreshToken, profile, done) => {
-        try {
-          // Find user by Google ID
-          let userResult = await db.select().from(users).where(eq(users.googleId, profile.id)).limit(1);
-          let user = userResult[0];
-          
-          if (!user) {
-            // Check if email already exists
-            const emailResult = await db.select().from(users).where(eq(users.email, profile.emails?.[0]?.value || '')).limit(1);
-            
-            if (emailResult[0]) {
-              // Update existing user with Google ID
-              await db.update(users)
-                .set({ googleId: profile.id })
-                .where(eq(users.email, profile.emails?.[0]?.value || ''));
-              user = emailResult[0];
-            } else {
-              // Create new user
-              const newUser = {
-                email: profile.emails?.[0]?.value || '',
-                googleId: profile.id,
-                firstName: profile.name?.givenName || '',
-                lastName: profile.name?.familyName || '',
-                profileImageUrl: profile.photos?.[0]?.value || '',
-              };
-              
-              await storage.upsertUser(newUser);
-              
-              userResult = await db.select().from(users).where(eq(users.email, newUser.email)).limit(1);
-              user = userResult[0];
-            }
-          }
-          
-          return done(null, user);
-        } catch (err) {
-          return done(err as Error, undefined);
-        }
-      }
-    ));
-  }
 
   // Serialize and deserialize user
   passport.serializeUser((user: any, done) => {
@@ -220,22 +171,6 @@ export async function setupAuth(app: Express) {
     })(req, res, next);
   });
 
-  // Google OAuth routes (if configured)
-  if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
-    app.get('/api/auth/google',
-      passport.authenticate('google', { scope: ['profile', 'email'] })
-    );
-
-    app.get('/api/auth/google/callback',
-      passport.authenticate('google', { failureRedirect: '/login?error=auth_failed' }),
-      (req, res) => {
-        // Success - redirect to dashboard
-        const returnTo = (req.session as any)?.returnTo || '/';
-        delete (req.session as any)?.returnTo;
-        res.redirect(returnTo);
-      }
-    );
-  }
 
   // Logout route
   app.post('/api/auth/logout', (req, res) => {
