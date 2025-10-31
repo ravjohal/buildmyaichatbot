@@ -57,6 +57,7 @@ export const chatbots = pgTable("chatbots", {
   leadCaptureMessage: text("lead_capture_message").notNull().default("Leave your contact information and we'll get back to you."),
   leadCaptureTiming: text("lead_capture_timing").notNull().default("after_first_message"),
   leadCaptureMessageCount: text("lead_capture_message_count").notNull().default("1"),
+  lastKnowledgeUpdate: timestamp("last_knowledge_update"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -164,3 +165,17 @@ export const insertLeadSchema = createInsertSchema(leads).omit({
 
 export type InsertLead = z.infer<typeof insertLeadSchema>;
 export type Lead = typeof leads.$inferSelect;
+
+// URL Crawl Metadata - tracks when URLs were last crawled and their content hash for change detection
+export const urlCrawlMetadata = pgTable("url_crawl_metadata", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  chatbotId: varchar("chatbot_id").notNull().references(() => chatbots.id, { onDelete: "cascade" }),
+  url: text("url").notNull(),
+  contentHash: text("content_hash").notNull(), // MD5 hash of crawled content
+  lastCrawledAt: timestamp("last_crawled_at").defaultNow().notNull(),
+  lastModified: text("last_modified"), // Store HTTP Last-Modified header if available
+  etag: text("etag"), // Store HTTP ETag if available for efficient change detection
+});
+
+export type UrlCrawlMetadata = typeof urlCrawlMetadata.$inferSelect;
+export type InsertUrlCrawlMetadata = typeof urlCrawlMetadata.$inferInsert;
