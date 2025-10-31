@@ -14,6 +14,7 @@ import Pricing from "@/pages/Pricing";
 import Subscribe from "@/pages/Subscribe";
 import Account from "@/pages/Account";
 import Admin from "@/pages/Admin";
+import NotificationSettings from "@/pages/NotificationSettings";
 import Landing from "@/pages/Landing";
 import Login from "@/pages/Login";
 import Register from "@/pages/Register";
@@ -64,6 +65,7 @@ function ProtectedRouter() {
       <Route path="/pricing" component={Pricing} />
       <Route path="/subscribe" component={Subscribe} />
       <Route path="/account" component={Account} />
+      <Route path="/notifications" component={NotificationSettings} />
       <Route path="/admin" component={Admin} />
       <Route component={NotFound} />
     </Switch>
