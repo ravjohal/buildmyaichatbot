@@ -150,6 +150,7 @@ export interface ChatResponse {
   message: string;
   shouldEscalate: boolean;
   suggestedQuestions?: string[];
+  conversationId?: string;
 }
 
 // Leads table - stores captured lead information

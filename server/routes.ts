@@ -1131,6 +1131,7 @@ Generate 3-5 short, natural questions that would help the user learn more. Retur
         message: finalMessage,
         shouldEscalate,
         suggestedQuestions,
+        conversationId: conversation.id,
       };
 
       res.json(chatResponse);

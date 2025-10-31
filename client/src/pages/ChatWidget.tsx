@@ -76,10 +76,16 @@ export default function ChatWidget() {
         message: string; 
         shouldEscalate: boolean; 
         suggestedQuestions?: string[];
+        conversationId?: string;
       };
       return data;
     },
     onSuccess: (data) => {
+      // Store conversation ID from first response
+      if (data.conversationId && !conversationId) {
+        setConversationId(data.conversationId);
+      }
+      
       const assistantMessage: ChatMessage = {
         id: Date.now().toString(),
         role: "assistant",
@@ -108,7 +114,7 @@ export default function ChatWidget() {
 
   const ratingMutation = useMutation({
     mutationFn: async ({ rating, conversationId }: { rating: number; conversationId: string }) => {
-      const response = await apiRequest("POST", `/api/conversations/${conversationId}/rating`, { rating });
+      const response = await apiRequest("POST", `/api/conversations/${conversationId}/rating`, { rating: rating.toString() });
       return response.json();
     },
     onSuccess: () => {
@@ -207,14 +213,10 @@ export default function ChatWidget() {
   // Show rating after conversation
   useEffect(() => {
     const userMessages = messages.filter(m => m.role === "user");
-    if (userMessages.length >= 3 && !hasRated && !showRating) {
+    if (userMessages.length >= 3 && !hasRated && !showRating && conversationId) {
       setShowRating(true);
-      // Create or get conversation ID
-      if (!conversationId) {
-        setConversationId(sessionId);
-      }
     }
-  }, [messages, hasRated, showRating, conversationId, sessionId]);
+  }, [messages, hasRated, showRating, conversationId]);
 
   const handleSend = () => {
     if (!inputValue.trim() || chatMutation.isPending) return;
