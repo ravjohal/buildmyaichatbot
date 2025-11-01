@@ -40,6 +40,8 @@ export default function Dashboard() {
   const [viewKnowledgeBase, setViewKnowledgeBase] = useState<Chatbot | null>(null);
   const [refreshingId, setRefreshingId] = useState<string | null>(null);
   const [shareDialogChatbot, setShareDialogChatbot] = useState<Chatbot | null>(null);
+  const [embedDialogOpen, setEmbedDialogOpen] = useState(false);
+  const [selectedEmbedCode, setSelectedEmbedCode] = useState("");
 
   const { data: chatbots, isLoading } = useQuery<Chatbot[]>({
     queryKey: ["/api/chatbots"],
@@ -74,22 +76,25 @@ export default function Dashboard() {
   };
 
   const handleCopyEmbed = (chatbotId: string) => {
-    // Admins bypass all restrictions
-    if (isFreeTier && !isAdmin) {
+    const embedCode = `<script src="${window.location.origin}/widget.js" data-chatbot-id="${chatbotId}" async></script>`;
+    setSelectedEmbedCode(embedCode);
+    setEmbedDialogOpen(true);
+  };
+
+  const handleCopyEmbedToClipboard = async () => {
+    try {
+      await navigator.clipboard.writeText(selectedEmbedCode);
       toast({
-        title: "Upgrade Required",
-        description: "Embedding chatbots requires a paid plan. Upgrade to unlock this feature.",
+        title: "Embed code copied!",
+        description: "Paste this code into your website.",
+      });
+    } catch (error) {
+      toast({
+        title: "Copy failed",
+        description: "Please manually copy the code from the dialog.",
         variant: "destructive",
       });
-      return;
     }
-    
-    const embedCode = `<script src="${window.location.origin}/widget.js" data-chatbot-id="${chatbotId}" async></script>`;
-    navigator.clipboard.writeText(embedCode);
-    toast({
-      title: "Embed code copied!",
-      description: "Paste this code into your website.",
-    });
   };
 
   const handleCopyShareLink = (chatbotId: string) => {
@@ -503,6 +508,40 @@ export default function Dashboard() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={embedDialogOpen} onOpenChange={setEmbedDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Embed Code</DialogTitle>
+            <DialogDescription>
+              Copy this code and paste it into your website's HTML, right before the closing &lt;/body&gt; tag.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="relative">
+              <pre className="p-4 bg-muted rounded-md overflow-x-auto text-sm">
+                <code data-testid="text-embed-code">{selectedEmbedCode}</code>
+              </pre>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setEmbedDialogOpen(false)}
+                data-testid="button-close-embed-dialog"
+              >
+                Close
+              </Button>
+              <Button
+                onClick={handleCopyEmbedToClipboard}
+                data-testid="button-copy-embed-code"
+              >
+                <Copy className="w-4 h-4 mr-2" />
+                Copy to Clipboard
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={!!viewKnowledgeBase} onOpenChange={(open) => !open && setViewKnowledgeBase(null)}>
         <DialogContent className="max-w-3xl max-h-[80vh]">
