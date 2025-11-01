@@ -36,7 +36,7 @@ The backend, built with Express.js, Node.js, and TypeScript, follows a RESTful A
 *   **Intelligent SPA Crawler:** A dual-mode website crawler that automatically detects and renders JavaScript-heavy Single Page Applications using Playwright, with SSRF protection.
 *   **Satisfaction Ratings:** Allows visitors to rate their chat experience (1-5 stars) after engaging in a conversation, stored for analytics.
 *   **Proactive Chat Popup:** Automatically displays a customizable popup notification to website visitors after a configurable delay to encourage interaction.
-*   **Email Notifications:** Sends automated email alerts via Resend for new lead submissions, unanswered questions, and weekly performance reports. Users can manage preferences and custom email addresses.
+*   **Email Notifications:** Sends automated email alerts via Resend for new lead submissions, unanswered questions, and weekly performance reports. Users can manage preferences and custom email addresses. On-demand report generation available via Analytics dashboard. Emails sent from verified domain: `onboarding@resend.dev`.
 
 ### System Design Choices
 
@@ -52,7 +52,7 @@ The backend, built with Express.js, Node.js, and TypeScript, follows a RESTful A
 
 *   **Google Cloud Platform:** Gemini AI API (NLP), Google Cloud Storage (user file storage).
 *   **Stripe:** Payment gateway for subscription management and billing.
-*   **Resend:** Transactional email service for notifications.
+*   **Resend:** Transactional email service for notifications and weekly analytics reports. Uses verified sender domain `onboarding@resend.dev` with 3,000 emails/month on free tier.
 *   **Replit Infrastructure:** Replit Object Storage (managed object storage built on Google Cloud Storage).
 
 ### Key NPM Packages
