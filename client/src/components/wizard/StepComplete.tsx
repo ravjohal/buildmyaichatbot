@@ -1,16 +1,28 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
-import { Check, Copy, Code, ExternalLink, Home } from "lucide-react";
+import { Check, Copy, Code, ExternalLink, Home, Loader2, CheckCircle, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-interface StepCompleteProps {
-  chatbotId: string;
+interface IndexingStatus {
+  jobId: string;
+  status: 'pending' | 'in_progress' | 'completed' | 'failed';
+  progress: {
+    totalUrls: number;
+    processedUrls: number;
+    currentUrl?: string;
+  };
+  error?: string;
 }
 
-export function StepComplete({ chatbotId }: StepCompleteProps) {
+interface StepCompleteProps {
+  chatbotId: string;
+  indexingStatus?: IndexingStatus | null;
+}
+
+export function StepComplete({ chatbotId, indexingStatus }: StepCompleteProps) {
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const [copied, setCopied] = useState(false);
@@ -39,6 +51,67 @@ export function StepComplete({ chatbotId }: StepCompleteProps) {
             Your AI assistant is ready to deploy on your website
           </p>
         </div>
+
+        {/* Indexing Status Banner */}
+        {indexingStatus && (indexingStatus.status === 'pending' || indexingStatus.status === 'in_progress') && (
+          <Card className="bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
+            <CardContent className="p-6">
+              <div className="flex items-center gap-4">
+                <Loader2 className="w-6 h-6 text-blue-600 dark:text-blue-400 animate-spin" />
+                <div className="flex-1">
+                  <h3 className="font-semibold text-blue-900 dark:text-blue-100">
+                    Indexing URLs in the background
+                  </h3>
+                  <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
+                    {indexingStatus.progress.processedUrls} of {indexingStatus.progress.totalUrls} URLs processed
+                  </p>
+                  <p className="text-sm text-blue-600 dark:text-blue-400 mt-2">
+                    Your chatbot is ready to use now. The knowledge base will expand as URLs are indexed.
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {indexingStatus && indexingStatus.status === 'completed' && (
+          <Card className="bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800">
+            <CardContent className="p-6">
+              <div className="flex items-center gap-4">
+                <CheckCircle className="w-6 h-6 text-green-600 dark:text-green-400" />
+                <div className="flex-1">
+                  <h3 className="font-semibold text-green-900 dark:text-green-100">
+                    All URLs indexed successfully!
+                  </h3>
+                  <p className="text-sm text-green-700 dark:text-green-300 mt-1">
+                    Your chatbot's knowledge base is fully ready
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {indexingStatus && indexingStatus.status === 'failed' && (
+          <Card className="bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800">
+            <CardContent className="p-6">
+              <div className="flex items-center gap-4">
+                <XCircle className="w-6 h-6 text-red-600 dark:text-red-400" />
+                <div className="flex-1">
+                  <h3 className="font-semibold text-red-900 dark:text-red-100">
+                    Some URLs failed to index
+                  </h3>
+                  <p className="text-sm text-red-700 dark:text-red-300 mt-1">
+                    {indexingStatus.error || "Some URLs couldn't be indexed. Your chatbot will still work with available content."}
+                  </p>
+                  <p className="text-sm text-red-600 dark:text-red-400 mt-2">
+                    You can update your chatbot's knowledge base later from the dashboard.
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         <Card>
           <CardContent className="p-8 space-y-6">

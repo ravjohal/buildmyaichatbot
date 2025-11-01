@@ -84,28 +84,30 @@ export default function CreateChatbot() {
 
   // Poll for indexing status
   useEffect(() => {
-    if (indexingStatus && indexingStatus.status !== 'completed' && indexingStatus.status !== 'failed') {
+    if (createdChatbotId && indexingStatus && indexingStatus.status !== 'completed' && indexingStatus.status !== 'failed') {
       const pollStatus = async () => {
         try {
-          const res = await fetch(`/api/indexing/status/${indexingStatus.jobId}`, {
+          const res = await fetch(`/api/chatbots/${createdChatbotId}/indexing-status`, {
             credentials: 'include',
           });
           
           if (res.ok) {
-            const status: IndexingStatus = await res.json();
-            // Update state with complete status including result
+            const data = await res.json();
+            
             setIndexingStatus({
-              jobId: status.jobId,
-              status: status.status,
-              progress: status.progress,
-              result: status.result,
-              error: status.error,
+              jobId: data.jobId,
+              status: data.status,
+              progress: {
+                totalUrls: data.totalTasks || 0,
+                processedUrls: data.completedTasks || 0,
+              },
+              error: data.error,
             });
             
-            if (status.status === 'completed' && status.result) {
+            if (data.status === 'completed') {
               toast({
                 title: "Indexing complete",
-                description: "Your content has been successfully indexed.",
+                description: "Your website content has been successfully indexed.",
               });
               
               // Stop polling
@@ -113,10 +115,10 @@ export default function CreateChatbot() {
                 clearInterval(pollingIntervalRef.current);
                 pollingIntervalRef.current = null;
               }
-            } else if (status.status === 'failed') {
+            } else if (data.status === 'failed') {
               toast({
                 title: "Indexing failed",
-                description: status.error || "Failed to index content. You can proceed without indexed URLs.",
+                description: "Some URLs failed to index. Your chatbot will still work with available content.",
                 variant: "destructive",
               });
               
@@ -132,8 +134,8 @@ export default function CreateChatbot() {
         }
       };
       
-      // Poll every 2 seconds
-      pollingIntervalRef.current = setInterval(pollStatus, 2000);
+      // Poll every 3 seconds
+      pollingIntervalRef.current = setInterval(pollStatus, 3000);
       
       return () => {
         if (pollingIntervalRef.current) {
@@ -141,7 +143,7 @@ export default function CreateChatbot() {
         }
       };
     }
-  }, [indexingStatus?.jobId, indexingStatus?.status]);
+  }, [createdChatbotId, indexingStatus?.status]);
 
   const canProceed = () => {
     switch (currentStep) {
@@ -162,39 +164,7 @@ export default function CreateChatbot() {
     }
   };
 
-  const startIndexing = async (urls: string[]) => {
-    if (urls.length === 0) return;
-    
-    try {
-      const res = await apiRequest("POST", "/api/indexing/start", { urls });
-      const data = await res.json();
-      
-      setIndexingStatus({
-        jobId: data.jobId,
-        status: data.status,
-        progress: data.progress,
-      });
-      
-      toast({
-        title: "Indexing started",
-        description: "We're crawling your website content in the background.",
-      });
-    } catch (error) {
-      console.error("Error starting indexing:", error);
-      toast({
-        title: "Indexing failed",
-        description: "Failed to start indexing. You can proceed without indexed URLs.",
-        variant: "destructive",
-      });
-    }
-  };
-
   const handleNext = async () => {
-    if (currentStep === 2 && formData.websiteUrls && formData.websiteUrls.length > 0) {
-      // Trigger indexing on Step 2 -> Step 3 transition
-      await startIndexing(formData.websiteUrls);
-    }
-    
     if (currentStep < 6) {
       setCurrentStep(currentStep + 1);
     }
@@ -213,62 +183,29 @@ export default function CreateChatbot() {
 
     setIsSubmitting(true);
     try {
-      // Prepare payload with current formData
-      let payload = { ...formData };
-      
-      // Wait for indexing to complete if it's still in progress
-      let finalIndexingStatus = indexingStatus;
-      if (indexingStatus && (indexingStatus.status === 'in_progress' || indexingStatus.status === 'pending')) {
-        toast({
-          title: "Waiting for indexing",
-          description: "Waiting for content indexing to complete...",
-        });
-        
-        // Poll until complete or failed
-        while (finalIndexingStatus && (finalIndexingStatus.status === 'in_progress' || finalIndexingStatus.status === 'pending')) {
-          await new Promise(resolve => setTimeout(resolve, 2000));
-          
-          const res = await fetch(`/api/indexing/status/${finalIndexingStatus.jobId}`, {
-            credentials: 'include',
-          });
-          
-          if (res.ok) {
-            const status: IndexingStatus = await res.json();
-            finalIndexingStatus = status;
-            setIndexingStatus(status);
-            
-            if (status.status === 'completed' && status.result) {
-              // Merge indexed content directly into payload (not relying on state)
-              payload = {
-                ...payload,
-                websiteContent: status.result.websiteContent,
-                urlMetadata: status.result.urlMetadata as any,
-              };
-              break;
-            } else if (status.status === 'failed') {
-              break;
-            }
-          } else {
-            break;
-          }
-        }
-      } else if (indexingStatus?.status === 'completed' && indexingStatus.result) {
-        // Indexing already complete - use the result
-        payload = {
-          ...payload,
-          websiteContent: indexingStatus.result.websiteContent,
-          urlMetadata: indexingStatus.result.urlMetadata as any,
-        };
-      }
-      
-      // Create chatbot with pre-indexed content merged into payload
-      const res = await apiRequest("POST", "/api/chatbots", payload as InsertChatbot);
+      // Create chatbot immediately - backend handles async indexing
+      const res = await apiRequest("POST", "/api/chatbots", formData as InsertChatbot);
       const chatbot = await res.json();
       await queryClient.invalidateQueries({ queryKey: ["/api/chatbots"] });
+      
+      // If chatbot has an indexing job, start polling for status
+      if (chatbot.indexingJobId) {
+        setIndexingStatus({
+          jobId: chatbot.indexingJobId,
+          status: chatbot.indexingStatus || 'pending',
+          progress: {
+            totalUrls: formData.websiteUrls?.length || 0,
+            processedUrls: 0,
+          },
+        });
+      }
+      
       setCreatedChatbotId(chatbot.id);
       toast({
         title: "Chatbot created!",
-        description: "Your AI assistant is ready to deploy.",
+        description: chatbot.indexingJobId 
+          ? "Your chatbot is ready! URLs are being indexed in the background."
+          : "Your AI assistant is ready to deploy.",
       });
     } catch (error) {
       toast({
@@ -282,7 +219,7 @@ export default function CreateChatbot() {
   };
 
   if (createdChatbotId) {
-    return <StepComplete chatbotId={createdChatbotId} />;
+    return <StepComplete chatbotId={createdChatbotId} indexingStatus={indexingStatus} />;
   }
 
   return (
