@@ -1684,6 +1684,34 @@ Generate 3-5 short, natural questions that would help the user learn more. Retur
     }
   });
 
+  // Clear Q&A cache for a chatbot
+  app.delete("/api/chatbots/:id/cache", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const chatbotId = req.params.id;
+
+      // Verify user owns this chatbot
+      const chatbot = await storage.getChatbot(chatbotId, userId);
+      if (!chatbot) {
+        return res.status(404).json({ error: "Chatbot not found" });
+      }
+
+      // Clear the cache
+      const deletedCount = await storage.clearChatbotCache(chatbotId);
+      
+      console.log(`[CACHE] Cleared ${deletedCount} cached entries for chatbot ${chatbotId}`);
+      
+      res.json({ 
+        success: true,
+        message: `Successfully cleared ${deletedCount} cached answer${deletedCount !== 1 ? 's' : ''}`,
+        deletedCount
+      });
+    } catch (error) {
+      console.error("Error clearing cache:", error);
+      res.status(500).json({ error: "Failed to clear cache" });
+    }
+  });
+
   // Get conversation details with all messages - Pro plan only
   app.get("/api/conversations/:id", isAuthenticated, async (req: any, res) => {
     try {

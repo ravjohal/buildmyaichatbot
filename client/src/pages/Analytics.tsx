@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useRoute, Link } from "wouter";
-import { ArrowLeft, MessageSquare, TrendingUp, AlertCircle, Clock, Pencil } from "lucide-react";
+import { ArrowLeft, MessageSquare, TrendingUp, AlertCircle, Clock, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -96,6 +96,27 @@ export default function Analytics() {
     },
   });
 
+  const clearCacheMutation = useMutation({
+    mutationFn: async () => {
+      return await apiRequest(`/api/chatbots/${chatbotId}/cache`, {
+        method: "DELETE",
+      });
+    },
+    onSuccess: (data: any) => {
+      toast({
+        title: "Cache cleared",
+        description: data.message || "Successfully cleared all cached answers.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to clear cache",
+        description: error.message || "Could not clear the cache. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleEditAnswer = (userQuestion: string, aiAnswer: string) => {
     setEditingMessage({ question: userQuestion, originalAnswer: aiAnswer });
     setEditedAnswer(aiAnswer);
@@ -124,16 +145,27 @@ export default function Analytics() {
     <div className="min-h-screen bg-background">
       <div className="border-b">
         <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="flex items-center gap-4">
-            <Link href="/">
-              <Button variant="ghost" size="icon" data-testid="button-back-dashboard">
-                <ArrowLeft className="w-5 h-5" />
-              </Button>
-            </Link>
-            <div>
-              <h1 className="text-2xl font-bold">{chatbot.name} - Analytics</h1>
-              <p className="text-sm text-muted-foreground">View conversation history and metrics</p>
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <Link href="/">
+                <Button variant="ghost" size="icon" data-testid="button-back-dashboard">
+                  <ArrowLeft className="w-5 h-5" />
+                </Button>
+              </Link>
+              <div>
+                <h1 className="text-2xl font-bold">{chatbot.name} - Analytics</h1>
+                <p className="text-sm text-muted-foreground">View conversation history and metrics</p>
+              </div>
             </div>
+            <Button
+              variant="outline"
+              onClick={() => clearCacheMutation.mutate()}
+              disabled={clearCacheMutation.isPending}
+              data-testid="button-clear-cache"
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              {clearCacheMutation.isPending ? "Clearing..." : "Clear Q&A Cache"}
+            </Button>
           </div>
         </div>
       </div>
