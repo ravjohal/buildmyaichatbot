@@ -8,7 +8,8 @@ export interface IStorage {
   upsertUser(user: UpsertUser): Promise<User>;
   updateStripeCustomerId(userId: string, stripeCustomerId: string): Promise<User>;
   updateStripeSubscriptionId(userId: string, stripeSubscriptionId: string): Promise<User>;
-  updateSubscriptionTier(userId: string, tier: "free" | "paid"): Promise<User>;
+  updateSubscriptionTier(userId: string, tier: "free" | "pro" | "scale"): Promise<User>;
+  updateStripePriceId(userId: string, stripePriceId: string): Promise<User>;
   
   // Chatbot operations (user-scoped)
   getAllChatbots(userId: string): Promise<Chatbot[]>;
@@ -123,7 +124,16 @@ export class DbStorage implements IStorage {
     return result[0];
   }
 
-  async updateSubscriptionTier(userId: string, tier: "free" | "paid"): Promise<User> {
+  async updateStripePriceId(userId: string, stripePriceId: string): Promise<User> {
+    const result = await db
+      .update(users)
+      .set({ stripePriceId, updatedAt: new Date() })
+      .where(eq(users.id, userId))
+      .returning();
+    return result[0];
+  }
+
+  async updateSubscriptionTier(userId: string, tier: "free" | "pro" | "scale"): Promise<User> {
     const result = await db
       .update(users)
       .set({ subscriptionTier: tier, updatedAt: new Date() })

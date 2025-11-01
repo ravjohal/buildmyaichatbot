@@ -10,6 +10,7 @@ import type { Chatbot, User } from "@shared/schema";
 import { useState } from "react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { canCreateChatbot, TIER_LIMITS } from "@shared/pricing";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -52,8 +53,8 @@ export default function Dashboard() {
   });
 
   const isAdmin = user?.isAdmin === "true";
-  const isFreeTier = user?.subscriptionTier === "free" && !isAdmin;
-  const hasReachedFreeTierLimit = isFreeTier && (chatbots?.length ?? 0) >= 1;
+  const userTier = (user?.subscriptionTier ?? "free") as "free" | "pro" | "scale";
+  const hasReachedChatbotLimit = !isAdmin && !canCreateChatbot(userTier, chatbots?.length ?? 0);
 
   const handleDelete = async () => {
     if (!deleteId) return;
@@ -159,17 +160,17 @@ export default function Dashboard() {
               <p className="text-muted-foreground mt-1">Create and manage your AI-powered support assistants</p>
             </div>
             <div className="flex gap-3 flex-wrap">
-              {isFreeTier && (
+              {userTier !== "scale" && !isAdmin && (
                 <Link href="/pricing">
                   <Button size="lg" variant="default" data-testid="button-upgrade-pro">
                     <Crown className="w-5 h-5 mr-2" />
-                    Upgrade to Pro
+                    {userTier === "free" ? "Upgrade to Pro" : "Upgrade to Scale"}
                   </Button>
                 </Link>
               )}
               <Tooltip>
                 <TooltipTrigger asChild>
-                  {hasReachedFreeTierLimit ? (
+                  {hasReachedChatbotLimit ? (
                     <span>
                       <Button size="lg" variant="outline" disabled data-testid="button-create-chatbot">
                         <Plus className="w-5 h-5 mr-2" />
@@ -178,16 +179,20 @@ export default function Dashboard() {
                     </span>
                   ) : (
                     <Link href="/create">
-                      <Button size="lg" variant={isFreeTier ? "outline" : "default"} data-testid="button-create-chatbot">
+                      <Button size="lg" variant={userTier === "free" ? "outline" : "default"} data-testid="button-create-chatbot">
                         <Plus className="w-5 h-5 mr-2" />
                         Create Chatbot
                       </Button>
                     </Link>
                   )}
                 </TooltipTrigger>
-                {hasReachedFreeTierLimit && (
+                {hasReachedChatbotLimit && (
                   <TooltipContent>
-                    <p>Free tier is limited to 1 chatbot. Upgrade to Pro for unlimited chatbots.</p>
+                    <p>
+                      {userTier === "free" 
+                        ? "Free tier is limited to 1 chatbot. Upgrade to Pro for 5 chatbots." 
+                        : `Pro tier is limited to ${TIER_LIMITS.pro.chatbots} chatbots. Upgrade to Scale for unlimited chatbots.`}
+                    </p>
                   </TooltipContent>
                 )}
               </Tooltip>
@@ -377,7 +382,7 @@ export default function Dashboard() {
                       Test
                     </Button>
                   </Link>
-                  {isFreeTier ? (
+                  {userTier !== "scale" && !isAdmin ? (
                     <Button
                       variant="outline"
                       size="sm"
@@ -387,7 +392,7 @@ export default function Dashboard() {
                       onClick={() => {
                         toast({
                           title: "Upgrade Required",
-                          description: "Analytics are only available on the Pro plan.",
+                          description: "Analytics are only available on the Scale plan.",
                           variant: "destructive",
                         });
                       }}

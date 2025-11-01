@@ -28,7 +28,7 @@ interface AccountDetails {
   firstName: string;
   lastName: string;
   profileImageUrl: string | null;
-  subscriptionTier: "free" | "paid";
+  subscriptionTier: "free" | "pro" | "scale";
   createdAt: string;
   subscription: {
     id: string;
@@ -246,18 +246,18 @@ export default function Account() {
                 <div>
                   <p className="font-medium text-lg">Current Plan</p>
                   <p className="text-sm text-muted-foreground">
-                    {account.subscriptionTier === "paid" ? "Pro Plan" : "Free Plan"}
+                    {account.subscriptionTier === "free" ? "Free Plan" : account.subscriptionTier === "pro" ? "Pro Plan" : "Scale Plan"}
                   </p>
                 </div>
                 <Badge 
-                  variant={account.subscriptionTier === "paid" ? "default" : "secondary"}
+                  variant={account.subscriptionTier === "free" ? "secondary" : "default"}
                   data-testid="badge-subscription-tier"
                 >
-                  {account.subscriptionTier === "paid" ? "Pro" : "Free"}
+                  {account.subscriptionTier === "free" ? "Free" : account.subscriptionTier === "pro" ? "Pro" : "Scale"}
                 </Badge>
               </div>
 
-              {account.subscriptionTier === "paid" && account.subscription ? (
+              {account.subscriptionTier !== "free" && account.subscription ? (
                 <>
                   <Separator />
                   
