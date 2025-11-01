@@ -2,7 +2,7 @@
 
 ## Overview
 
-This SaaS web application empowers non-technical business owners to create, customize, and deploy AI-powered customer support chatbots for their websites. It features a guided creation wizard, extensive customization options, and an embeddable widget for seamless website integration. The project aims to provide efficient, AI-driven customer support, thereby reducing operational costs and enhancing customer satisfaction for businesses. Key capabilities include AI-powered responses based on website content and uploaded documents, multi-tier user management (including admin roles), comprehensive analytics, and a freemium pricing model with Stripe integration.
+This SaaS web application enables non-technical business owners to create, customize, and deploy AI-powered customer support chatbots for their websites. It offers a guided creation wizard, extensive customization, and an embeddable widget for seamless website integration. The project aims to provide efficient, AI-driven customer support, reducing operational costs and enhancing customer satisfaction. Key capabilities include streaming LLM responses, chunk-based knowledge retrieval with vector embeddings, AI responses from website content and documents, multi-tier user management, comprehensive analytics, and a freemium pricing model with Stripe integration.
 
 ## User Preferences
 
@@ -10,81 +10,56 @@ Preferred communication style: Simple, everyday language.
 
 ## System Architecture
 
-### Frontend Architecture
+### UI/UX Decisions
 
-The frontend is built with React and TypeScript, utilizing Vite for development and Wouter for routing. It employs TanStack Query for server state management and Tailwind CSS with shadcn/ui (New York variant) for a professional SaaS aesthetic. The design includes a multi-step wizard for chatbot creation, real-time customization previews, and a responsive layout.
+The frontend uses React and TypeScript, with Vite for development and Wouter for routing. TanStack Query manages server state. Tailwind CSS with shadcn/ui (New York variant) provides a professional SaaS aesthetic, featuring a multi-step chatbot creation wizard, real-time customization previews, and a responsive layout.
 
-### Backend Architecture
+### Technical Implementations
 
-The backend is developed using Express.js with Node.js and TypeScript, following a RESTful API design. Zod is used for data validation. Data persistence primarily uses PostgreSQL with Drizzle ORM. The embeddable chat widget is delivered via an iframe for isolation, integrated through a simple script tag.
+The backend, built with Express.js, Node.js, and TypeScript, follows a RESTful API design. Zod is used for data validation. PostgreSQL with Drizzle ORM handles data persistence. The embeddable chat widget is delivered via an iframe for isolation.
 
-### Data Storage
+### Feature Specifications
 
-The application uses PostgreSQL with Drizzle ORM for all persistent data. Key tables include:
-- `users`: Stores user accounts, custom authentication credentials, subscription tiers, and Stripe customer/subscription IDs.
-- `chatbots`: Contains core chatbot configurations, including name, source URLs, content, styling, behavior, and free-tier specific limits.
-- `conversations`: Records session metadata for user interactions with chatbots.
-- `conversation_messages`: Stores individual chat messages, roles, and suggested questions within conversations.
-- `conversation_ratings`: Stores user satisfaction ratings (1-5 stars) for individual conversations, enabling analytics on chatbot performance.
-- `email_notification_settings`: Stores per-user email notification preferences for new leads and unanswered questions, with configurable thresholds and custom email addresses.
-- `leads`: Stores captured visitor contact information with source tracking. Includes `source` field (widget, direct_link, test, unknown) to identify where the lead originated and `source_url` field to capture the referrer URL for embedded widgets or the page URL for direct links.
-- `qa_cache`: Stores cached question-answer pairs with hybrid caching (exact + semantic matching) to reduce redundant LLM API calls. Uses MD5 hashing for exact matches and pgvector (384-dimensional embeddings via all-MiniLM-L6-v2) for semantic similarity search with 85% threshold. Features hit count tracking and cache effectiveness monitoring.
-- `manual_qa_overrides`: Stores manually corrected/trained answers for improving chatbot accuracy. Includes question normalization, MD5 hashing for exact matches, and pgvector embeddings for semantic similarity. Tracks use counts and links to source conversations and users who created the override.
+*   **Chatbot Creation Wizard:** A guided multi-step process for configuring chatbot name, knowledge base (website URLs, document uploads), personality, visual customization, support escalation options, and lead capture settings.
+*   **Chat Widget:** An embeddable, customizable, and mobile-responsive AI chat interface with real-time streaming responses, conversation history, escalation detection, and configurable lead capture forms.
+*   **Streaming LLM Responses:** Implements Server-Sent Events (SSE) for word-by-word real-time response display, reducing perceived latency and improving user experience.
+*   **Chunk-Based Knowledge Retrieval:** Content is split into semantic chunks (200-1000 characters with 100-char overlap) with 384-dimensional vector embeddings. Top-k similarity search retrieves the 8 most relevant chunks, optimizing prompt size and LLM response times. Includes automatic fallback to truncated full content when chunks are unavailable.
+*   **Q&A Caching System:** Reduces LLM API costs by caching question-answer pairs with hybrid exact and semantic matching. Uses MD5-based question normalization and pgvector embeddings for semantic similarity. Automatically matches paraphrased questions and features cache invalidation on knowledge base updates.
+*   **Manual Answer Training:** Enables chatbot owners to improve accuracy by manually correcting AI responses through the Analytics interface. Corrected answers are prioritized in the response pipeline and support both exact and semantic matching.
+*   **Lead Capture System:** Collects visitor contact information via configurable forms with source tracking. Features a management dashboard with CSV export and source visualization.
+*   **On-Demand Knowledge Base Refresh:** Intelligently updates chatbot knowledge from website URLs by detecting content changes via MD5 hashing, only re-crawling modified content.
+*   **Analytics Dashboard:** Offers comprehensive chatbot analytics including key metrics, detailed conversation transcripts, message-level tracking, and performance breakdowns.
+*   **Freemium Pricing System:** Implements Free and Pro tiers with server-side enforcement of Pro-only features.
+*   **Admin System:** Provides full user management, system-wide statistics, and access to all chatbots for administrators.
+*   **Account Management:** Users can manage profile, subscription status, and billing via an integrated Stripe portal.
+*   **Shareable Links & QR Codes:** Enables easy distribution of chatbots via direct links and QR codes with a full-page chat interface.
+*   **Intelligent SPA Crawler:** A dual-mode website crawler that automatically detects and renders JavaScript-heavy Single Page Applications using Playwright, with SSRF protection.
+*   **Satisfaction Ratings:** Allows visitors to rate their chat experience (1-5 stars) after engaging in a conversation, stored for analytics.
+*   **Proactive Chat Popup:** Automatically displays a customizable popup notification to website visitors after a configurable delay to encourage interaction.
+*   **Email Notifications:** Sends automated email alerts via Resend for new lead submissions, unanswered questions, and weekly performance reports. Users can manage preferences and custom email addresses.
 
-### AI Integration
+### System Design Choices
 
-Google Gemini AI, accessed via the `@google/genai` SDK, is integrated for natural language processing. It leverages system prompt engineering to constrain AI responses to a knowledge base derived from scraped website content and uploaded documents.
-
-### File Storage
-
-Google Cloud Storage (via Replit Object Storage) is used for storing user-uploaded files such as company logos and documents. Uppy.js facilitates client-side uploads using signed URLs.
-
-### Authentication & Security
-
-The system employs custom email/password authentication using `passport-local` with bcrypt for password hashing and session-based authentication backed by PostgreSQL. It includes robust security features like `sanitizeUser()` for API responses, backend self-modification protection for admin actions, CSRF protection, and comprehensive input validation with Zod schemas. Multi-tenant architecture scopes chatbots to their respective user accounts.
-
-### Deployment Architecture
-
-Frontend assets are built with Vite, and server code is bundled with esbuild. The application is configured for both development (Vite HMR, `tsx`) and production environments, with dynamic environment-based configurations. The SPA crawler intelligently handles JavaScript-rendered sites using Playwright, with production deployments utilizing system Chromium from Nix.
-
-### Application Features
-
--   **Chatbot Creation Wizard:** A guided multi-step process for configuring chatbot name, knowledge base (website URLs, document uploads), personality, visual customization, support escalation options, and lead capture settings.
--   **Chat Widget:** An embeddable, customizable, and mobile-responsive AI chat interface with conversation history, escalation detection, and configurable lead capture forms.
--   **Dashboard:** Manages chatbots, provides quick actions (edit, delete, embed code, analytics, knowledge base refresh), and visual feature indicators.
--   **On-Demand Knowledge Base Refresh:** Intelligently updates chatbot knowledge from website URLs by detecting content changes via MD5 hashing. Only re-crawls URLs with modified content, preserving unchanged data and avoiding unnecessary document re-indexing.
--   **Lead Capture System:** Collects visitor contact information through configurable forms with customizable fields (name, email, phone, company, message) and timing triggers (immediately, after first message, after N messages). Features automatic source tracking to identify lead origin (embedded widget on external websites, shareable direct links, or test page) with referrer URL capture. Includes lead management dashboard with CSV export functionality and source visualization via color-coded badges. Users can reopen the lead form after initially skipping it via a "Leave Your Contact Details" button.
--   **Analytics Dashboard:** Offers comprehensive chatbot analytics including key metrics, detailed conversation transcripts, and message-level tracking.
--   **Freemium Pricing System:** Implements Free and Pro tiers with Stripe integration for subscription management, with server-side enforcement of Pro-only features (e.g., unlimited chatbots, full customization, analytics, lead capture).
--   **Admin System:** Provides administrators with full user management capabilities (promote/demote users, delete accounts, change subscriptions), system-wide statistics, and access to all chatbots, bypassing tier restrictions.
--   **Account Management:** Users can view profile information, subscription status, and manage billing via an integrated Stripe billing portal.
--   **Shareable Links & QR Codes:** Enables easy distribution of chatbots via direct links and QR codes, with a full-page chat interface.
--   **Intelligent SPA Crawler:** A dual-mode website crawler that automatically detects and renders JavaScript-heavy Single Page Applications using Playwright, with robust SSRF protection and resource limits.
--   **Q&A Caching System:** Reduces LLM API costs by caching question-answer pairs with hybrid caching (exact + semantic matching). Uses MD5-based question normalization for exact matches and pgvector embeddings for semantic similarity (85% threshold). Automatically matches paraphrased questions (e.g., "What are your hours?" matches "What time are you open?"). Features automatic cache invalidation on knowledge base updates, hit count tracking, and admin-accessible cache statistics endpoint showing total cached questions, cache hits, hit rate, and estimated cost savings.
--   **Manual Answer Training:** Enables chatbot owners to improve accuracy by manually correcting AI responses through the Analytics interface. Corrected answers are stored in the `manual_qa_overrides` table and take highest priority in the response pipeline (Manual Override → Exact Cache → Semantic Cache → LLM). Supports both exact matching (MD5 hash) and semantic matching (pgvector embeddings at 85% threshold) for paraphrased questions. Features include: edit button on assistant messages in Analytics, visual "Manually trained" badge indicators, use count tracking, and automatic embedding generation for semantic similarity search. Pro-tier feature accessible through the Analytics dashboard.
--   **Satisfaction Ratings:** Allows visitors to rate their chat experience with 1-5 stars after engaging in a conversation (triggered after 3+ messages). Ratings are stored per conversation and can be analyzed through the Analytics dashboard to measure chatbot effectiveness and customer satisfaction.
--   **Proactive Chat Popup:** Automatically displays a friendly popup notification to website visitors after a configurable delay (0-60 seconds), encouraging them to start a conversation. Fully customizable message and delay settings configured through the chatbot wizard's Personality step. Only appears when the chat widget is initially closed.
--   **Email Notifications:** Sends automated email alerts to chatbot owners via Resend integration for three key events: (1) New lead submissions - immediate notification when visitors submit contact information; (2) Unanswered questions - alerts when chatbot may have provided insufficient answers after a configurable threshold (default 30 minutes); (3) Weekly performance reports - comprehensive analytics summaries sent weekly including conversation stats, lead captures, satisfaction ratings, and top questions. Users can manage notification preferences, timing thresholds, and custom email addresses through Account Settings → Email Notifications page. Weekly reports are automatically generated by a background scheduler that checks every 6 hours for users who haven't received a report in the past week.
--   **In-App Analytics Dashboard:** Provides a comprehensive overview of performance metrics across all chatbots directly in the application. Features date range filtering (7, 30, or 90 days), summary cards showing total conversations, messages, leads, and average satisfaction ratings, per-chatbot performance breakdowns with individual stats, and top questions for each chatbot. Accessible via the "Analytics" button on the main Dashboard. Complements the email reports by providing real-time, on-demand access to the same analytics data without relying solely on email notifications.
--   **On-Demand Report Generation:** Enables users to trigger immediate email analytics reports at any time via the "Email Report Now" button on the Analytics Dashboard, in addition to the automatic weekly reports. Uses the same comprehensive report format as weekly emails, including all chatbot statistics, lead captures, satisfaction ratings, and top questions. Requires Resend API key configuration to send emails.
+*   **Data Storage:** PostgreSQL with Drizzle ORM is used for all persistent data, including users, chatbots, conversations, leads, Q&A cache, manual overrides, and knowledge chunks.
+*   **AI Integration:** Google Gemini AI (gemini-2.5-flash) via the `@google/genai` SDK is used for NLP, utilizing a streaming API for real-time responses. System prompt engineering constrains AI responses, and chunk-based retrieval optimizes prompt size. Response priority is Manual Override → Exact Cache → Semantic Cache → LLM with Chunks, with automatic fallback. Question embeddings are cached for faster lookups.
+*   **File Storage:** Google Cloud Storage (via Replit Object Storage) stores user-uploaded files, with Uppy.js for client-side uploads using signed URLs.
+*   **Authentication & Security:** Custom email/password authentication (`passport-local`, bcrypt, session-based) with robust security features like `sanitizeUser()`, backend self-modification protection, CSRF protection, and Zod input validation. Multi-tenant architecture scopes chatbots.
+*   **Deployment Architecture:** Frontend assets are built with Vite, server code with esbuild. Configured for development and production, with dynamic environment-based configurations. SPA crawler uses Playwright with system Chromium from Nix for production.
 
 ## External Dependencies
 
 ### Third-Party Services
 
--   **Google Cloud Platform:**
-    -   **Gemini AI API:** Core AI model for natural language processing.
-    -   **Google Cloud Storage:** Used for storing user files (logos, documents).
--   **Stripe:** Payment gateway for subscription management and billing.
--   **Resend:** Transactional email service for sending notification emails to chatbot owners.
--   **Replit Infrastructure:**
-    -   **Replit Object Storage:** Managed object storage service, built on Google Cloud Storage.
+*   **Google Cloud Platform:** Gemini AI API (NLP), Google Cloud Storage (user file storage).
+*   **Stripe:** Payment gateway for subscription management and billing.
+*   **Resend:** Transactional email service for notifications.
+*   **Replit Infrastructure:** Replit Object Storage (managed object storage built on Google Cloud Storage).
 
 ### Key NPM Packages
 
--   **Frontend:** `@tanstack/react-query`, `@radix-ui/*`, `tailwindcss`, `wouter`, `@uppy/*`, `class-variance-authority`, `react-hook-form`, `zod`.
--   **Backend:** `express`, `@google/genai`, `@google-cloud/storage`, `drizzle-orm`, `@neondatabase/serverless`, `multer`, `passport`, `bcrypt`, `@xenova/transformers`, `resend`.
--   **Build Tools:** `vite`, `esbuild`, `tsx`, `drizzle-kit`, `playwright`.
+*   **Frontend:** `@tanstack/react-query`, `@radix-ui/*`, `tailwindcss`, `wouter`, `@uppy/*`, `class-variance-authority`, `react-hook-form`, `zod`.
+*   **Backend:** `express`, `@google/genai`, `@google-cloud/storage`, `drizzle-orm`, `@neondatabase/serverless`, `multer`, `passport`, `bcrypt`, `@xenova/transformers`, `resend`.
+*   **Build Tools:** `vite`, `esbuild`, `tsx`, `drizzle-kit`, `playwright`.
 
 ### Environment Requirements
 
