@@ -2169,7 +2169,15 @@ Generate 3-5 short, natural questions that would help the user learn more. Retur
       }
 
       const userId = req.user.id;
-      const { billingCycle } = req.body;
+      const { billingCycle, tier } = req.body;
+      
+      // Validate inputs
+      if (!billingCycle || !["monthly", "annual"].includes(billingCycle)) {
+        return res.status(400).json({ error: "Invalid billing cycle. Must be 'monthly' or 'annual'" });
+      }
+      if (!tier || !["pro", "scale"].includes(tier)) {
+        return res.status(400).json({ error: "Invalid tier. Must be 'pro' or 'scale'" });
+      }
       
       const user = await storage.getUser(userId);
       if (!user) {
@@ -2205,14 +2213,27 @@ Generate 3-5 short, natural questions that would help the user learn more. Retur
         await storage.updateStripeCustomerId(user.id, stripeCustomerId);
       }
 
-      // Use pre-created Stripe price IDs from environment variables
-      const priceId = billingCycle === "monthly" 
-        ? process.env.STRIPE_MONTHLY_PRICE_ID
-        : process.env.STRIPE_ANNUAL_PRICE_ID;
+      // Map tier and billing cycle to correct Stripe price ID
+      let priceId: string | undefined;
+      
+      if (tier === "pro") {
+        priceId = billingCycle === "monthly" 
+          ? process.env.STRIPE_MONTHLY_PRICE_ID  // Pro monthly
+          : process.env.STRIPE_ANNUAL_PRICE_ID;  // Pro annual
+      } else if (tier === "scale") {
+        priceId = billingCycle === "monthly"
+          ? process.env.STRIPE_SCALE_MONTHLY_PRICE_ID  // Scale monthly
+          : process.env.STRIPE_SCALE_ANNUAL_PRICE_ID;  // Scale annual
+      }
 
       if (!priceId) {
-        throw new Error(`Missing Stripe price ID for ${billingCycle} billing cycle`);
+        console.error(`Missing Stripe price ID for tier=${tier}, billingCycle=${billingCycle}`);
+        return res.status(400).json({ 
+          error: `Price ID not configured for ${tier} tier with ${billingCycle} billing. Please contact support.` 
+        });
       }
+
+      console.log(`Creating subscription: tier=${tier}, billingCycle=${billingCycle}, priceId=${priceId}`);
 
       // Create subscription using pre-created price
       let subscription = await stripe.subscriptions.create({
@@ -2229,6 +2250,7 @@ Generate 3-5 short, natural questions that would help the user learn more. Retur
         metadata: {
           userId: user.id,
           billingCycle,
+          tier,
         },
       });
 

@@ -14,15 +14,18 @@ if (!import.meta.env.VITE_STRIPE_PUBLIC_KEY) {
 }
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
 
-const SubscribeForm = ({ billingCycle }: { billingCycle: "monthly" | "annual" }) => {
+const SubscribeForm = ({ billingCycle, tier }: { billingCycle: "monthly" | "annual", tier: "pro" | "scale" }) => {
   const stripe = useStripe();
   const elements = useElements();
   const { toast } = useToast();
   const [, navigate] = useLocation();
   const [isProcessing, setIsProcessing] = useState(false);
   
-  const paidPlan = PRICING_PLANS.paid;
-  const price = billingCycle === "monthly" ? paidPlan.monthlyPrice : paidPlan.annualPrice;
+  const selectedPlan = PRICING_PLANS.find(p => p.tier === tier);
+  if (!selectedPlan) {
+    throw new Error(`Invalid tier: ${tier}`);
+  }
+  const price = billingCycle === "monthly" ? selectedPlan.monthlyPrice : selectedPlan.annualPrice;
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,23 +53,27 @@ const SubscribeForm = ({ billingCycle }: { billingCycle: "monthly" | "annual" })
     } else {
       toast({
         title: "Payment Successful",
-        description: "You are now subscribed to the Pro plan!",
+        description: `You are now subscribed to the ${selectedPlan.name} plan!`,
       });
       navigate("/");
     }
   };
 
+  const annualSavings = billingCycle === "annual" 
+    ? (selectedPlan.monthlyPrice * 12 - selectedPlan.annualPrice).toFixed(0)
+    : "0";
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="bg-muted p-4 rounded-md mb-6">
         <div className="flex justify-between items-center mb-2">
-          <span className="font-medium">Pro Plan ({billingCycle === "monthly" ? "Monthly" : "Annual"})</span>
+          <span className="font-medium">{selectedPlan.name} ({billingCycle === "monthly" ? "Monthly" : "Annual"})</span>
           <span className="text-2xl font-bold">${price}</span>
         </div>
         <p className="text-sm text-muted-foreground">
           {billingCycle === "monthly" 
             ? "Billed monthly" 
-            : `Billed annually • Save $${(paidPlan.monthlyPrice * 12 - paidPlan.annualPrice).toFixed(0)}/year`}
+            : `Billed annually • Save $${annualSavings}/year`}
         </p>
       </div>
       
@@ -96,9 +103,10 @@ export default function Subscribe() {
   
   const params = new URLSearchParams(location.split('?')[1] || '');
   const billingCycle = (params.get('plan') as "monthly" | "annual") || "monthly";
+  const tier = (params.get('tier') as "pro" | "scale") || "pro";
 
   useEffect(() => {
-    apiRequest("POST", "/api/create-subscription", { billingCycle })
+    apiRequest("POST", "/api/create-subscription", { billingCycle, tier })
       .then((res) => res.json())
       .then((data) => {
         console.log("Subscription response:", data);
@@ -122,7 +130,7 @@ export default function Subscribe() {
         console.error("Subscription creation error:", error);
         navigate("/pricing");
       });
-  }, [billingCycle, toast, navigate]);
+  }, [billingCycle, tier, toast, navigate]);
 
   if (!clientSecret) {
     return (
@@ -135,6 +143,9 @@ export default function Subscribe() {
     );
   }
 
+  const selectedPlan = PRICING_PLANS.find(p => p.tier === tier);
+  const planName = selectedPlan?.name || "Pro";
+
   return (
     <div className="min-h-screen bg-background">
       <DashboardHeader />
@@ -142,7 +153,7 @@ export default function Subscribe() {
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold mb-2">Complete Your Subscription</h1>
           <p className="text-muted-foreground">
-            Upgrade to Pro and unlock unlimited chatbots, questions, and embedding
+            Upgrade to {planName} and unlock powerful features for your chatbots
           </p>
         </div>
         
@@ -155,7 +166,7 @@ export default function Subscribe() {
           </CardHeader>
           <CardContent>
             <Elements stripe={stripePromise} options={{ clientSecret }}>
-              <SubscribeForm billingCycle={billingCycle} />
+              <SubscribeForm billingCycle={billingCycle} tier={tier} />
             </Elements>
           </CardContent>
         </Card>
