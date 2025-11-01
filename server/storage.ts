@@ -1,4 +1,4 @@
-import { type Chatbot, type InsertChatbot, chatbots, users, type User, type UpsertUser, type QaCache, type InsertQaCache, qaCache, type ManualQaOverride, type InsertManualQaOverride, manualQaOverrides, type ConversationRating, type InsertConversationRating, conversationRatings, type EmailNotificationSettings, type InsertEmailNotificationSettings, emailNotificationSettings, type ConversationFlow, type InsertConversationFlow, conversationFlows } from "@shared/schema";
+import { type Chatbot, type InsertChatbot, chatbots, users, type User, type UpsertUser, type QaCache, type InsertQaCache, qaCache, type ManualQaOverride, type InsertManualQaOverride, manualQaOverrides, type ConversationRating, type InsertConversationRating, conversationRatings, type EmailNotificationSettings, type InsertEmailNotificationSettings, emailNotificationSettings, type ConversationFlow, type InsertConversationFlow, conversationFlows, type KnowledgeChunk, type InsertKnowledgeChunk, knowledgeChunks } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sql } from "drizzle-orm";
 
@@ -52,6 +52,13 @@ export interface IStorage {
   createConversationFlow(flow: InsertConversationFlow): Promise<ConversationFlow>;
   updateConversationFlow(id: string, updates: Partial<InsertConversationFlow>): Promise<ConversationFlow | undefined>;
   deleteConversationFlow(id: string): Promise<boolean>;
+  
+  // Knowledge Chunk operations (Phase 2)
+  createKnowledgeChunks(chunks: InsertKnowledgeChunk[]): Promise<KnowledgeChunk[]>;
+  getTopKRelevantChunks(chatbotId: string, questionEmbedding: number[], k?: number): Promise<KnowledgeChunk[]>;
+  deleteChunksForChatbot(chatbotId: string): Promise<number>;
+  deleteChunksForSource(chatbotId: string, sourceUrl: string): Promise<number>;
+  countChunksForChatbot(chatbotId: string): Promise<number>;
 }
 
 export class DbStorage implements IStorage {
@@ -487,6 +494,108 @@ export class DbStorage implements IStorage {
       .where(eq(conversationFlows.id, id))
       .returning();
     return result.length > 0;
+  }
+
+  // Knowledge Chunk operations (Phase 2)
+  async createKnowledgeChunks(chunks: InsertKnowledgeChunk[]): Promise<KnowledgeChunk[]> {
+    if (chunks.length === 0) {
+      return [];
+    }
+
+    // Bulk insert chunks with embeddings
+    const results: KnowledgeChunk[] = [];
+    
+    for (const chunk of chunks) {
+      // Convert embedding array to pgvector format if present
+      if (chunk.embedding && Array.isArray(chunk.embedding)) {
+        const embeddingStr = `[${chunk.embedding.join(',')}]`;
+        const metadataStr = chunk.metadata ? `'${JSON.stringify(chunk.metadata).replace(/'/g, "''")}'::jsonb` : 'NULL';
+        
+        const result = await db.execute(sql.raw(`
+          INSERT INTO knowledge_chunks (
+            chatbot_id, source_type, source_url, source_title, chunk_text, 
+            chunk_index, content_hash, embedding, metadata, created_at, updated_at
+          )
+          VALUES (
+            '${chunk.chatbotId}',
+            '${chunk.sourceType}',
+            '${chunk.sourceUrl.replace(/'/g, "''")}',
+            ${chunk.sourceTitle ? `'${chunk.sourceTitle.replace(/'/g, "''")}'` : 'NULL'},
+            '${chunk.chunkText.replace(/'/g, "''")}',
+            '${chunk.chunkIndex}',
+            '${chunk.contentHash}',
+            '${embeddingStr}'::vector,
+            ${metadataStr},
+            NOW(),
+            NOW()
+          )
+          RETURNING *
+        `));
+        
+        if (result.rows[0]) {
+          results.push(result.rows[0] as KnowledgeChunk);
+        }
+      } else {
+        // No embedding - simple insert
+        const result = await db
+          .insert(knowledgeChunks)
+          .values(chunk)
+          .returning();
+        results.push(result[0]);
+      }
+    }
+    
+    return results;
+  }
+
+  async getTopKRelevantChunks(
+    chatbotId: string,
+    questionEmbedding: number[],
+    k: number = 8
+  ): Promise<KnowledgeChunk[]> {
+    const embeddingStr = `[${questionEmbedding.join(',')}]`;
+    
+    // Use cosine similarity to find most relevant chunks
+    const result = await db.execute<KnowledgeChunk>(
+      sql`
+        SELECT *
+        FROM ${knowledgeChunks}
+        WHERE ${knowledgeChunks.chatbotId} = ${chatbotId}
+          AND ${knowledgeChunks.embedding} IS NOT NULL
+        ORDER BY ${knowledgeChunks.embedding} <=> ${embeddingStr}::vector
+        LIMIT ${k}
+      `
+    );
+    
+    return result.rows;
+  }
+
+  async deleteChunksForChatbot(chatbotId: string): Promise<number> {
+    const result = await db
+      .delete(knowledgeChunks)
+      .where(eq(knowledgeChunks.chatbotId, chatbotId))
+      .returning();
+    return result.length;
+  }
+
+  async deleteChunksForSource(chatbotId: string, sourceUrl: string): Promise<number> {
+    const result = await db
+      .delete(knowledgeChunks)
+      .where(
+        and(
+          eq(knowledgeChunks.chatbotId, chatbotId),
+          eq(knowledgeChunks.sourceUrl, sourceUrl)
+        )
+      )
+      .returning();
+    return result.length;
+  }
+
+  async countChunksForChatbot(chatbotId: string): Promise<number> {
+    const result = await db.execute<{ count: string }>(
+      sql`SELECT COUNT(*) as count FROM ${knowledgeChunks} WHERE ${knowledgeChunks.chatbotId} = ${chatbotId}`
+    );
+    return parseInt(result.rows[0]?.count || '0');
   }
 }
 

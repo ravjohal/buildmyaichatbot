@@ -1203,17 +1203,31 @@ Generate 3-5 short, natural questions that would help the user learn more. Retur
         conversation = newConv[0];
       }
 
-      // Build knowledge base context (optimized - limit size)
+      // Build knowledge base context - USE CHUNK-BASED RETRIEVAL if available
       let knowledgeContext = "";
-      const MAX_KNOWLEDGE_SIZE = 8000; // Reduced from sending everything
+      let usingChunks = false;
       
-      if (chatbot.websiteContent) {
-        const websitePreview = chatbot.websiteContent.substring(0, MAX_KNOWLEDGE_SIZE / 2);
-        knowledgeContext += `Website Content:\n${websitePreview}\n\n`;
-      }
-      if (chatbot.documentContent) {
-        const docPreview = chatbot.documentContent.substring(0, MAX_KNOWLEDGE_SIZE / 2);
-        knowledgeContext += `Document Content:\n${docPreview}\n\n`;
+      // Check if chunks are available for this chatbot
+      const chunkCount = await storage.countChunksForChatbot(chatbotId);
+      
+      if (chunkCount > 0) {
+        // PHASE 2: Use chunk-based retrieval for efficient, targeted context
+        console.log(`[STREAMING] Using chunk-based retrieval (${chunkCount} chunks available)`);
+        usingChunks = true;
+        // Chunks will be retrieved after we generate the question embedding
+      } else {
+        // FALLBACK: Use truncated full content (Phase 1 optimization)
+        console.log(`[STREAMING] No chunks available, using truncated full content`);
+        const MAX_KNOWLEDGE_SIZE = 8000;
+        
+        if (chatbot.websiteContent) {
+          const websitePreview = chatbot.websiteContent.substring(0, MAX_KNOWLEDGE_SIZE / 2);
+          knowledgeContext += `Website Content:\n${websitePreview}\n\n`;
+        }
+        if (chatbot.documentContent) {
+          const docPreview = chatbot.documentContent.substring(0, MAX_KNOWLEDGE_SIZE / 2);
+          knowledgeContext += `Document Content:\n${docPreview}\n\n`;
+        }
       }
 
       // Build conversation history
@@ -1225,12 +1239,60 @@ Generate 3-5 short, natural questions that would help the user learn more. Retur
       const normalizedQuestion = message.trim().toLowerCase();
       const questionHash = crypto.createHash('md5').update(normalizedQuestion).digest('hex');
       
-      // Generate embedding once for all cache checks
+      // Generate embedding once for all cache checks AND chunk retrieval
       let questionEmbedding: number[] | null = null;
       try {
         questionEmbedding = await embeddingService.generateEmbedding(normalizedQuestion);
       } catch (error) {
         console.error("[EMBEDDING] Error generating embedding:", error);
+      }
+      
+      // If using chunks, retrieve relevant chunks NOW (before cache checks)
+      let chunksRetrievedSuccessfully = false;
+      if (usingChunks && questionEmbedding) {
+        try {
+          const relevantChunks = await storage.getTopKRelevantChunks(chatbotId, questionEmbedding, 8);
+          
+          if (relevantChunks.length > 0) {
+            console.log(`[STREAMING] Retrieved ${relevantChunks.length} relevant chunks for question`);
+            
+            // Build context from relevant chunks
+            knowledgeContext = relevantChunks
+              .map((chunk, idx) => {
+                const source = chunk.sourceTitle || chunk.sourceUrl;
+                return `[Chunk ${idx + 1} - ${source}]\n${chunk.chunkText}`;
+              })
+              .join('\n\n---\n\n');
+            
+            console.log(`[STREAMING] Knowledge context size: ${knowledgeContext.length} characters`);
+            chunksRetrievedSuccessfully = true;
+          } else {
+            console.log(`[STREAMING] No relevant chunks found, falling back to truncated content`);
+          }
+        } catch (error) {
+          console.error("[STREAMING] Error retrieving chunks:", error);
+        }
+      }
+      
+      // CRITICAL FALLBACK: If chunks weren't retrieved successfully (embedding failed, retrieval error, or no results)
+      // ALWAYS rebuild truncated content to ensure LLM has knowledge context
+      if (usingChunks && !chunksRetrievedSuccessfully) {
+        console.log(`[STREAMING] Chunk retrieval failed or returned no results, falling back to truncated content`);
+        const MAX_KNOWLEDGE_SIZE = 8000;
+        
+        // RESET knowledgeContext and rebuild from original content
+        knowledgeContext = "";
+        
+        if (chatbot.websiteContent) {
+          const websitePreview = chatbot.websiteContent.substring(0, MAX_KNOWLEDGE_SIZE / 2);
+          knowledgeContext += `Website Content:\n${websitePreview}\n\n`;
+        }
+        if (chatbot.documentContent) {
+          const docPreview = chatbot.documentContent.substring(0, MAX_KNOWLEDGE_SIZE / 2);
+          knowledgeContext += `Document Content:\n${docPreview}\n\n`;
+        }
+        
+        console.log(`[STREAMING] Fallback context size: ${knowledgeContext.length} characters`);
       }
       
       // Check manual override first
