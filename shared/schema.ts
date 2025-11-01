@@ -283,3 +283,28 @@ export const conversationFlows = pgTable("conversation_flows", {
 
 export type ConversationFlow = typeof conversationFlows.$inferSelect;
 export type InsertConversationFlow = typeof conversationFlows.$inferInsert;
+
+// Knowledge Chunks - stores content in semantic chunks for efficient retrieval
+export const knowledgeChunks = pgTable("knowledge_chunks", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  chatbotId: varchar("chatbot_id").notNull().references(() => chatbots.id, { onDelete: "cascade" }),
+  sourceType: varchar("source_type", { enum: ["website", "document"] }).notNull(),
+  sourceUrl: text("source_url").notNull(), // URL or document path
+  sourceTitle: text("source_title"), // Page title or document name
+  chunkText: text("chunk_text").notNull(), // The actual chunk content
+  chunkIndex: text("chunk_index").notNull(), // Position in source (0, 1, 2, ...)
+  contentHash: text("content_hash").notNull(), // MD5 hash for change detection
+  embedding: vector("embedding", { dimensions: 384 }), // Semantic embedding for retrieval
+  metadata: jsonb("metadata"), // Additional info: { headings: [], keywords: [], etc. }
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertKnowledgeChunkSchema = createInsertSchema(knowledgeChunks).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type KnowledgeChunk = typeof knowledgeChunks.$inferSelect;
+export type InsertKnowledgeChunk = z.infer<typeof insertKnowledgeChunkSchema>;

@@ -61,40 +61,153 @@ export default function ChatWidget() {
   console.log('[ChatWidget] error:', error);
   console.log('[ChatWidget] isStandalone:', isStandalone);
 
-  const chatMutation = useMutation({
-    mutationFn: async (message: string) => {
-      const response = await apiRequest(
-        "POST",
-        "/api/chat",
-        {
+  // State for streaming responses
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [streamingMessageId, setStreamingMessageId] = useState<string | null>(null);
+  
+  // Streaming chat handler
+  const handleStreamingChat = async (message: string) => {
+    setIsStreaming(true);
+    
+    // Create a placeholder message for streaming
+    const messageId = Date.now().toString();
+    setStreamingMessageId(messageId);
+    
+    const placeholderMessage: ChatMessage = {
+      id: messageId,
+      role: "assistant",
+      content: "",
+      timestamp: Date.now(),
+    };
+    setMessages((prev) => [...prev, placeholderMessage]);
+
+    try {
+      const response = await fetch("/api/chat/stream", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
           chatbotId,
           message,
           conversationHistory: messages,
           sessionId,
-        }
-      );
-      const data = await response.json() as { 
-        message: string; 
-        shouldEscalate: boolean; 
-        suggestedQuestions?: string[];
-        conversationId?: string;
-      };
-      return data;
-    },
-    onSuccess: (data) => {
-      // Store conversation ID from first response
-      if (data.conversationId && !conversationId) {
-        setConversationId(data.conversationId);
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to connect to streaming API");
       }
-      
-      const assistantMessage: ChatMessage = {
-        id: Date.now().toString(),
-        role: "assistant",
-        content: data.message,
-        timestamp: Date.now(),
-        suggestedQuestions: data.suggestedQuestions,
-      };
-      setMessages((prev) => [...prev, assistantMessage]);
+
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let fullResponse = "";
+      let suggestions: string[] = [];
+      let shouldEscalate = false;
+      let receivedConversationId = "";
+
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read();
+          
+          if (done) {
+            break;
+          }
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n\n");
+          buffer = lines.pop() || "";
+
+          for (const line of lines) {
+            if (line.startsWith("data: ")) {
+              try {
+                const data = JSON.parse(line.slice(6));
+
+                if (data.type === "chunk") {
+                  // Streaming chunk - append to message
+                  fullResponse += data.content;
+                  setMessages((prev) =>
+                    prev.map((msg) =>
+                      msg.id === messageId
+                        ? { ...msg, content: fullResponse }
+                        : msg
+                    )
+                  );
+                } else if (data.type === "complete") {
+                  // Final message or cached response
+                  if (data.message) {
+                    fullResponse = data.message;
+                    setMessages((prev) =>
+                      prev.map((msg) =>
+                        msg.id === messageId
+                          ? { ...msg, content: fullResponse }
+                          : msg
+                      )
+                    );
+                  }
+                  if (data.suggestedQuestions) {
+                    suggestions = data.suggestedQuestions;
+                  }
+                  if (data.shouldEscalate !== undefined) {
+                    shouldEscalate = data.shouldEscalate;
+                  }
+                } else if (data.type === "metadata") {
+                  if (data.conversationId) {
+                    receivedConversationId = data.conversationId;
+                    if (!conversationId) {
+                      setConversationId(data.conversationId);
+                    }
+                  }
+                  if (data.shouldEscalate !== undefined) {
+                    shouldEscalate = data.shouldEscalate;
+                  }
+                } else if (data.type === "error") {
+                  // Error from server
+                  setMessages((prev) =>
+                    prev.map((msg) =>
+                      msg.id === messageId
+                        ? { ...msg, content: data.message || "An error occurred" }
+                        : msg
+                    )
+                  );
+                }
+              } catch (e) {
+                console.error("Error parsing SSE data:", e);
+              }
+            }
+          }
+        }
+      }
+
+      // Update final message with suggestions
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === messageId
+            ? { ...msg, suggestedQuestions: suggestions }
+            : msg
+        )
+      );
+
+    } catch (error) {
+      console.error("Streaming error:", error);
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === streamingMessageId
+            ? { ...msg, content: "I apologize, but I encountered an error. Please try again." }
+            : msg
+        )
+      );
+    } finally {
+      setIsStreaming(false);
+      setStreamingMessageId(null);
+    }
+  };
+
+  const chatMutation = useMutation({
+    mutationFn: async (message: string) => {
+      await handleStreamingChat(message);
+      return { success: true };
     },
   });
 
@@ -221,7 +334,7 @@ export default function ChatWidget() {
   }, [messages, hasRated, showRating, conversationId]);
 
   const handleSend = () => {
-    if (!inputValue.trim() || chatMutation.isPending) return;
+    if (!inputValue.trim() || isStreaming || chatMutation.isPending) return;
 
     const userMessage: ChatMessage = {
       id: Date.now().toString(),

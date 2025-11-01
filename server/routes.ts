@@ -1144,6 +1144,288 @@ Generate 3-5 short, natural questions that would help the user learn more. Retur
     }
   });
 
+  // Streaming chat endpoint - Server-Sent Events (SSE) for real-time responses
+  app.post("/api/chat/stream", async (req, res) => {
+    try {
+      const { chatbotId, message, conversationHistory, sessionId } = req.body as ChatRequest;
+
+      if (!chatbotId || !message) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+
+      // Set up SSE headers
+      res.setHeader('Content-Type', 'text/event-stream');
+      res.setHeader('Cache-Control', 'no-cache');
+      res.setHeader('Connection', 'keep-alive');
+      res.setHeader('X-Accel-Buffering', 'no'); // Disable nginx buffering
+
+      // Get chatbot
+      const chatbotResult = await db.select().from(chatbots).where(eq(chatbots.id, chatbotId)).limit(1);
+      const chatbot = chatbotResult[0];
+      
+      if (!chatbot) {
+        res.write(`data: ${JSON.stringify({ error: "Chatbot not found" })}\n\n`);
+        return res.end();
+      }
+
+      // Check free tier limits
+      const ownerResult = await db.select().from(users).where(eq(users.id, chatbot.userId)).limit(1);
+      const owner = ownerResult[0];
+      
+      if (owner && owner.subscriptionTier === "free" && owner.isAdmin !== "true") {
+        const currentQuestionCount = parseInt(chatbot.questionCount);
+        if (currentQuestionCount >= 3) {
+          res.write(`data: ${JSON.stringify({ 
+            type: "complete",
+            message: "I apologize, but this chatbot has reached its free tier limit. The chatbot owner needs to upgrade to Pro for unlimited conversations.",
+            shouldEscalate: false,
+          })}\n\n`);
+          return res.end();
+        }
+      }
+
+      // Find or create conversation
+      let conversation;
+      if (sessionId) {
+        const existingConv = await db.select().from(conversations)
+          .where(eq(conversations.sessionId, sessionId))
+          .limit(1);
+        conversation = existingConv[0];
+      }
+      
+      if (!conversation) {
+        const newConv = await db.insert(conversations).values({
+          chatbotId,
+          sessionId: sessionId || `session-${Date.now()}`,
+          messageCount: "0",
+          wasEscalated: "false",
+        }).returning();
+        conversation = newConv[0];
+      }
+
+      // Build knowledge base context (optimized - limit size)
+      let knowledgeContext = "";
+      const MAX_KNOWLEDGE_SIZE = 8000; // Reduced from sending everything
+      
+      if (chatbot.websiteContent) {
+        const websitePreview = chatbot.websiteContent.substring(0, MAX_KNOWLEDGE_SIZE / 2);
+        knowledgeContext += `Website Content:\n${websitePreview}\n\n`;
+      }
+      if (chatbot.documentContent) {
+        const docPreview = chatbot.documentContent.substring(0, MAX_KNOWLEDGE_SIZE / 2);
+        knowledgeContext += `Document Content:\n${docPreview}\n\n`;
+      }
+
+      // Build conversation history
+      const conversationContext = conversationHistory
+        .map((msg) => `${msg.role === "user" ? "User" : "Assistant"}: ${msg.content}`)
+        .join("\n");
+
+      // Normalize question for caching
+      const normalizedQuestion = message.trim().toLowerCase();
+      const questionHash = crypto.createHash('md5').update(normalizedQuestion).digest('hex');
+      
+      // Generate embedding once for all cache checks
+      let questionEmbedding: number[] | null = null;
+      try {
+        questionEmbedding = await embeddingService.generateEmbedding(normalizedQuestion);
+      } catch (error) {
+        console.error("[EMBEDDING] Error generating embedding:", error);
+      }
+      
+      // Check manual override first
+      let manualOverride = await storage.getManualOverride(chatbotId, questionHash);
+      if (!manualOverride && questionEmbedding) {
+        manualOverride = await storage.findSimilarManualOverride(chatbotId, questionEmbedding, 0.85);
+      }
+      
+      let aiMessage: string;
+      let suggestedQuestions: string[] = [];
+      
+      if (manualOverride) {
+        // Manual override found - send immediately (no streaming needed)
+        console.log(`[STREAMING] Manual override hit - sending cached answer`);
+        aiMessage = manualOverride.manualAnswer;
+        
+        res.write(`data: ${JSON.stringify({ 
+          type: "complete",
+          message: aiMessage,
+          shouldEscalate: false,
+        })}\n\n`);
+        
+        storage.incrementOverrideUseCount(manualOverride.id).catch(() => {});
+      } else {
+        // Check automated cache
+        let cachedAnswer = await storage.getCachedAnswer(chatbotId, questionHash);
+        if (!cachedAnswer && questionEmbedding) {
+          cachedAnswer = await storage.findSimilarCachedAnswer(chatbotId, questionEmbedding, 0.85);
+        }
+        
+        if (cachedAnswer) {
+          // Cache hit - send immediately
+          console.log(`[STREAMING] Cache hit - sending cached answer`);
+          aiMessage = cachedAnswer.answer;
+          suggestedQuestions = cachedAnswer.suggestedQuestions || [];
+          
+          res.write(`data: ${JSON.stringify({ 
+            type: "complete",
+            message: aiMessage,
+            shouldEscalate: false,
+            suggestedQuestions,
+          })}\n\n`);
+          
+          storage.updateCacheHitCount(cachedAnswer.id).catch(() => {});
+        } else {
+          // Cache miss - stream from LLM
+          console.log(`[STREAMING] Cache miss - streaming from LLM`);
+          
+          const fullPrompt = `${chatbot.systemPrompt}
+
+Knowledge Base:
+${knowledgeContext || "No specific knowledge base provided."}
+
+Previous Conversation:
+${conversationContext || "No previous conversation."}
+
+User Question: ${message}
+
+Please answer based on the knowledge base provided. If you cannot find the answer in the knowledge base, politely let the user know and suggest they contact support${chatbot.supportPhoneNumber ? ` at ${chatbot.supportPhoneNumber}` : ""}.`;
+
+          // Stream the main response
+          let fullResponse = "";
+          try {
+            const stream = await genAI.models.generateContentStream({
+              model: "gemini-2.5-flash",
+              contents: fullPrompt,
+            });
+
+            for await (const chunk of stream) {
+              const chunkText = chunk.text || "";
+              if (chunkText) {
+                fullResponse += chunkText;
+                // Send chunk to client
+                res.write(`data: ${JSON.stringify({ 
+                  type: "chunk",
+                  content: chunkText,
+                })}\n\n`);
+              }
+            }
+
+            aiMessage = fullResponse || "I apologize, but I couldn't generate a response.";
+            
+            // Generate suggested questions (non-streaming, after main response)
+            try {
+              const suggestionsResult = await genAI.models.generateContent({
+                model: "gemini-2.5-flash",
+                contents: `Based on this conversation, suggest 3-5 relevant follow-up questions (each under 60 characters).
+
+Knowledge Base Topics:
+${knowledgeContext ? knowledgeContext.substring(0, 1500) : "General customer support"}
+
+User's Question: ${message}
+
+Generate 3-5 short, natural questions that would help the user learn more. Return only the questions, one per line, without numbering.`,
+              });
+              
+              const suggestionsText = suggestionsResult.text || "";
+              suggestedQuestions = suggestionsText
+                .split('\n')
+                .map(q => q.trim())
+                .filter(q => q.length > 0 && q.length < 100)
+                .slice(0, 5);
+            } catch (error) {
+              console.error("Error generating suggested questions:", error);
+            }
+            
+            // Send completion event
+            res.write(`data: ${JSON.stringify({ 
+              type: "complete",
+              suggestedQuestions,
+            })}\n\n`);
+            
+            // Store in cache
+            storage.createCacheEntry({
+              chatbotId,
+              question: normalizedQuestion,
+              questionHash,
+              embedding: questionEmbedding || undefined,
+              answer: aiMessage,
+              suggestedQuestions,
+              lastUsedAt: new Date(),
+            }).catch(err => console.error("Error caching:", err));
+            
+          } catch (streamError) {
+            console.error("Streaming error:", streamError);
+            res.write(`data: ${JSON.stringify({ 
+              type: "error",
+              message: "I apologize, but I encountered an error. Please try again."
+            })}\n\n`);
+            aiMessage = "I apologize, but I encountered an error. Please try again.";
+          }
+        }
+      }
+
+      // Check escalation
+      const shouldEscalate =
+        aiMessage.toLowerCase().includes("contact support") ||
+        aiMessage.toLowerCase().includes("speak with") ||
+        aiMessage.toLowerCase().includes("human representative") ||
+        aiMessage.toLowerCase().includes("don't know") ||
+        aiMessage.toLowerCase().includes("cannot find");
+
+      let finalMessage = aiMessage;
+      
+      if (shouldEscalate && chatbot.supportPhoneNumber && chatbot.escalationMessage) {
+        const escalationText = chatbot.escalationMessage.replace("{phone}", chatbot.supportPhoneNumber);
+        if (!finalMessage.includes(chatbot.supportPhoneNumber)) {
+          finalMessage += `\n\n${escalationText}`;
+        }
+      }
+
+      // Save messages to database
+      const newMessageCount = (parseInt(conversation.messageCount) + 2).toString();
+      await Promise.all([
+        db.insert(conversationMessages).values({
+          conversationId: conversation.id,
+          role: "user",
+          content: message,
+          wasEscalated: "false",
+        }),
+        db.insert(conversationMessages).values({
+          conversationId: conversation.id,
+          role: "assistant",
+          content: finalMessage,
+          suggestedQuestions: suggestedQuestions.length > 0 ? suggestedQuestions : [],
+          wasEscalated: shouldEscalate ? "true" : "false",
+        }),
+        db.update(conversations)
+          .set({
+            messageCount: newMessageCount,
+            lastMessageAt: new Date(),
+            wasEscalated: shouldEscalate ? "true" : conversation.wasEscalated,
+          })
+          .where(eq(conversations.id, conversation.id)),
+        storage.incrementChatbotQuestionCount(chatbotId)
+      ]);
+
+      // Send final metadata
+      res.write(`data: ${JSON.stringify({ 
+        type: "metadata",
+        conversationId: conversation.id,
+        shouldEscalate,
+      })}\n\n`);
+      
+      res.end();
+    } catch (error) {
+      console.error("Error in streaming chat:", error);
+      res.write(`data: ${JSON.stringify({ 
+        type: "error",
+        message: "Failed to process chat message"
+      })}\n\n`);
+      res.end();
+    }
+  });
+
   // Analytics routes (protected - only for chatbot owners with paid subscription)
   
   // Get analytics overview for a chatbot
