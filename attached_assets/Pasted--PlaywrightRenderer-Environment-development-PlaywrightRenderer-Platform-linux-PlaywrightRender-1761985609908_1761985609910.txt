@@ -1,0 +1,31 @@
+[PlaywrightRenderer] Environment: development
+[PlaywrightRenderer] Platform: linux
+[PlaywrightRenderer] Architecture: x64
+[PlaywrightRenderer] Validation result: {"valid":true}
+[PlaywrightRenderer] Creating browser context...
+[PlaywrightRenderer] Page created, navigating to https://www.rurkahomes.com/new-homes/california/san-joaquin-county/mountain-house/lakeshore/2925/214-w-rustica-drive...
+[PlaywrightRenderer] ✗ RENDER ERROR for https://www.rurkahomes.com/new-homes/california/san-joaquin-county/mountain-house/lakeshore/2925/214-w-rustica-drive
+[PlaywrightRenderer] Error type: TimeoutError
+[PlaywrightRenderer] Error message: page.goto: Timeout 15000ms exceeded.
+Call log:
+  - navigating to "https://www.rurkahomes.com/new-homes/california/san-joaquin-county/mountain-house/lakeshore/2925/214-w-rustica-drive", waiting until "networkidle"
+
+[PlaywrightRenderer] Error stack: page.goto: Timeout 15000ms exceeded.
+Call log:
+  - navigating to "https://www.rurkahomes.com/new-homes/california/san-joaquin-county/mountain-house/lakeshore/2925/214-w-rustica-drive", waiting until "networkidle"
+
+    at PlaywrightRenderer.render (/home/runner/workspace/server/renderers.ts:235:18)
+    at async crawlWithRenderer (/home/runner/workspace/server/crawler.ts:25:18)
+    at async crawlWebsiteRecursive (/home/runner/workspace/server/crawler.ts:295:30)
+    at async crawlMultipleWebsitesRecursive (/home/runner/workspace/server/crawler.ts:350:21)
+    at async <anonymous> (/home/runner/workspace/server/routes.ts:312:26)
+[PlaywrightRenderer] Full error: {
+  "stack": "page.goto: Timeout 15000ms exceeded.\nCall log:\n\u001b[2m  - navigating to \"https://www.rurkahomes.com/new-homes/california/san-joaquin-county/mountain-house/lakeshore/2925/214-w-rustica-drive\", waiting until \"networkidle\"\u001b[22m\n\n    at PlaywrightRenderer.render (/home/runner/workspace/server/renderers.ts:235:18)\n    at async crawlWithRenderer (/home/runner/workspace/server/crawler.ts:25:18)\n    at async crawlWebsiteRecursive (/home/runner/workspace/server/crawler.ts:295:30)\n    at async crawlMultipleWebsitesRecursive (/home/runner/workspace/server/crawler.ts:350:21)\n    at async <anonymous> (/home/runner/workspace/server/routes.ts:312:26)",
+  "message": "page.goto: Timeout 15000ms exceeded.\nCall log:\n\u001b[2m  - navigating to \"https://www.rurkahomes.com/new-homes/california/san-joaquin-county/mountain-house/lakeshore/2925/214-w-rustica-drive\", waiting until \"networkidle\"\u001b[22m\n",
+  "name": "TimeoutError"
+}
+[Auto-detect] Playwright result: content=0 chars, error="page.goto: Timeout 15000ms exceeded.
+Call log:
+  - navigating to "https://www.rurkahomes.com/new-homes/california/san-joaquin-county/mountain-house/lakeshore/2925/214-w-rustica-drive", waiting until "networkidle"
+"
+[Auto-detect] Playwright didn't improve results, keeping static result
