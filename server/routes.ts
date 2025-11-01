@@ -1384,6 +1384,11 @@ Generate 3-5 short, natural questions that would help the user learn more. Retur
           if (relevantChunks.length > 0) {
             console.log(`[STREAMING] Retrieved ${relevantChunks.length} relevant chunks for question`);
             
+            // Debug: Log chunk lengths
+            relevantChunks.forEach((chunk, idx) => {
+              console.log(`[STREAMING] Chunk ${idx + 1}: ${chunk.chunkText.length} chars - ${chunk.chunkText.substring(0, 80)}...`);
+            });
+            
             // Build context from relevant chunks
             knowledgeContext = relevantChunks
               .map((chunk, idx) => {
