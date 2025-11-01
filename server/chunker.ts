@@ -86,7 +86,55 @@ export function chunkContent(
     chunks.push(createChunk(currentChunk, chunkIndex, title));
   }
 
-  return chunks;
+  // Filter out low-quality/repetitive chunks
+  const qualityChunks = chunks.filter(chunk => !isLowQualityChunk(chunk.text));
+  
+  // Re-index after filtering
+  qualityChunks.forEach((chunk, idx) => {
+    chunk.index = idx;
+  });
+
+  return qualityChunks;
+}
+
+/**
+ * Detect if a chunk is low-quality/repetitive content that should be filtered
+ */
+function isLowQualityChunk(text: string): boolean {
+  const lowerText = text.toLowerCase();
+  
+  // Filter out chunks that are mostly form fields
+  const formIndicators = [
+    'confirm password',
+    'i accept the terms of use',
+    'privacy policy',
+    'required fields',
+    'submit',
+  ];
+  
+  // Count how many form indicators appear
+  const formIndicatorCount = formIndicators.filter(indicator => 
+    lowerText.includes(indicator)
+  ).length;
+  
+  // If chunk has 3+ form indicators and is relatively short, it's likely just a form
+  if (formIndicatorCount >= 3 && text.length < 2000) {
+    return true;
+  }
+  
+  // Filter out very repetitive content (same phrase repeated many times)
+  const words = text.split(/\s+/);
+  if (words.length > 10) {
+    const uniqueWords = new Set(words.map(w => w.toLowerCase()));
+    const uniqueRatio = uniqueWords.size / words.length;
+    
+    // If less than 30% unique words, it's very repetitive
+    if (uniqueRatio < 0.3) {
+      return true;
+    }
+  }
+  
+  return false;
 }
 
 /**
