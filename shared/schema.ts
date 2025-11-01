@@ -65,6 +65,9 @@ export const chatbots = pgTable("chatbots", {
   proactiveChatDelay: text("proactive_chat_delay").notNull().default("5"), // seconds before popup
   proactiveChatMessage: text("proactive_chat_message").default("Hi! Need any help?"),
   proactiveChatTriggerUrls: text("proactive_chat_trigger_urls").array().default(sql`ARRAY[]::text[]`), // URL patterns for triggering
+  // Async indexing status
+  indexingStatus: varchar("indexing_status", { enum: ["pending", "processing", "completed", "failed"] }).notNull().default("completed"),
+  lastIndexingJobId: varchar("last_indexing_job_id"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -308,3 +311,39 @@ export const insertKnowledgeChunkSchema = createInsertSchema(knowledgeChunks).om
 
 export type KnowledgeChunk = typeof knowledgeChunks.$inferSelect;
 export type InsertKnowledgeChunk = z.infer<typeof insertKnowledgeChunkSchema>;
+
+// Indexing Jobs - tracks async background indexing processes
+export const indexingJobs = pgTable("indexing_jobs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  chatbotId: varchar("chatbot_id").notNull().references(() => chatbots.id, { onDelete: "cascade" }),
+  status: varchar("status", { enum: ["pending", "processing", "completed", "failed", "partial"] }).notNull().default("pending"),
+  totalTasks: text("total_tasks").notNull().default("0"), // Total number of tasks (URLs + documents)
+  completedTasks: text("completed_tasks").notNull().default("0"),
+  failedTasks: text("failed_tasks").notNull().default("0"),
+  errorMessage: text("error_message"), // Overall job error if completely failed
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  startedAt: timestamp("started_at"),
+  completedAt: timestamp("completed_at"),
+});
+
+export type IndexingJob = typeof indexingJobs.$inferSelect;
+export type InsertIndexingJob = typeof indexingJobs.$inferInsert;
+
+// Indexing Tasks - individual tasks within an indexing job (one per URL or document)
+export const indexingTasks = pgTable("indexing_tasks", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  jobId: varchar("job_id").notNull().references(() => indexingJobs.id, { onDelete: "cascade" }),
+  chatbotId: varchar("chatbot_id").notNull().references(() => chatbots.id, { onDelete: "cascade" }),
+  sourceType: varchar("source_type", { enum: ["website", "document"] }).notNull(),
+  sourceUrl: text("source_url").notNull(), // URL or document path
+  status: varchar("status", { enum: ["pending", "processing", "completed", "failed"] }).notNull().default("pending"),
+  retryCount: text("retry_count").notNull().default("0"),
+  chunksCreated: text("chunks_created").notNull().default("0"), // Number of chunks created from this source
+  errorMessage: text("error_message"), // Error for this specific task
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  startedAt: timestamp("started_at"),
+  completedAt: timestamp("completed_at"),
+});
+
+export type IndexingTask = typeof indexingTasks.$inferSelect;
+export type InsertIndexingTask = typeof indexingTasks.$inferInsert;

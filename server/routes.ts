@@ -279,99 +279,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      // Use pre-indexed content if available, otherwise crawl websites
-      let websiteContent = validatedData.websiteContent || "";
-      let crawlResults: any[] = [];
-      
-      if (websiteContent) {
-        console.log("[CRAWLER] Using pre-indexed content from background job");
-        console.log(`[CRAWLER] Content length: ${websiteContent.length} characters`);
-        
-        // If urlMetadata is provided from background indexing, use it
-        if (validatedData.urlMetadata) {
-          crawlResults = validatedData.urlMetadata;
-          console.log(`[CRAWLER] Using ${crawlResults.length} URL metadata from background indexing`);
-        }
-      } else if (validatedData.websiteUrls && validatedData.websiteUrls.length > 0) {
-        console.log(`[CRAWLER] No pre-indexed content - starting recursive crawl for ${validatedData.websiteUrls.length} website(s)`);
-        console.log("[CRAWLER] URLs to crawl:", validatedData.websiteUrls);
-        console.log("[CRAWLER] Checking Playwright availability...");
-        
-        try {
-          const { chromium } = await import('playwright');
-          console.log("[CRAWLER] ✓ Playwright module loaded successfully");
-          console.log("[CRAWLER] Chromium executable:", chromium.executablePath());
-        } catch (playwrightError) {
-          console.error("[CRAWLER] ✗ Playwright not available:", playwrightError);
-          console.error("[CRAWLER] Error details:", JSON.stringify(playwrightError, null, 2));
-        }
-        
-        console.log("[CRAWLER] Starting crawl with options: maxDepth=2, maxPages=50, sameDomainOnly=true");
-        
-        try {
-          crawlResults = await crawlMultipleWebsitesRecursive(validatedData.websiteUrls, {
-            maxDepth: 2,
-            maxPages: 50,
-            sameDomainOnly: true,
-          });
-          
-          const successCount = crawlResults.filter(r => !r.error).length;
-          const errorCount = crawlResults.filter(r => r.error).length;
-          console.log(`[CRAWLER] Crawl completed: ${successCount} successful, ${errorCount} failed`);
-          
-          // Combine all successfully crawled content
-          websiteContent = crawlResults
-            .filter(result => !result.error && result.content)
-            .map(result => `URL: ${result.url}\nTitle: ${result.title || 'N/A'}\n\n${result.content}`)
-            .join('\n\n---\n\n');
-          
-          console.log(`[CRAWLER] Total content length: ${websiteContent.length} characters`);
-          
-          // Log any errors
-          crawlResults
-            .filter(result => result.error)
-            .forEach(result => {
-              console.error(`[CRAWLER] Failed to crawl ${result.url}: ${result.error}`);
-            });
-        } catch (crawlError) {
-          console.error("[CRAWLER] CRITICAL ERROR during crawl:", crawlError);
-          console.error("[CRAWLER] Stack trace:", (crawlError as Error).stack);
-          throw crawlError;
-        }
-      } else {
-        console.log("[CRAWLER] No website URLs provided, skipping crawl");
-      }
-      
+      // Create chatbot immediately
       console.log("Creating chatbot in database...");
       const chatbot = await storage.createChatbot({
         ...validatedData,
-        websiteContent,
+        websiteContent: "", // Will be populated by background indexing
       }, userId);
       
-      // PHASE 2: Create knowledge chunks if website content exists
-      if (websiteContent && websiteContent.length > 0) {
-        console.log(`[CHUNKS] Creating knowledge chunks for chatbot ${chatbot.id}...`);
+      // Process documents immediately (since text is already extracted during upload)
+      // Only URLs need async processing since crawling is slow
+      const hasDocuments = validatedData.documentContent && validatedData.documentContent.trim().length > 0;
+      if (hasDocuments) {
+        console.log(`[CHUNKS] Processing documents immediately (content already extracted)...`);
         try {
           const { chunkContent } = await import('./chunker');
           const { embeddingService } = await import('./embedding');
           
           // Split content into chunks
-          const contentChunks = chunkContent(websiteContent, {
+          const contentChunks = chunkContent(validatedData.documentContent!, {
             title: chatbot.name,
           });
           
-          console.log(`[CHUNKS] Generated ${contentChunks.length} chunks, generating embeddings...`);
+          console.log(`[CHUNKS] Generated ${contentChunks.length} chunks from documents, generating embeddings...`);
           
-          // Convert ContentChunk[] to InsertKnowledgeChunk[] with embeddings
+          // Convert chunks with embeddings
           const chunksWithEmbeddings = await Promise.all(
             contentChunks.map(async (chunk) => {
               try {
                 const embedding = await embeddingService.generateEmbedding(chunk.text);
                 return {
                   chatbotId: chatbot.id,
-                  sourceType: 'website' as const,
-                  sourceUrl: validatedData.websiteUrls?.[0] || 'Multiple URLs',
-                  sourceTitle: chatbot.name,
+                  sourceType: 'document' as const,
+                  sourceUrl: validatedData.documents?.[0] || 'Uploaded Documents',
+                  sourceTitle: validatedData.documents?.[0] || 'Documents',
                   chunkText: chunk.text,
                   chunkIndex: chunk.index.toString(),
                   contentHash: chunk.contentHash,
@@ -380,12 +320,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 };
               } catch (err) {
                 console.error(`[CHUNKS] Failed to generate embedding for chunk ${chunk.index}:`, err);
-                // Return chunk without embedding
                 return {
                   chatbotId: chatbot.id,
-                  sourceType: 'website' as const,
-                  sourceUrl: validatedData.websiteUrls?.[0] || 'Multiple URLs',
-                  sourceTitle: chatbot.name,
+                  sourceType: 'document' as const,
+                  sourceUrl: validatedData.documents?.[0] || 'Uploaded Documents',
+                  sourceTitle: validatedData.documents?.[0] || 'Documents',
                   chunkText: chunk.text,
                   chunkIndex: chunk.index.toString(),
                   contentHash: chunk.contentHash,
@@ -395,50 +334,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
             })
           );
           
-          // Store chunks in database
-          const storedChunks = await storage.createKnowledgeChunks(chunksWithEmbeddings);
-          console.log(`[CHUNKS] ✓ Stored ${storedChunks.length} chunks with embeddings`);
+          await storage.createKnowledgeChunks(chunksWithEmbeddings);
+          console.log(`[CHUNKS] ✓ Stored ${chunksWithEmbeddings.length} chunks from documents`);
         } catch (chunkError) {
-          console.error(`[CHUNKS] Failed to create chunks:`, chunkError);
-          // Don't fail chatbot creation if chunking fails
+          console.error(`[CHUNKS] Failed to process documents:`, chunkError);
+          // Don't fail chatbot creation
         }
       }
       
-      // Store initial crawl metadata for future refresh operations
-      // Only store metadata for the root URLs (not all recursive results)
-      if (validatedData.websiteUrls && validatedData.websiteUrls.length > 0 && crawlResults.length > 0) {
-        try {
-          const crawlMetadataRecords = [];
-          for (const url of validatedData.websiteUrls) {
-            // Normalize URL to match crawler's normalization
-            const normalizedUrl = normalizeUrl(url);
-            
-            // Find this URL in the crawl results using normalized comparison
-            const urlResult = crawlResults.find(r => normalizeUrl(r.url) === normalizedUrl);
-            if (urlResult && !urlResult.error && urlResult.content) {
-              const hash = calculateContentHash(urlResult.content);
-              crawlMetadataRecords.push({
-                chatbotId: chatbot.id,
-                url: normalizedUrl, // Store normalized URL
-                contentHash: hash,
-                lastCrawledAt: new Date(),
-              });
-              console.log(`[CRAWLER] Storing metadata for ${normalizedUrl} with hash ${hash.substring(0, 8)}...`);
-            } else {
-              console.warn(`[CRAWLER] No matching crawl result found for ${url} (normalized: ${normalizedUrl})`);
-            }
-          }
-          
-          if (crawlMetadataRecords.length > 0) {
-            await db.insert(urlCrawlMetadata).values(crawlMetadataRecords);
-            console.log(`[CRAWLER] ✓ Successfully stored crawl metadata for ${crawlMetadataRecords.length} URLs`);
-          } else {
-            console.warn(`[CRAWLER] No metadata records to store - check URL normalization`);
-          }
-        } catch (metaError) {
-          console.error("[CRAWLER] Failed to store crawl metadata:", metaError);
-          // Don't fail the request if metadata storage fails
-        }
+      // Create indexing job for async URL processing
+      const hasWebsiteUrls = validatedData.websiteUrls && validatedData.websiteUrls.length > 0;
+      
+      if (hasWebsiteUrls) {
+        const websiteUrls = validatedData.websiteUrls;
+        const totalTasks = websiteUrls.length;
+        
+        console.log(`[INDEXING] Creating indexing job with ${totalTasks} URL tasks`);
+        
+        // Create indexing job
+        const indexingJob = await storage.createIndexingJob(chatbot.id, totalTasks);
+        
+        // Create indexing tasks for URLs only
+        const tasks = websiteUrls.map(url => ({
+          jobId: indexingJob.id,
+          chatbotId: chatbot.id,
+          sourceType: "website" as const,
+          sourceUrl: url,
+        }));
+        
+        await storage.createIndexingTasks(tasks);
+        
+        // Update chatbot indexing status
+        await storage.updateChatbotIndexingStatus(chatbot.id, "pending", indexingJob.id);
+        
+        console.log(`[INDEXING] ✓ Created indexing job ${indexingJob.id} with ${tasks.length} URL tasks`);
+        console.log(`[INDEXING] Background worker will crawl URLs asynchronously`);
+      } else {
+        // No URLs to index, mark as completed
+        await storage.updateChatbotIndexingStatus(chatbot.id, "completed");
+        console.log("[INDEXING] No URLs to index, chatbot ready");
       }
       
       console.log("✓ Chatbot created successfully:", chatbot.id);
@@ -1626,6 +1560,50 @@ Generate 3-5 short, natural questions that would help the user learn more. Retur
         message: "Failed to process chat message"
       })}\n\n`);
       res.end();
+    }
+  });
+
+  // Get indexing status for a chatbot (protected)
+  app.get("/api/chatbots/:id/indexing-status", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const chatbotId = req.params.id;
+
+      // Verify user owns this chatbot
+      const chatbot = await storage.getChatbot(chatbotId, userId);
+      if (!chatbot) {
+        return res.status(404).json({ error: "Chatbot not found" });
+      }
+
+      // Get the latest indexing job if exists
+      let jobDetails = null;
+      if (chatbot.lastIndexingJobId) {
+        const job = await storage.getIndexingJob(chatbot.lastIndexingJobId);
+        if (job) {
+          const tasks = await storage.getIndexingTasksForJob(job.id);
+          jobDetails = {
+            ...job,
+            tasks: tasks.map(t => ({
+              id: t.id,
+              sourceType: t.sourceType,
+              sourceUrl: t.sourceUrl,
+              status: t.status,
+              chunksCreated: t.chunksCreated,
+              errorMessage: t.errorMessage,
+            })),
+          };
+        }
+      }
+
+      res.json({
+        chatbotId,
+        indexingStatus: chatbot.indexingStatus,
+        lastIndexingJobId: chatbot.lastIndexingJobId,
+        job: jobDetails,
+      });
+    } catch (error) {
+      console.error("Error fetching indexing status:", error);
+      res.status(500).json({ error: "Failed to fetch indexing status" });
     }
   });
 

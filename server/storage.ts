@@ -1,4 +1,4 @@
-import { type Chatbot, type InsertChatbot, chatbots, users, type User, type UpsertUser, type QaCache, type InsertQaCache, qaCache, type ManualQaOverride, type InsertManualQaOverride, manualQaOverrides, type ConversationRating, type InsertConversationRating, conversationRatings, type EmailNotificationSettings, type InsertEmailNotificationSettings, emailNotificationSettings, type ConversationFlow, type InsertConversationFlow, conversationFlows, type KnowledgeChunk, type InsertKnowledgeChunk, knowledgeChunks } from "@shared/schema";
+import { type Chatbot, type InsertChatbot, chatbots, users, type User, type UpsertUser, type QaCache, type InsertQaCache, qaCache, type ManualQaOverride, type InsertManualQaOverride, manualQaOverrides, type ConversationRating, type InsertConversationRating, conversationRatings, type EmailNotificationSettings, type InsertEmailNotificationSettings, emailNotificationSettings, type ConversationFlow, type InsertConversationFlow, conversationFlows, type KnowledgeChunk, type InsertKnowledgeChunk, knowledgeChunks, type IndexingJob, type InsertIndexingJob, indexingJobs, type IndexingTask, type InsertIndexingTask, indexingTasks } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sql } from "drizzle-orm";
 
@@ -59,6 +59,24 @@ export interface IStorage {
   deleteChunksForChatbot(chatbotId: string): Promise<number>;
   deleteChunksForSource(chatbotId: string, sourceUrl: string): Promise<number>;
   countChunksForChatbot(chatbotId: string): Promise<number>;
+  
+  // Indexing Job operations (Async processing)
+  createIndexingJob(chatbotId: string, totalTasks: number): Promise<IndexingJob>;
+  getIndexingJob(jobId: string): Promise<IndexingJob | undefined>;
+  getLatestIndexingJob(chatbotId: string): Promise<IndexingJob | undefined>;
+  updateIndexingJobStatus(jobId: string, status: string, errorMessage?: string): Promise<void>;
+  updateIndexingJobProgress(jobId: string, completedTasks: number, failedTasks: number): Promise<void>;
+  completeIndexingJob(jobId: string): Promise<void>;
+  
+  // Indexing Task operations
+  createIndexingTasks(tasks: InsertIndexingTask[]): Promise<IndexingTask[]>;
+  getPendingIndexingTasks(jobId: string, limit?: number): Promise<IndexingTask[]>;
+  updateIndexingTaskStatus(taskId: string, status: string, errorMessage?: string, chunksCreated?: number): Promise<void>;
+  incrementTaskRetryCount(taskId: string): Promise<void>;
+  getIndexingTasksForJob(jobId: string): Promise<IndexingTask[]>;
+  
+  // Chatbot indexing status operations
+  updateChatbotIndexingStatus(chatbotId: string, status: string, jobId?: string): Promise<void>;
 }
 
 export class DbStorage implements IStorage {
@@ -609,6 +627,147 @@ export class DbStorage implements IStorage {
       sql`SELECT COUNT(*) as count FROM ${knowledgeChunks} WHERE ${knowledgeChunks.chatbotId} = ${chatbotId}`
     );
     return parseInt(result.rows[0]?.count || '0');
+  }
+
+  // Indexing Job operations
+  async createIndexingJob(chatbotId: string, totalTasks: number): Promise<IndexingJob> {
+    const result = await db
+      .insert(indexingJobs)
+      .values({
+        chatbotId,
+        totalTasks: totalTasks.toString(),
+        status: "pending",
+      })
+      .returning();
+    return result[0];
+  }
+
+  async getIndexingJob(jobId: string): Promise<IndexingJob | undefined> {
+    const result = await db
+      .select()
+      .from(indexingJobs)
+      .where(eq(indexingJobs.id, jobId))
+      .limit(1);
+    return result[0];
+  }
+
+  async getLatestIndexingJob(chatbotId: string): Promise<IndexingJob | undefined> {
+    const result = await db
+      .select()
+      .from(indexingJobs)
+      .where(eq(indexingJobs.chatbotId, chatbotId))
+      .orderBy(desc(indexingJobs.createdAt))
+      .limit(1);
+    return result[0];
+  }
+
+  async updateIndexingJobStatus(jobId: string, status: string, errorMessage?: string): Promise<void> {
+    await db
+      .update(indexingJobs)
+      .set({ 
+        status: status as any, 
+        errorMessage,
+        ...(status === "processing" && { startedAt: new Date() }),
+        ...(["completed", "failed", "partial"].includes(status) && { completedAt: new Date() })
+      })
+      .where(eq(indexingJobs.id, jobId));
+  }
+
+  async updateIndexingJobProgress(jobId: string, completedTasks: number, failedTasks: number): Promise<void> {
+    await db
+      .update(indexingJobs)
+      .set({
+        completedTasks: completedTasks.toString(),
+        failedTasks: failedTasks.toString(),
+      })
+      .where(eq(indexingJobs.id, jobId));
+  }
+
+  async completeIndexingJob(jobId: string): Promise<void> {
+    const job = await this.getIndexingJob(jobId);
+    if (!job) return;
+
+    const totalTasks = parseInt(job.totalTasks);
+    const completedTasks = parseInt(job.completedTasks);
+    const failedTasks = parseInt(job.failedTasks);
+
+    let status = "completed";
+    if (completedTasks === 0 && failedTasks > 0) {
+      status = "failed";
+    } else if (failedTasks > 0 && completedTasks > 0) {
+      status = "partial";
+    }
+
+    await this.updateIndexingJobStatus(jobId, status);
+  }
+
+  // Indexing Task operations
+  async createIndexingTasks(tasks: InsertIndexingTask[]): Promise<IndexingTask[]> {
+    if (tasks.length === 0) return [];
+    const result = await db
+      .insert(indexingTasks)
+      .values(tasks)
+      .returning();
+    return result;
+  }
+
+  async getPendingIndexingTasks(jobId: string, limit: number = 100): Promise<IndexingTask[]> {
+    return await db
+      .select()
+      .from(indexingTasks)
+      .where(and(
+        eq(indexingTasks.jobId, jobId),
+        eq(indexingTasks.status, "pending")
+      ))
+      .limit(limit);
+  }
+
+  async updateIndexingTaskStatus(taskId: string, status: string, errorMessage?: string, chunksCreated?: number): Promise<void> {
+    await db
+      .update(indexingTasks)
+      .set({
+        status: status as any,
+        errorMessage,
+        ...(chunksCreated !== undefined && { chunksCreated: chunksCreated.toString() }),
+        ...(status === "processing" && { startedAt: new Date() }),
+        ...(["completed", "failed"].includes(status) && { completedAt: new Date() })
+      })
+      .where(eq(indexingTasks.id, taskId));
+  }
+
+  async incrementTaskRetryCount(taskId: string): Promise<void> {
+    const task = await db
+      .select({ retryCount: indexingTasks.retryCount })
+      .from(indexingTasks)
+      .where(eq(indexingTasks.id, taskId))
+      .limit(1);
+    
+    if (task[0]) {
+      const newCount = (parseInt(task[0].retryCount) + 1).toString();
+      await db
+        .update(indexingTasks)
+        .set({ retryCount: newCount })
+        .where(eq(indexingTasks.id, taskId));
+    }
+  }
+
+  async getIndexingTasksForJob(jobId: string): Promise<IndexingTask[]> {
+    return await db
+      .select()
+      .from(indexingTasks)
+      .where(eq(indexingTasks.jobId, jobId))
+      .orderBy(indexingTasks.createdAt);
+  }
+
+  // Chatbot indexing status operations
+  async updateChatbotIndexingStatus(chatbotId: string, status: string, jobId?: string): Promise<void> {
+    await db
+      .update(chatbots)
+      .set({
+        indexingStatus: status as any,
+        ...(jobId && { lastIndexingJobId: jobId })
+      })
+      .where(eq(chatbots.id, chatbotId));
   }
 }
 

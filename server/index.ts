@@ -129,7 +129,7 @@ app.use((req, res, next) => {
     port,
     host: "0.0.0.0",
     reusePort: true,
-  }, () => {
+  }, async () => {
     log(`serving on port ${port}`);
     
     // Start weekly report scheduler
@@ -147,5 +147,9 @@ app.use((req, res, next) => {
     }, SIX_HOURS);
     
     log('Weekly report scheduler started (checks every 6 hours)');
+    
+    // Start background indexing worker
+    const { startIndexingWorker } = await import('./indexing-worker');
+    startIndexingWorker();
   });
 })();
