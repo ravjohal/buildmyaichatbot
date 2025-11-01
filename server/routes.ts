@@ -348,6 +348,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
         websiteContent,
       }, userId);
       
+      // PHASE 2: Create knowledge chunks if website content exists
+      if (websiteContent && websiteContent.length > 0) {
+        console.log(`[CHUNKS] Creating knowledge chunks for chatbot ${chatbot.id}...`);
+        try {
+          const { chunkContent } = await import('./chunker');
+          const embeddingService = (await import('./embedding')).default;
+          
+          // Split content into chunks
+          const contentChunks = chunkContent(websiteContent, {
+            title: chatbot.name,
+          });
+          
+          console.log(`[CHUNKS] Generated ${contentChunks.length} chunks, generating embeddings...`);
+          
+          // Convert ContentChunk[] to InsertKnowledgeChunk[] with embeddings
+          const chunksWithEmbeddings = await Promise.all(
+            contentChunks.map(async (chunk) => {
+              try {
+                const embedding = await embeddingService.generateEmbedding(chunk.text);
+                return {
+                  chatbotId: chatbot.id,
+                  sourceType: 'website' as const,
+                  sourceUrl: validatedData.websiteUrls?.[0] || 'Multiple URLs',
+                  sourceTitle: chatbot.name,
+                  chunkText: chunk.text,
+                  chunkIndex: chunk.index.toString(),
+                  contentHash: chunk.contentHash,
+                  embedding,
+                  metadata: chunk.metadata,
+                };
+              } catch (err) {
+                console.error(`[CHUNKS] Failed to generate embedding for chunk ${chunk.index}:`, err);
+                // Return chunk without embedding
+                return {
+                  chatbotId: chatbot.id,
+                  sourceType: 'website' as const,
+                  sourceUrl: validatedData.websiteUrls?.[0] || 'Multiple URLs',
+                  sourceTitle: chatbot.name,
+                  chunkText: chunk.text,
+                  chunkIndex: chunk.index.toString(),
+                  contentHash: chunk.contentHash,
+                  metadata: chunk.metadata,
+                };
+              }
+            })
+          );
+          
+          // Store chunks in database
+          const storedChunks = await storage.createKnowledgeChunks(chunksWithEmbeddings);
+          console.log(`[CHUNKS] ✓ Stored ${storedChunks.length} chunks with embeddings`);
+        } catch (chunkError) {
+          console.error(`[CHUNKS] Failed to create chunks:`, chunkError);
+          // Don't fail chatbot creation if chunking fails
+        }
+      }
+      
       // Store initial crawl metadata for future refresh operations
       // Only store metadata for the root URLs (not all recursive results)
       if (validatedData.websiteUrls && validatedData.websiteUrls.length > 0 && crawlResults.length > 0) {
@@ -448,9 +504,81 @@ export async function registerRoutes(app: Express): Promise<Server> {
             .forEach(result => {
               console.error(`Failed to crawl ${result.url}: ${result.error}`);
             });
+          
+          // PHASE 2: Recreate knowledge chunks after knowledge base update
+          const chatbotId = req.params.id;
+          if (updateData.websiteContent && updateData.websiteContent.length > 0) {
+            console.log(`[CHUNKS] Recreating knowledge chunks for chatbot ${chatbotId}...`);
+            try {
+              // Delete old chunks first
+              const deletedCount = await storage.deleteChunksForChatbot(chatbotId);
+              console.log(`[CHUNKS] Deleted ${deletedCount} old chunks`);
+              
+              const { chunkContent } = await import('./chunker');
+              const embeddingService = (await import('./embedding')).default;
+              
+              // Get chatbot name for metadata
+              const existingChatbot = await storage.getChatbot(chatbotId, userId);
+              
+              // Split content into chunks
+              const contentChunks = chunkContent(updateData.websiteContent, {
+                title: existingChatbot?.name || 'Chatbot',
+              });
+              
+              console.log(`[CHUNKS] Generated ${contentChunks.length} chunks, generating embeddings...`);
+              
+              // Convert ContentChunk[] to InsertKnowledgeChunk[] with embeddings
+              const chunksWithEmbeddings = await Promise.all(
+                contentChunks.map(async (chunk) => {
+                  try {
+                    const embedding = await embeddingService.generateEmbedding(chunk.text);
+                    return {
+                      chatbotId,
+                      sourceType: 'website' as const,
+                      sourceUrl: validatedData.websiteUrls[0] || 'Multiple URLs',
+                      sourceTitle: existingChatbot?.name || 'Chatbot',
+                      chunkText: chunk.text,
+                      chunkIndex: chunk.index.toString(),
+                      contentHash: chunk.contentHash,
+                      embedding,
+                      metadata: chunk.metadata,
+                    };
+                  } catch (err) {
+                    console.error(`[CHUNKS] Failed to generate embedding for chunk ${chunk.index}:`, err);
+                    return {
+                      chatbotId,
+                      sourceType: 'website' as const,
+                      sourceUrl: validatedData.websiteUrls[0] || 'Multiple URLs',
+                      sourceTitle: existingChatbot?.name || 'Chatbot',
+                      chunkText: chunk.text,
+                      chunkIndex: chunk.index.toString(),
+                      contentHash: chunk.contentHash,
+                      metadata: chunk.metadata,
+                    };
+                  }
+                })
+              );
+              
+              // Store chunks in database
+              const storedChunks = await storage.createKnowledgeChunks(chunksWithEmbeddings);
+              console.log(`[CHUNKS] ✓ Stored ${storedChunks.length} new chunks with embeddings`);
+            } catch (chunkError) {
+              console.error(`[CHUNKS] Failed to recreate chunks:`, chunkError);
+              // Don't fail update if chunking fails
+            }
+          } else {
+            // Delete chunks if content was cleared
+            const deletedCount = await storage.deleteChunksForChatbot(chatbotId);
+            console.log(`[CHUNKS] Deleted ${deletedCount} chunks (content cleared)`);
+          }
         } else {
           // Clear websiteContent when all URLs are removed
           updateData.websiteContent = '';
+          
+          // Delete all chunks for this chatbot
+          const chatbotId = req.params.id;
+          const deletedCount = await storage.deleteChunksForChatbot(chatbotId);
+          console.log(`[CHUNKS] Deleted ${deletedCount} chunks (URLs removed)`);
         }
       }
       
