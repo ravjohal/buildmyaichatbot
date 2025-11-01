@@ -273,7 +273,7 @@ export async function crawlWebsiteRecursive(
         result = await crawlWithRenderer(url, staticRenderer);
         renderedWith = 'static';
 
-        console.log(`[Auto-detect] Static result for ${url}: content=${result.content.length} chars, error="${result.error}", jsPageCount=${jsPageCount}/${maxJsPages}`);
+        console.log(`[Auto-detect] Static result for ${url}: content=${result.content.length} chars${result.error ? `, error="${result.error}"` : ''}, jsPageCount=${jsPageCount}/${maxJsPages}`);
 
         const contentTooShort = result.content.length < 1000;
         const noContentExtracted = result.error === 'No content could be extracted from the page';
@@ -293,7 +293,7 @@ export async function crawlWebsiteRecursive(
             
             console.log(`[Auto-detect] Calling crawlWithRenderer with Playwright...`);
             const jsResult = await crawlWithRenderer(url, jsRenderer);
-            console.log(`[Auto-detect] Playwright result: content=${jsResult.content.length} chars, error="${jsResult.error}"`);
+            console.log(`[Auto-detect] Playwright result: content=${jsResult.content.length} chars${jsResult.error ? `, error="${jsResult.error}"` : ''}`);
             
             if (!jsResult.error && jsResult.content.length > result.content.length) {
               console.log(`JavaScript rendering yielded more content: ${jsResult.content.length} chars vs ${result.content.length} chars`);
