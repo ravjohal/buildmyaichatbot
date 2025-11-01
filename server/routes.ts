@@ -353,7 +353,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log(`[CHUNKS] Creating knowledge chunks for chatbot ${chatbot.id}...`);
         try {
           const { chunkContent } = await import('./chunker');
-          const embeddingService = (await import('./embedding')).default;
+          const { embeddingService } = await import('./embedding');
           
           // Split content into chunks
           const contentChunks = chunkContent(websiteContent, {
@@ -515,7 +515,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               console.log(`[CHUNKS] Deleted ${deletedCount} old chunks`);
               
               const { chunkContent } = await import('./chunker');
-              const embeddingService = (await import('./embedding')).default;
+              const { embeddingService } = await import('./embedding');
               
               // Get chatbot name for metadata
               const existingChatbot = await storage.getChatbot(chatbotId, userId);

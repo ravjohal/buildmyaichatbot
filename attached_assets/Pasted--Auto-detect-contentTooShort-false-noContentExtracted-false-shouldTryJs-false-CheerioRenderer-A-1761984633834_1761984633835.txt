@@ -1,0 +1,433 @@
+[Auto-detect] contentTooShort=false, noContentExtracted=false, shouldTryJs=false
+[CheerioRenderer] Attempting to render: https://www.rurkahomes.com/new-homes/california/san-joaquin-county/mountain-house/alserio-at-lakeshore/plan-4-alt/1330-n-capri-lane
+[CheerioRenderer] Validation result for https://www.rurkahomes.com/new-homes/california/san-joaquin-county/mountain-house/alserio-at-lakeshore/plan-4-alt/1330-n-capri-lane: {"valid":true}
+[Auto-detect] Static result for https://www.rurkahomes.com/new-homes/california/san-joaquin-county/mountain-house/alserio-at-lakeshore/plan-4-alt/1330-n-capri-lane: content=1317 chars, error="undefined", jsPageCount=0/20
+[Auto-detect] contentTooShort=false, noContentExtracted=false, shouldTryJs=false
+[CheerioRenderer] Attempting to render: https://www.rurkahomes.com/new-homes/california/san-joaquin-county/mountain-house/alserio-at-lakeshore/plan-4-alt/303-w-calabria-drive
+[CheerioRenderer] Validation result for https://www.rurkahomes.com/new-homes/california/san-joaquin-county/mountain-house/alserio-at-lakeshore/plan-4-alt/303-w-calabria-drive: {"valid":true}
+[Auto-detect] Static result for https://www.rurkahomes.com/new-homes/california/san-joaquin-county/mountain-house/alserio-at-lakeshore/plan-4-alt/303-w-calabria-drive: content=1305 chars, error="undefined", jsPageCount=0/20
+[Auto-detect] contentTooShort=false, noContentExtracted=false, shouldTryJs=false
+[CheerioRenderer] Attempting to render: https://www.rurkahomes.com/new-homes/california/san-joaquin-county/mountain-house/alserio-at-lakeshore/plan-5
+[CheerioRenderer] Validation result for https://www.rurkahomes.com/new-homes/california/san-joaquin-county/mountain-house/alserio-at-lakeshore/plan-5: {"valid":true}
+[Auto-detect] Static result for https://www.rurkahomes.com/new-homes/california/san-joaquin-county/mountain-house/alserio-at-lakeshore/plan-5: content=1990 chars, error="undefined", jsPageCount=0/20
+[Auto-detect] contentTooShort=false, noContentExtracted=false, shouldTryJs=false
+[CheerioRenderer] Attempting to render: https://www.rurkahomes.com/new-homes/california/san-joaquin-county/mountain-house/alserio-at-lakeshore/plan-5/319321-w-calabria-drive
+[CheerioRenderer] Validation result for https://www.rurkahomes.com/new-homes/california/san-joaquin-county/mountain-house/alserio-at-lakeshore/plan-5/319321-w-calabria-drive: {"valid":true}
+[Auto-detect] Static result for https://www.rurkahomes.com/new-homes/california/san-joaquin-county/mountain-house/alserio-at-lakeshore/plan-5/319321-w-calabria-drive: content=1408 chars, error="undefined", jsPageCount=0/20
+[Auto-detect] contentTooShort=false, noContentExtracted=false, shouldTryJs=false
+[CheerioRenderer] Attempting to render: https://www.rurkahomes.com/new-homes/california/san-joaquin-county/mountain-house/lakeshore/2681
+[CheerioRenderer] Validation result for https://www.rurkahomes.com/new-homes/california/san-joaquin-county/mountain-house/lakeshore/2681: {"valid":true}
+[Auto-detect] Static result for https://www.rurkahomes.com/new-homes/california/san-joaquin-county/mountain-house/lakeshore/2681: content=1447 chars, error="undefined", jsPageCount=0/20
+[Auto-detect] contentTooShort=false, noContentExtracted=false, shouldTryJs=false
+[CheerioRenderer] Attempting to render: https://www.rurkahomes.com/new-homes/california/san-joaquin-county/mountain-house/lakeshore/2925
+[CheerioRenderer] Validation result for https://www.rurkahomes.com/new-homes/california/san-joaquin-county/mountain-house/lakeshore/2925: {"valid":true}
+[Auto-detect] Static result for https://www.rurkahomes.com/new-homes/california/san-joaquin-county/mountain-house/lakeshore/2925: content=1669 chars, error="undefined", jsPageCount=0/20
+[Auto-detect] contentTooShort=false, noContentExtracted=false, shouldTryJs=false
+[CheerioRenderer] Attempting to render: https://www.rurkahomes.com/new-homes/california/san-joaquin-county/mountain-house/lakeshore/2925/214-w-rustica-drive
+[CheerioRenderer] Validation result for https://www.rurkahomes.com/new-homes/california/san-joaquin-county/mountain-house/lakeshore/2925/214-w-rustica-drive: {"valid":true}
+[Auto-detect] Static result for https://www.rurkahomes.com/new-homes/california/san-joaquin-county/mountain-house/lakeshore/2925/214-w-rustica-drive: content=847 chars, error="undefined", jsPageCount=0/20
+[Auto-detect] contentTooShort=true, noContentExtracted=false, shouldTryJs=true
+Content extraction failed or too short (847 chars), trying JavaScript rendering for https://www.rurkahomes.com/new-homes/california/san-joaquin-county/mountain-house/lakeshore/2925/214-w-rustica-drive
+[Auto-detect] Calling crawlWithRenderer with Playwright...
+[PlaywrightRenderer] Starting render for: https://www.rurkahomes.com/new-homes/california/san-joaquin-county/mountain-house/lakeshore/2925/214-w-rustica-drive
+[PlaywrightRenderer] Environment: development
+[PlaywrightRenderer] Platform: linux
+[PlaywrightRenderer] Architecture: x64
+[PlaywrightRenderer] Validation result: {"valid":true}
+[PlaywrightRenderer] Creating browser context...
+[PlaywrightRenderer] Page created, navigating to https://www.rurkahomes.com/new-homes/california/san-joaquin-county/mountain-house/lakeshore/2925/214-w-rustica-drive...
+[PlaywrightRenderer] ✗ RENDER ERROR for https://www.rurkahomes.com/new-homes/california/san-joaquin-county/mountain-house/lakeshore/2925/214-w-rustica-drive
+[PlaywrightRenderer] Error type: TimeoutError
+[PlaywrightRenderer] Error message: page.goto: Timeout 15000ms exceeded.
+Call log:
+  - navigating to "https://www.rurkahomes.com/new-homes/california/san-joaquin-county/mountain-house/lakeshore/2925/214-w-rustica-drive", waiting until "networkidle"
+
+[PlaywrightRenderer] Error stack: page.goto: Timeout 15000ms exceeded.
+Call log:
+  - navigating to "https://www.rurkahomes.com/new-homes/california/san-joaquin-county/mountain-house/lakeshore/2925/214-w-rustica-drive", waiting until "networkidle"
+
+    at PlaywrightRenderer.render (/home/runner/workspace/server/renderers.ts:235:18)
+    at async crawlWithRenderer (/home/runner/workspace/server/crawler.ts:24:18)
+    at async crawlWebsiteRecursive (/home/runner/workspace/server/crawler.ts:294:30)
+    at async crawlMultipleWebsitesRecursive (/home/runner/workspace/server/crawler.ts:349:21)
+    at async <anonymous> (/home/runner/workspace/server/routes.ts:312:26)
+[PlaywrightRenderer] Full error: {
+  "stack": "page.goto: Timeout 15000ms exceeded.\nCall log:\n\u001b[2m  - navigating to \"https://www.rurkahomes.com/new-homes/california/san-joaquin-county/mountain-house/lakeshore/2925/214-w-rustica-drive\", waiting until \"networkidle\"\u001b[22m\n\n    at PlaywrightRenderer.render (/home/runner/workspace/server/renderers.ts:235:18)\n    at async crawlWithRenderer (/home/runner/workspace/server/crawler.ts:24:18)\n    at async crawlWebsiteRecursive (/home/runner/workspace/server/crawler.ts:294:30)\n    at async crawlMultipleWebsitesRecursive (/home/runner/workspace/server/crawler.ts:349:21)\n    at async <anonymous> (/home/runner/workspace/server/routes.ts:312:26)",
+  "message": "page.goto: Timeout 15000ms exceeded.\nCall log:\n\u001b[2m  - navigating to \"https://www.rurkahomes.com/new-homes/california/san-joaquin-county/mountain-house/lakeshore/2925/214-w-rustica-drive\", waiting until \"networkidle\"\u001b[22m\n",
+  "name": "TimeoutError"
+}
+[Auto-detect] Playwright result: content=0 chars, error="page.goto: Timeout 15000ms exceeded.
+Call log:
+  - navigating to "https://www.rurkahomes.com/new-homes/california/san-joaquin-county/mountain-house/lakeshore/2925/214-w-rustica-drive", waiting until "networkidle"
+"
+[Auto-detect] Playwright didn't improve results, keeping static result
+[CheerioRenderer] Attempting to render: https://www.rurkahomes.com/new-homes/california/san-joaquin-county/mountain-house/lakeshore/3101
+[CheerioRenderer] Validation result for https://www.rurkahomes.com/new-homes/california/san-joaquin-county/mountain-house/lakeshore/3101: {"valid":true}
+[Auto-detect] Static result for https://www.rurkahomes.com/new-homes/california/san-joaquin-county/mountain-house/lakeshore/3101: content=1676 chars, error="undefined", jsPageCount=0/20
+[Auto-detect] contentTooShort=false, noContentExtracted=false, shouldTryJs=false
+[CheerioRenderer] Attempting to render: https://www.rurkahomes.com/new-homes/california/san-joaquin-county/mountain-house/lakeshore/3101/250252-w-rustica-drive
+[CheerioRenderer] Validation result for https://www.rurkahomes.com/new-homes/california/san-joaquin-county/mountain-house/lakeshore/3101/250252-w-rustica-drive: {"valid":true}
+[Auto-detect] Static result for https://www.rurkahomes.com/new-homes/california/san-joaquin-county/mountain-house/lakeshore/3101/250252-w-rustica-drive: content=854 chars, error="undefined", jsPageCount=0/20
+[Auto-detect] contentTooShort=true, noContentExtracted=false, shouldTryJs=true
+Content extraction failed or too short (854 chars), trying JavaScript rendering for https://www.rurkahomes.com/new-homes/california/san-joaquin-county/mountain-house/lakeshore/3101/250252-w-rustica-drive
+[Auto-detect] Calling crawlWithRenderer with Playwright...
+[PlaywrightRenderer] Starting render for: https://www.rurkahomes.com/new-homes/california/san-joaquin-county/mountain-house/lakeshore/3101/250252-w-rustica-drive
+[PlaywrightRenderer] Environment: development
+[PlaywrightRenderer] Platform: linux
+[PlaywrightRenderer] Architecture: x64
+[PlaywrightRenderer] Validation result: {"valid":true}
+[PlaywrightRenderer] Creating browser context...
+[PlaywrightRenderer] Page created, navigating to https://www.rurkahomes.com/new-homes/california/san-joaquin-county/mountain-house/lakeshore/3101/250252-w-rustica-drive...
+[PlaywrightRenderer] ✗ RENDER ERROR for https://www.rurkahomes.com/new-homes/california/san-joaquin-county/mountain-house/lakeshore/3101/250252-w-rustica-drive
+[PlaywrightRenderer] Error type: TimeoutError
+[PlaywrightRenderer] Error message: page.goto: Timeout 15000ms exceeded.
+Call log:
+  - navigating to "https://www.rurkahomes.com/new-homes/california/san-joaquin-county/mountain-house/lakeshore/3101/250252-w-rustica-drive", waiting until "networkidle"
+
+[PlaywrightRenderer] Error stack: page.goto: Timeout 15000ms exceeded.
+Call log:
+  - navigating to "https://www.rurkahomes.com/new-homes/california/san-joaquin-county/mountain-house/lakeshore/3101/250252-w-rustica-drive", waiting until "networkidle"
+
+    at PlaywrightRenderer.render (/home/runner/workspace/server/renderers.ts:235:18)
+    at async crawlWithRenderer (/home/runner/workspace/server/crawler.ts:24:18)
+    at async crawlWebsiteRecursive (/home/runner/workspace/server/crawler.ts:294:30)
+    at async crawlMultipleWebsitesRecursive (/home/runner/workspace/server/crawler.ts:349:21)
+    at async <anonymous> (/home/runner/workspace/server/routes.ts:312:26)
+[PlaywrightRenderer] Full error: {
+  "stack": "page.goto: Timeout 15000ms exceeded.\nCall log:\n\u001b[2m  - navigating to \"https://www.rurkahomes.com/new-homes/california/san-joaquin-county/mountain-house/lakeshore/3101/250252-w-rustica-drive\", waiting until \"networkidle\"\u001b[22m\n\n    at PlaywrightRenderer.render (/home/runner/workspace/server/renderers.ts:235:18)\n    at async crawlWithRenderer (/home/runner/workspace/server/crawler.ts:24:18)\n    at async crawlWebsiteRecursive (/home/runner/workspace/server/crawler.ts:294:30)\n    at async crawlMultipleWebsitesRecursive (/home/runner/workspace/server/crawler.ts:349:21)\n    at async <anonymous> (/home/runner/workspace/server/routes.ts:312:26)",
+  "message": "page.goto: Timeout 15000ms exceeded.\nCall log:\n\u001b[2m  - navigating to \"https://www.rurkahomes.com/new-homes/california/san-joaquin-county/mountain-house/lakeshore/3101/250252-w-rustica-drive\", waiting until \"networkidle\"\u001b[22m\n",
+  "name": "TimeoutError"
+}
+[Auto-detect] Playwright result: content=0 chars, error="page.goto: Timeout 15000ms exceeded.
+Call log:
+  - navigating to "https://www.rurkahomes.com/new-homes/california/san-joaquin-county/mountain-house/lakeshore/3101/250252-w-rustica-drive", waiting until "networkidle"
+"
+[Auto-detect] Playwright didn't improve results, keeping static result
+[CRAWLER] Crawl completed: 49 successful, 1 failed
+[CRAWLER] Total content length: 125786 characters
+[CRAWLER] Failed to crawl https://www.rurkahomes.com/images/RurkaCaliforniaWarranty.pdf: Failed to extract PDF text: pdf-parse module did not export a function
+Creating chatbot in database...
+[CHUNKS] Creating knowledge chunks for chatbot 4f512992-5c77-4bae-a03c-78461f5ee1ca...
+[CHUNKS] Generated 79 chunks, generating embeddings...
+[CHUNKS] Failed to generate embedding for chunk 0: TypeError: Cannot read properties of undefined (reading 'generateEmbedding')
+    at <anonymous> (/home/runner/workspace/server/routes.ts:369:58)
+    at Array.map (<anonymous>)
+    at <anonymous> (/home/runner/workspace/server/routes.ts:367:27)
+[CHUNKS] Failed to generate embedding for chunk 1: TypeError: Cannot read properties of undefined (reading 'generateEmbedding')
+    at <anonymous> (/home/runner/workspace/server/routes.ts:369:58)
+    at Array.map (<anonymous>)
+    at <anonymous> (/home/runner/workspace/server/routes.ts:367:27)
+[CHUNKS] Failed to generate embedding for chunk 2: TypeError: Cannot read properties of undefined (reading 'generateEmbedding')
+    at <anonymous> (/home/runner/workspace/server/routes.ts:369:58)
+    at Array.map (<anonymous>)
+    at <anonymous> (/home/runner/workspace/server/routes.ts:367:27)
+[CHUNKS] Failed to generate embedding for chunk 3: TypeError: Cannot read properties of undefined (reading 'generateEmbedding')
+    at <anonymous> (/home/runner/workspace/server/routes.ts:369:58)
+    at Array.map (<anonymous>)
+    at <anonymous> (/home/runner/workspace/server/routes.ts:367:27)
+[CHUNKS] Failed to generate embedding for chunk 4: TypeError: Cannot read properties of undefined (reading 'generateEmbedding')
+    at <anonymous> (/home/runner/workspace/server/routes.ts:369:58)
+    at Array.map (<anonymous>)
+    at <anonymous> (/home/runner/workspace/server/routes.ts:367:27)
+[CHUNKS] Failed to generate embedding for chunk 5: TypeError: Cannot read properties of undefined (reading 'generateEmbedding')
+    at <anonymous> (/home/runner/workspace/server/routes.ts:369:58)
+    at Array.map (<anonymous>)
+    at <anonymous> (/home/runner/workspace/server/routes.ts:367:27)
+[CHUNKS] Failed to generate embedding for chunk 6: TypeError: Cannot read properties of undefined (reading 'generateEmbedding')
+    at <anonymous> (/home/runner/workspace/server/routes.ts:369:58)
+    at Array.map (<anonymous>)
+    at <anonymous> (/home/runner/workspace/server/routes.ts:367:27)
+[CHUNKS] Failed to generate embedding for chunk 7: TypeError: Cannot read properties of undefined (reading 'generateEmbedding')
+    at <anonymous> (/home/runner/workspace/server/routes.ts:369:58)
+    at Array.map (<anonymous>)
+    at <anonymous> (/home/runner/workspace/server/routes.ts:367:27)
+[CHUNKS] Failed to generate embedding for chunk 8: TypeError: Cannot read properties of undefined (reading 'generateEmbedding')
+    at <anonymous> (/home/runner/workspace/server/routes.ts:369:58)
+    at Array.map (<anonymous>)
+    at <anonymous> (/home/runner/workspace/server/routes.ts:367:27)
+[CHUNKS] Failed to generate embedding for chunk 9: TypeError: Cannot read properties of undefined (reading 'generateEmbedding')
+    at <anonymous> (/home/runner/workspace/server/routes.ts:369:58)
+    at Array.map (<anonymous>)
+    at <anonymous> (/home/runner/workspace/server/routes.ts:367:27)
+[CHUNKS] Failed to generate embedding for chunk 10: TypeError: Cannot read properties of undefined (reading 'generateEmbedding')
+    at <anonymous> (/home/runner/workspace/server/routes.ts:369:58)
+    at Array.map (<anonymous>)
+    at <anonymous> (/home/runner/workspace/server/routes.ts:367:27)
+[CHUNKS] Failed to generate embedding for chunk 11: TypeError: Cannot read properties of undefined (reading 'generateEmbedding')
+    at <anonymous> (/home/runner/workspace/server/routes.ts:369:58)
+    at Array.map (<anonymous>)
+    at <anonymous> (/home/runner/workspace/server/routes.ts:367:27)
+[CHUNKS] Failed to generate embedding for chunk 12: TypeError: Cannot read properties of undefined (reading 'generateEmbedding')
+    at <anonymous> (/home/runner/workspace/server/routes.ts:369:58)
+    at Array.map (<anonymous>)
+    at <anonymous> (/home/runner/workspace/server/routes.ts:367:27)
+[CHUNKS] Failed to generate embedding for chunk 13: TypeError: Cannot read properties of undefined (reading 'generateEmbedding')
+    at <anonymous> (/home/runner/workspace/server/routes.ts:369:58)
+    at Array.map (<anonymous>)
+    at <anonymous> (/home/runner/workspace/server/routes.ts:367:27)
+[CHUNKS] Failed to generate embedding for chunk 14: TypeError: Cannot read properties of undefined (reading 'generateEmbedding')
+    at <anonymous> (/home/runner/workspace/server/routes.ts:369:58)
+    at Array.map (<anonymous>)
+    at <anonymous> (/home/runner/workspace/server/routes.ts:367:27)
+[CHUNKS] Failed to generate embedding for chunk 15: TypeError: Cannot read properties of undefined (reading 'generateEmbedding')
+    at <anonymous> (/home/runner/workspace/server/routes.ts:369:58)
+    at Array.map (<anonymous>)
+    at <anonymous> (/home/runner/workspace/server/routes.ts:367:27)
+[CHUNKS] Failed to generate embedding for chunk 16: TypeError: Cannot read properties of undefined (reading 'generateEmbedding')
+    at <anonymous> (/home/runner/workspace/server/routes.ts:369:58)
+    at Array.map (<anonymous>)
+    at <anonymous> (/home/runner/workspace/server/routes.ts:367:27)
+[CHUNKS] Failed to generate embedding for chunk 17: TypeError: Cannot read properties of undefined (reading 'generateEmbedding')
+    at <anonymous> (/home/runner/workspace/server/routes.ts:369:58)
+    at Array.map (<anonymous>)
+    at <anonymous> (/home/runner/workspace/server/routes.ts:367:27)
+[CHUNKS] Failed to generate embedding for chunk 18: TypeError: Cannot read properties of undefined (reading 'generateEmbedding')
+    at <anonymous> (/home/runner/workspace/server/routes.ts:369:58)
+    at Array.map (<anonymous>)
+    at <anonymous> (/home/runner/workspace/server/routes.ts:367:27)
+[CHUNKS] Failed to generate embedding for chunk 19: TypeError: Cannot read properties of undefined (reading 'generateEmbedding')
+    at <anonymous> (/home/runner/workspace/server/routes.ts:369:58)
+    at Array.map (<anonymous>)
+    at <anonymous> (/home/runner/workspace/server/routes.ts:367:27)
+[CHUNKS] Failed to generate embedding for chunk 20: TypeError: Cannot read properties of undefined (reading 'generateEmbedding')
+    at <anonymous> (/home/runner/workspace/server/routes.ts:369:58)
+    at Array.map (<anonymous>)
+    at <anonymous> (/home/runner/workspace/server/routes.ts:367:27)
+[CHUNKS] Failed to generate embedding for chunk 21: TypeError: Cannot read properties of undefined (reading 'generateEmbedding')
+    at <anonymous> (/home/runner/workspace/server/routes.ts:369:58)
+    at Array.map (<anonymous>)
+    at <anonymous> (/home/runner/workspace/server/routes.ts:367:27)
+[CHUNKS] Failed to generate embedding for chunk 22: TypeError: Cannot read properties of undefined (reading 'generateEmbedding')
+    at <anonymous> (/home/runner/workspace/server/routes.ts:369:58)
+    at Array.map (<anonymous>)
+    at <anonymous> (/home/runner/workspace/server/routes.ts:367:27)
+[CHUNKS] Failed to generate embedding for chunk 23: TypeError: Cannot read properties of undefined (reading 'generateEmbedding')
+    at <anonymous> (/home/runner/workspace/server/routes.ts:369:58)
+    at Array.map (<anonymous>)
+    at <anonymous> (/home/runner/workspace/server/routes.ts:367:27)
+[CHUNKS] Failed to generate embedding for chunk 24: TypeError: Cannot read properties of undefined (reading 'generateEmbedding')
+    at <anonymous> (/home/runner/workspace/server/routes.ts:369:58)
+    at Array.map (<anonymous>)
+    at <anonymous> (/home/runner/workspace/server/routes.ts:367:27)
+[CHUNKS] Failed to generate embedding for chunk 25: TypeError: Cannot read properties of undefined (reading 'generateEmbedding')
+    at <anonymous> (/home/runner/workspace/server/routes.ts:369:58)
+    at Array.map (<anonymous>)
+    at <anonymous> (/home/runner/workspace/server/routes.ts:367:27)
+[CHUNKS] Failed to generate embedding for chunk 26: TypeError: Cannot read properties of undefined (reading 'generateEmbedding')
+    at <anonymous> (/home/runner/workspace/server/routes.ts:369:58)
+    at Array.map (<anonymous>)
+    at <anonymous> (/home/runner/workspace/server/routes.ts:367:27)
+[CHUNKS] Failed to generate embedding for chunk 27: TypeError: Cannot read properties of undefined (reading 'generateEmbedding')
+    at <anonymous> (/home/runner/workspace/server/routes.ts:369:58)
+    at Array.map (<anonymous>)
+    at <anonymous> (/home/runner/workspace/server/routes.ts:367:27)
+[CHUNKS] Failed to generate embedding for chunk 28: TypeError: Cannot read properties of undefined (reading 'generateEmbedding')
+    at <anonymous> (/home/runner/workspace/server/routes.ts:369:58)
+    at Array.map (<anonymous>)
+    at <anonymous> (/home/runner/workspace/server/routes.ts:367:27)
+[CHUNKS] Failed to generate embedding for chunk 29: TypeError: Cannot read properties of undefined (reading 'generateEmbedding')
+    at <anonymous> (/home/runner/workspace/server/routes.ts:369:58)
+    at Array.map (<anonymous>)
+    at <anonymous> (/home/runner/workspace/server/routes.ts:367:27)
+[CHUNKS] Failed to generate embedding for chunk 30: TypeError: Cannot read properties of undefined (reading 'generateEmbedding')
+    at <anonymous> (/home/runner/workspace/server/routes.ts:369:58)
+    at Array.map (<anonymous>)
+    at <anonymous> (/home/runner/workspace/server/routes.ts:367:27)
+[CHUNKS] Failed to generate embedding for chunk 31: TypeError: Cannot read properties of undefined (reading 'generateEmbedding')
+    at <anonymous> (/home/runner/workspace/server/routes.ts:369:58)
+    at Array.map (<anonymous>)
+    at <anonymous> (/home/runner/workspace/server/routes.ts:367:27)
+[CHUNKS] Failed to generate embedding for chunk 32: TypeError: Cannot read properties of undefined (reading 'generateEmbedding')
+    at <anonymous> (/home/runner/workspace/server/routes.ts:369:58)
+    at Array.map (<anonymous>)
+    at <anonymous> (/home/runner/workspace/server/routes.ts:367:27)
+[CHUNKS] Failed to generate embedding for chunk 33: TypeError: Cannot read properties of undefined (reading 'generateEmbedding')
+    at <anonymous> (/home/runner/workspace/server/routes.ts:369:58)
+    at Array.map (<anonymous>)
+    at <anonymous> (/home/runner/workspace/server/routes.ts:367:27)
+[CHUNKS] Failed to generate embedding for chunk 34: TypeError: Cannot read properties of undefined (reading 'generateEmbedding')
+    at <anonymous> (/home/runner/workspace/server/routes.ts:369:58)
+    at Array.map (<anonymous>)
+    at <anonymous> (/home/runner/workspace/server/routes.ts:367:27)
+[CHUNKS] Failed to generate embedding for chunk 35: TypeError: Cannot read properties of undefined (reading 'generateEmbedding')
+    at <anonymous> (/home/runner/workspace/server/routes.ts:369:58)
+    at Array.map (<anonymous>)
+    at <anonymous> (/home/runner/workspace/server/routes.ts:367:27)
+[CHUNKS] Failed to generate embedding for chunk 36: TypeError: Cannot read properties of undefined (reading 'generateEmbedding')
+    at <anonymous> (/home/runner/workspace/server/routes.ts:369:58)
+    at Array.map (<anonymous>)
+    at <anonymous> (/home/runner/workspace/server/routes.ts:367:27)
+[CHUNKS] Failed to generate embedding for chunk 37: TypeError: Cannot read properties of undefined (reading 'generateEmbedding')
+    at <anonymous> (/home/runner/workspace/server/routes.ts:369:58)
+    at Array.map (<anonymous>)
+    at <anonymous> (/home/runner/workspace/server/routes.ts:367:27)
+[CHUNKS] Failed to generate embedding for chunk 38: TypeError: Cannot read properties of undefined (reading 'generateEmbedding')
+    at <anonymous> (/home/runner/workspace/server/routes.ts:369:58)
+    at Array.map (<anonymous>)
+    at <anonymous> (/home/runner/workspace/server/routes.ts:367:27)
+[CHUNKS] Failed to generate embedding for chunk 39: TypeError: Cannot read properties of undefined (reading 'generateEmbedding')
+    at <anonymous> (/home/runner/workspace/server/routes.ts:369:58)
+    at Array.map (<anonymous>)
+    at <anonymous> (/home/runner/workspace/server/routes.ts:367:27)
+[CHUNKS] Failed to generate embedding for chunk 40: TypeError: Cannot read properties of undefined (reading 'generateEmbedding')
+    at <anonymous> (/home/runner/workspace/server/routes.ts:369:58)
+    at Array.map (<anonymous>)
+    at <anonymous> (/home/runner/workspace/server/routes.ts:367:27)
+[CHUNKS] Failed to generate embedding for chunk 41: TypeError: Cannot read properties of undefined (reading 'generateEmbedding')
+    at <anonymous> (/home/runner/workspace/server/routes.ts:369:58)
+    at Array.map (<anonymous>)
+    at <anonymous> (/home/runner/workspace/server/routes.ts:367:27)
+[CHUNKS] Failed to generate embedding for chunk 42: TypeError: Cannot read properties of undefined (reading 'generateEmbedding')
+    at <anonymous> (/home/runner/workspace/server/routes.ts:369:58)
+    at Array.map (<anonymous>)
+    at <anonymous> (/home/runner/workspace/server/routes.ts:367:27)
+[CHUNKS] Failed to generate embedding for chunk 43: TypeError: Cannot read properties of undefined (reading 'generateEmbedding')
+    at <anonymous> (/home/runner/workspace/server/routes.ts:369:58)
+    at Array.map (<anonymous>)
+    at <anonymous> (/home/runner/workspace/server/routes.ts:367:27)
+[CHUNKS] Failed to generate embedding for chunk 44: TypeError: Cannot read properties of undefined (reading 'generateEmbedding')
+    at <anonymous> (/home/runner/workspace/server/routes.ts:369:58)
+    at Array.map (<anonymous>)
+    at <anonymous> (/home/runner/workspace/server/routes.ts:367:27)
+[CHUNKS] Failed to generate embedding for chunk 45: TypeError: Cannot read properties of undefined (reading 'generateEmbedding')
+    at <anonymous> (/home/runner/workspace/server/routes.ts:369:58)
+    at Array.map (<anonymous>)
+    at <anonymous> (/home/runner/workspace/server/routes.ts:367:27)
+[CHUNKS] Failed to generate embedding for chunk 46: TypeError: Cannot read properties of undefined (reading 'generateEmbedding')
+    at <anonymous> (/home/runner/workspace/server/routes.ts:369:58)
+    at Array.map (<anonymous>)
+    at <anonymous> (/home/runner/workspace/server/routes.ts:367:27)
+[CHUNKS] Failed to generate embedding for chunk 47: TypeError: Cannot read properties of undefined (reading 'generateEmbedding')
+    at <anonymous> (/home/runner/workspace/server/routes.ts:369:58)
+    at Array.map (<anonymous>)
+    at <anonymous> (/home/runner/workspace/server/routes.ts:367:27)
+[CHUNKS] Failed to generate embedding for chunk 48: TypeError: Cannot read properties of undefined (reading 'generateEmbedding')
+    at <anonymous> (/home/runner/workspace/server/routes.ts:369:58)
+    at Array.map (<anonymous>)
+    at <anonymous> (/home/runner/workspace/server/routes.ts:367:27)
+[CHUNKS] Failed to generate embedding for chunk 49: TypeError: Cannot read properties of undefined (reading 'generateEmbedding')
+    at <anonymous> (/home/runner/workspace/server/routes.ts:369:58)
+    at Array.map (<anonymous>)
+    at <anonymous> (/home/runner/workspace/server/routes.ts:367:27)
+[CHUNKS] Failed to generate embedding for chunk 50: TypeError: Cannot read properties of undefined (reading 'generateEmbedding')
+    at <anonymous> (/home/runner/workspace/server/routes.ts:369:58)
+    at Array.map (<anonymous>)
+    at <anonymous> (/home/runner/workspace/server/routes.ts:367:27)
+[CHUNKS] Failed to generate embedding for chunk 51: TypeError: Cannot read properties of undefined (reading 'generateEmbedding')
+    at <anonymous> (/home/runner/workspace/server/routes.ts:369:58)
+    at Array.map (<anonymous>)
+    at <anonymous> (/home/runner/workspace/server/routes.ts:367:27)
+[CHUNKS] Failed to generate embedding for chunk 52: TypeError: Cannot read properties of undefined (reading 'generateEmbedding')
+    at <anonymous> (/home/runner/workspace/server/routes.ts:369:58)
+    at Array.map (<anonymous>)
+    at <anonymous> (/home/runner/workspace/server/routes.ts:367:27)
+[CHUNKS] Failed to generate embedding for chunk 53: TypeError: Cannot read properties of undefined (reading 'generateEmbedding')
+    at <anonymous> (/home/runner/workspace/server/routes.ts:369:58)
+    at Array.map (<anonymous>)
+    at <anonymous> (/home/runner/workspace/server/routes.ts:367:27)
+[CHUNKS] Failed to generate embedding for chunk 54: TypeError: Cannot read properties of undefined (reading 'generateEmbedding')
+    at <anonymous> (/home/runner/workspace/server/routes.ts:369:58)
+    at Array.map (<anonymous>)
+    at <anonymous> (/home/runner/workspace/server/routes.ts:367:27)
+[CHUNKS] Failed to generate embedding for chunk 55: TypeError: Cannot read properties of undefined (reading 'generateEmbedding')
+    at <anonymous> (/home/runner/workspace/server/routes.ts:369:58)
+    at Array.map (<anonymous>)
+    at <anonymous> (/home/runner/workspace/server/routes.ts:367:27)
+[CHUNKS] Failed to generate embedding for chunk 56: TypeError: Cannot read properties of undefined (reading 'generateEmbedding')
+    at <anonymous> (/home/runner/workspace/server/routes.ts:369:58)
+    at Array.map (<anonymous>)
+    at <anonymous> (/home/runner/workspace/server/routes.ts:367:27)
+[CHUNKS] Failed to generate embedding for chunk 57: TypeError: Cannot read properties of undefined (reading 'generateEmbedding')
+    at <anonymous> (/home/runner/workspace/server/routes.ts:369:58)
+    at Array.map (<anonymous>)
+    at <anonymous> (/home/runner/workspace/server/routes.ts:367:27)
+[CHUNKS] Failed to generate embedding for chunk 58: TypeError: Cannot read properties of undefined (reading 'generateEmbedding')
+    at <anonymous> (/home/runner/workspace/server/routes.ts:369:58)
+    at Array.map (<anonymous>)
+    at <anonymous> (/home/runner/workspace/server/routes.ts:367:27)
+[CHUNKS] Failed to generate embedding for chunk 59: TypeError: Cannot read properties of undefined (reading 'generateEmbedding')
+    at <anonymous> (/home/runner/workspace/server/routes.ts:369:58)
+    at Array.map (<anonymous>)
+    at <anonymous> (/home/runner/workspace/server/routes.ts:367:27)
+[CHUNKS] Failed to generate embedding for chunk 60: TypeError: Cannot read properties of undefined (reading 'generateEmbedding')
+    at <anonymous> (/home/runner/workspace/server/routes.ts:369:58)
+    at Array.map (<anonymous>)
+    at <anonymous> (/home/runner/workspace/server/routes.ts:367:27)
+[CHUNKS] Failed to generate embedding for chunk 61: TypeError: Cannot read properties of undefined (reading 'generateEmbedding')
+    at <anonymous> (/home/runner/workspace/server/routes.ts:369:58)
+    at Array.map (<anonymous>)
+    at <anonymous> (/home/runner/workspace/server/routes.ts:367:27)
+[CHUNKS] Failed to generate embedding for chunk 62: TypeError: Cannot read properties of undefined (reading 'generateEmbedding')
+    at <anonymous> (/home/runner/workspace/server/routes.ts:369:58)
+    at Array.map (<anonymous>)
+    at <anonymous> (/home/runner/workspace/server/routes.ts:367:27)
+[CHUNKS] Failed to generate embedding for chunk 63: TypeError: Cannot read properties of undefined (reading 'generateEmbedding')
+    at <anonymous> (/home/runner/workspace/server/routes.ts:369:58)
+    at Array.map (<anonymous>)
+    at <anonymous> (/home/runner/workspace/server/routes.ts:367:27)
+[CHUNKS] Failed to generate embedding for chunk 64: TypeError: Cannot read properties of undefined (reading 'generateEmbedding')
+    at <anonymous> (/home/runner/workspace/server/routes.ts:369:58)
+    at Array.map (<anonymous>)
+    at <anonymous> (/home/runner/workspace/server/routes.ts:367:27)
+[CHUNKS] Failed to generate embedding for chunk 65: TypeError: Cannot read properties of undefined (reading 'generateEmbedding')
+    at <anonymous> (/home/runner/workspace/server/routes.ts:369:58)
+    at Array.map (<anonymous>)
+    at <anonymous> (/home/runner/workspace/server/routes.ts:367:27)
+[CHUNKS] Failed to generate embedding for chunk 66: TypeError: Cannot read properties of undefined (reading 'generateEmbedding')
+    at <anonymous> (/home/runner/workspace/server/routes.ts:369:58)
+    at Array.map (<anonymous>)
+    at <anonymous> (/home/runner/workspace/server/routes.ts:367:27)
+[CHUNKS] Failed to generate embedding for chunk 67: TypeError: Cannot read properties of undefined (reading 'generateEmbedding')
+    at <anonymous> (/home/runner/workspace/server/routes.ts:369:58)
+    at Array.map (<anonymous>)
+    at <anonymous> (/home/runner/workspace/server/routes.ts:367:27)
+[CHUNKS] Failed to generate embedding for chunk 68: TypeError: Cannot read properties of undefined (reading 'generateEmbedding')
+    at <anonymous> (/home/runner/workspace/server/routes.ts:369:58)
+    at Array.map (<anonymous>)
+    at <anonymous> (/home/runner/workspace/server/routes.ts:367:27)
+[CHUNKS] Failed to generate embedding for chunk 69: TypeError: Cannot read properties of undefined (reading 'generateEmbedding')
+    at <anonymous> (/home/runner/workspace/server/routes.ts:369:58)
+    at Array.map (<anonymous>)
+    at <anonymous> (/home/runner/workspace/server/routes.ts:367:27)
+[CHUNKS] Failed to generate embedding for chunk 70: TypeError: Cannot read properties of undefined (reading 'generateEmbedding')
+    at <anonymous> (/home/runner/workspace/server/routes.ts:369:58)
+    at Array.map (<anonymous>)
+    at <anonymous> (/home/runner/workspace/server/routes.ts:367:27)
+[CHUNKS] Failed to generate embedding for chunk 71: TypeError: Cannot read properties of undefined (reading 'generateEmbedding')
+    at <anonymous> (/home/runner/workspace/server/routes.ts:369:58)
+    at Array.map (<anonymous>)
+    at <anonymous> (/home/runner/workspace/server/routes.ts:367:27)
+[CHUNKS] Failed to generate embedding for chunk 72: TypeError: Cannot read properties of undefined (reading 'generateEmbedding')
+    at <anonymous> (/home/runner/workspace/server/routes.ts:369:58)
+    at Array.map (<anonymous>)
+    at <anonymous> (/home/runner/workspace/server/routes.ts:367:27)
+[CHUNKS] Failed to generate embedding for chunk 73: TypeError: Cannot read properties of undefined (reading 'generateEmbedding')
+    at <anonymous> (/home/runner/workspace/server/routes.ts:369:58)
+    at Array.map (<anonymous>)
+    at <anonymous> (/home/runner/workspace/server/routes.ts:367:27)
+[CHUNKS] Failed to generate embedding for chunk 74: TypeError: Cannot read properties of undefined (reading 'generateEmbedding')
+    at <anonymous> (/home/runner/workspace/server/routes.ts:369:58)
+    at Array.map (<anonymous>)
+    at <anonymous> (/home/runner/workspace/server/routes.ts:367:27)
+[CHUNKS] Failed to generate embedding for chunk 75: TypeError: Cannot read properties of undefined (reading 'generateEmbedding')
+    at <anonymous> (/home/runner/workspace/server/routes.ts:369:58)
+    at Array.map (<anonymous>)
+    at <anonymous> (/home/runner/workspace/server/routes.ts:367:27)
+[CHUNKS] Failed to generate embedding for chunk 76: TypeError: Cannot read properties of undefined (reading 'generateEmbedding')
+    at <anonymous> (/home/runner/workspace/server/routes.ts:369:58)
+    at Array.map (<anonymous>)
+    at <anonymous> (/home/runner/workspace/server/routes.ts:367:27)
+[CHUNKS] Failed to generate embedding for chunk 77: TypeError: Cannot read properties of undefined (reading 'generateEmbedding')
+    at <anonymous> (/home/runner/workspace/server/routes.ts:369:58)
+    at Array.map (<anonymous>)
+    at <anonymous> (/home/runner/workspace/server/routes.ts:367:27)
+[CHUNKS] Failed to generate embedding for chunk 78: TypeError: Cannot read properties of undefined (reading 'generateEmbedding')
+    at <anonymous> (/home/runner/workspace/server/routes.ts:369:58)
+    at Array.map (<anonymous>)
+    at <anonymous> (/home/runner/workspace/server/routes.ts:367:27)
+[CHUNKS] ✓ Stored 79 chunks with embeddings
+[CRAWLER] Failed to store crawl metadata: ReferenceError: require is not defined
+    at calculateContentHash (/home/runner/workspace/server/crawler.ts:358:18)
+    at <anonymous> (/home/runner/workspace/server/routes.ts:419:28)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+✓ Chatbot created successfully: 4f512992-5c77-4bae-a03c-78461f5ee1ca

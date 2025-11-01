@@ -1,4 +1,5 @@
 import * as cheerio from 'cheerio';
+import crypto from 'crypto';
 import { CheerioRenderer, PlaywrightRenderer, PageRenderer } from './renderers';
 
 export interface CrawlResult {
@@ -355,7 +356,6 @@ export async function crawlMultipleWebsitesRecursive(
 
 // Calculate MD5 hash of content for change detection
 export function calculateContentHash(content: string): string {
-  const crypto = require('crypto');
   return crypto.createHash('md5').update(content).digest('hex');
 }
 
