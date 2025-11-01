@@ -1389,11 +1389,12 @@ Generate 3-5 short, natural questions that would help the user learn more. Retur
               console.log(`[STREAMING] Chunk ${idx + 1}: ${chunk.chunkText.length} chars - ${chunk.chunkText.substring(0, 80)}...`);
             });
             
-            // Build context from relevant chunks
+            // Build context from relevant chunks with clear URL references
             knowledgeContext = relevantChunks
               .map((chunk, idx) => {
-                const source = chunk.sourceTitle || chunk.sourceUrl;
-                return `[Chunk ${idx + 1} - ${source}]\n${chunk.chunkText}`;
+                const sourceUrl = chunk.sourceUrl || '';
+                const sourceTitle = chunk.sourceTitle || 'Website';
+                return `[Source ${idx + 1}: ${sourceUrl}]\nTitle: ${sourceTitle}\nContent: ${chunk.chunkText}`;
               })
               .join('\n\n---\n\n');
             
@@ -1484,7 +1485,14 @@ ${conversationContext || "No previous conversation."}
 
 User Question: ${message}
 
-Please answer based on the knowledge base provided. If you cannot find the answer in the knowledge base, politely let the user know and suggest they contact support${chatbot.supportPhoneNumber ? ` at ${chatbot.supportPhoneNumber}` : ""}.`;
+IMPORTANT INSTRUCTIONS:
+1. Answer based on the knowledge base provided above
+2. When referencing where users can find information (e.g., "where to view floor plans", "where can I see X"), ONLY mention the source URLs - do NOT include the chunk content text in your response
+3. Keep responses concise and natural
+4. If you cannot find the answer in the knowledge base, politely let the user know and suggest they contact support${chatbot.supportPhoneNumber ? ` at ${chatbot.supportPhoneNumber}` : ""}
+
+Example of correct URL reference: "You can view floor plans at https://example.com/floor-plans"
+Example of incorrect reference: "You can view floor plans at [includes chunk content here]"`;
 
           // Stream the main response
           let fullResponse = "";
