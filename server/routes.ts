@@ -14,6 +14,7 @@ import Stripe from "stripe";
 import crypto from "crypto";
 import { embeddingService } from "./embedding";
 import { notificationService } from "./emails/notification-service";
+import { TIER_LIMITS, canSendMessage } from "@shared/pricing";
 
 const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
 const upload = multer({ 
@@ -263,19 +264,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const validatedData = insertChatbotSchema.parse(req.body);
       console.log("Data validated successfully");
       
-      // Check if free tier user already has a chatbot (limit: 1 chatbot for free tier)
-      // Admins bypass all limits
+      // Check tier-based chatbot limits (admins bypass all limits)
       const user = await storage.getUser(userId);
       console.log("User tier:", user?.subscriptionTier, "Is admin:", user?.isAdmin);
       
-      if (user && user.subscriptionTier !== "paid" && user.isAdmin !== "true") {
-        const existingChatbots = await storage.getAllChatbots(userId);
-        if (existingChatbots.length >= 1) {
-          console.log("User hit free tier chatbot limit");
-          return res.status(403).json({
-            error: "Upgrade required",
-            message: "Free tier is limited to 1 chatbot. Upgrade to Pro to create unlimited chatbots."
-          });
+      if (user && user.isAdmin !== "true") {
+        const tier = user.subscriptionTier;
+        const limits = TIER_LIMITS[tier];
+        
+        // Check if user has reached their tier's chatbot limit
+        if (limits.chatbots !== -1) { // -1 means unlimited
+          const existingChatbots = await storage.getAllChatbots(userId);
+          if (existingChatbots.length >= limits.chatbots) {
+            const nextTier = tier === "free" ? "Pro" : "Scale";
+            const nextLimit = tier === "free" ? "5 chatbots" : "unlimited chatbots";
+            console.log(`User hit ${tier} tier chatbot limit (${limits.chatbots})`);
+            return res.status(403).json({
+              error: "Upgrade required",
+              message: `${tier === "free" ? "Free" : "Pro"} tier is limited to ${limits.chatbots} chatbot${limits.chatbots === 1 ? "" : "s"}. Upgrade to ${nextTier} for ${nextLimit}.`
+            });
+          }
         }
       }
       
@@ -399,19 +407,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.id;
       const validatedData = insertChatbotSchema.partial().parse(req.body);
       
-      // Check if user is trying to update Pro-only features (colors, logo)
-      // Admins bypass all restrictions
-      const isUpdatingProFeatures = validatedData.primaryColor || validatedData.accentColor || validatedData.logoUrl;
-      
-      if (isUpdatingProFeatures) {
-        const user = await storage.getUser(userId);
-        if (!user || (user.subscriptionTier !== "paid" && user.isAdmin !== "true")) {
-          return res.status(403).json({ 
-            error: "Upgrade required",
-            message: "Color and logo customization is only available on the Pro plan. Please upgrade to access this feature."
-          });
-        }
-      }
+      // Note: Custom colors and logo are available for all tiers per pricing structure
+      // No tier restrictions needed here
       
       // If websiteUrls are being updated, re-crawl them or clear content
       let updateData = { ...validatedData };
@@ -699,19 +696,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Update chatbot with uploaded logo URL (protected - Pro plan only)
+  // Update chatbot with uploaded logo URL (available for all tiers)
   app.put("/api/chatbots/:id/logo", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id;
-      
-      // Verify user has paid subscription for logo customization
-      const user = await storage.getUser(userId);
-      if (!user || user.subscriptionTier !== "paid") {
-        return res.status(403).json({ 
-          error: "Upgrade required",
-          message: "Logo customization is only available on the Pro plan. Please upgrade to access this feature."
-        });
-      }
       
       if (!req.body.logoURL) {
         return res.status(400).json({ error: "logoURL is required" });
@@ -735,6 +723,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Upload and process documents (protected)
   app.post("/api/documents/upload", isAuthenticated, upload.single('file'), async (req: any, res) => {
     try {
+      const userId = req.user.id;
+      
       if (!req.file) {
         return res.status(400).json({ error: "No file uploaded" });
       }
@@ -749,6 +739,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ 
           error: `File too large. Maximum file size is ${MAX_FILE_SIZE / 1024 / 1024}MB.` 
         });
+      }
+      
+      // Atomically check and update knowledge base size (admins bypass)
+      const user = await storage.getUser(userId);
+      if (user && user.isAdmin !== "true") {
+        const tier = user.subscriptionTier;
+        const limits = TIER_LIMITS[tier];
+        const additionalSizeMB = file.size / (1024 * 1024); // Convert bytes to MB
+        
+        // Use atomic check-and-update to prevent race conditions
+        const sizeCheckResult = await storage.atomicCheckAndUpdateKnowledgeBaseSize(
+          userId, 
+          additionalSizeMB, 
+          limits.knowledgeBaseSizeMB
+        );
+        
+        if (!sizeCheckResult.success) {
+          const nextTier = tier === "free" ? "Pro (1GB)" : tier === "pro" ? "Scale (5GB)" : null;
+          const upgradeMsg = nextTier ? ` Upgrade to ${nextTier} for more storage.` : "";
+          return res.status(403).json({
+            error: "Storage limit exceeded",
+            message: `Your ${tier} tier allows ${limits.knowledgeBaseSizeMB}MB of knowledge base storage. You're currently using ${sizeCheckResult.currentSizeMB.toFixed(2)}MB.${upgradeMsg}`
+          });
+        }
+        
+        // Size has been atomically updated, continue with upload
+        console.log(`[Document Upload] Knowledge base size updated: ${sizeCheckResult.currentSizeMB.toFixed(2)}MB`);
       }
 
       // Validate file type
@@ -801,8 +818,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const objectPath = objectStorageService.extractObjectPath(uploadURL);
 
       // Upload the file buffer directly to object storage
-      const storage = objectStorageService.getObjectEntityFile(objectPath);
-      await storage.save(file.buffer, {
+      const objectFile = objectStorageService.getObjectEntityFile(objectPath);
+      await objectFile.save(file.buffer, {
         contentType: file.mimetype,
         metadata: {
           originalName: file.originalname,
@@ -948,19 +965,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Chatbot not found" });
       }
 
-      // Check chatbot owner's subscription tier and enforce free tier limits
+      // Check chatbot owner's subscription tier and enforce limits
       // Admins bypass all limits
       const ownerResult = await db.select().from(users).where(eq(users.id, chatbot.userId)).limit(1);
       const owner = ownerResult[0];
       
-      if (owner && owner.subscriptionTier === "free" && owner.isAdmin !== "true") {
-        const currentQuestionCount = parseInt(chatbot.questionCount);
-        if (currentQuestionCount >= 3) {
-          // Return a friendly message when free tier limit is reached
-          return res.json({ 
-            message: "I apologize, but this chatbot has reached its free tier limit. The chatbot owner needs to upgrade to Pro for unlimited conversations.",
-            shouldEscalate: false,
-          });
+      if (owner && owner.isAdmin !== "true") {
+        const tier = owner.subscriptionTier;
+        
+        // For free tier: use total question count (3 total questions ever)
+        if (tier === "free") {
+          const currentQuestionCount = parseInt(chatbot.questionCount);
+          if (currentQuestionCount >= TIER_LIMITS.free.conversationsPerMonth) {
+            return res.json({ 
+              message: "I apologize, but this chatbot has reached its free tier limit of 3 total questions. The chatbot owner needs to upgrade to Pro for 5,000 conversations per month.",
+              shouldEscalate: false,
+            });
+          }
+        } 
+        // For pro/scale tiers: use monthly conversation count
+        else {
+          const monthlyCount = parseInt(owner.monthlyConversationCount || "0");
+          if (!canSendMessage(tier, monthlyCount)) {
+            const limit = TIER_LIMITS[tier].conversationsPerMonth;
+            const nextTier = tier === "pro" ? "Scale" : null;
+            const upgradeMsg = nextTier 
+              ? ` The chatbot owner needs to upgrade to ${nextTier} for higher limits.`
+              : " The chatbot owner has reached their monthly limit.";
+            
+            return res.json({ 
+              message: `I apologize, but this chatbot has reached its ${tier === "pro" ? "Pro" : "Scale"} tier limit of ${limit.toLocaleString()} conversations this month.${upgradeMsg}`,
+              shouldEscalate: false,
+            });
+          }
         }
       }
 
@@ -1188,6 +1225,13 @@ Generate 3-5 short, natural questions that would help the user learn more. Retur
         // Increment chatbot question count (for free tier limit tracking)
         storage.incrementChatbotQuestionCount(chatbotId)
       ]);
+      
+      // Increment monthly conversation count for pro/scale tiers
+      if (owner && owner.isAdmin !== "true" && (owner.subscriptionTier === "pro" || owner.subscriptionTier === "scale")) {
+        storage.incrementMonthlyConversationCount(owner.id).catch(err => {
+          console.error("Error incrementing monthly conversation count:", err);
+        });
+      }
 
       const chatResponse: ChatResponse = {
         message: finalMessage,
@@ -1230,19 +1274,42 @@ Generate 3-5 short, natural questions that would help the user learn more. Retur
         return res.end();
       }
 
-      // Check free tier limits
+      // Check subscription tier limits
       const ownerResult = await db.select().from(users).where(eq(users.id, chatbot.userId)).limit(1);
       const owner = ownerResult[0];
       
-      if (owner && owner.subscriptionTier === "free" && owner.isAdmin !== "true") {
-        const currentQuestionCount = parseInt(chatbot.questionCount);
-        if (currentQuestionCount >= 3) {
-          res.write(`data: ${JSON.stringify({ 
-            type: "complete",
-            message: "I apologize, but this chatbot has reached its free tier limit. The chatbot owner needs to upgrade to Pro for unlimited conversations.",
-            shouldEscalate: false,
-          })}\n\n`);
-          return res.end();
+      if (owner && owner.isAdmin !== "true") {
+        const tier = owner.subscriptionTier;
+        
+        // For free tier: use total question count (3 total questions ever)
+        if (tier === "free") {
+          const currentQuestionCount = parseInt(chatbot.questionCount);
+          if (currentQuestionCount >= TIER_LIMITS.free.conversationsPerMonth) {
+            res.write(`data: ${JSON.stringify({ 
+              type: "complete",
+              message: "I apologize, but this chatbot has reached its free tier limit of 3 total questions. The chatbot owner needs to upgrade to Pro for 5,000 conversations per month.",
+              shouldEscalate: false,
+            })}\n\n`);
+            return res.end();
+          }
+        } 
+        // For pro/scale tiers: use monthly conversation count
+        else {
+          const monthlyCount = parseInt(owner.monthlyConversationCount || "0");
+          if (!canSendMessage(tier, monthlyCount)) {
+            const limit = TIER_LIMITS[tier].conversationsPerMonth;
+            const nextTier = tier === "pro" ? "Scale" : null;
+            const upgradeMsg = nextTier 
+              ? ` The chatbot owner needs to upgrade to ${nextTier} for higher limits.`
+              : " The chatbot owner has reached their monthly limit.";
+            
+            res.write(`data: ${JSON.stringify({ 
+              type: "complete",
+              message: `I apologize, but this chatbot has reached its ${tier === "pro" ? "Pro" : "Scale"} tier limit of ${limit.toLocaleString()} conversations this month.${upgradeMsg}`,
+              shouldEscalate: false,
+            })}\n\n`);
+            return res.end();
+          }
         }
       }
 
@@ -1544,6 +1611,13 @@ Generate 3-5 short, natural questions that would help the user learn more. Retur
           .where(eq(conversations.id, conversation.id)),
         storage.incrementChatbotQuestionCount(chatbotId)
       ]);
+      
+      // Increment monthly conversation count for pro/scale tiers
+      if (owner && owner.isAdmin !== "true" && (owner.subscriptionTier === "pro" || owner.subscriptionTier === "scale")) {
+        storage.incrementMonthlyConversationCount(owner.id).catch(err => {
+          console.error("Error incrementing monthly conversation count:", err);
+        });
+      }
 
       // Send final metadata
       res.write(`data: ${JSON.stringify({ 
@@ -1621,12 +1695,12 @@ Generate 3-5 short, natural questions that would help the user learn more. Retur
         return res.status(404).json({ error: "Chatbot not found" });
       }
 
-      // Verify user has paid subscription for analytics access (or is admin)
+      // Verify user has Scale tier subscription for analytics access (or is admin)
       const user = await storage.getUser(userId);
-      if (!user || (user.subscriptionTier !== "paid" && user.isAdmin !== "true")) {
+      if (!user || (user.subscriptionTier !== "scale" && user.isAdmin !== "true")) {
         return res.status(403).json({ 
           error: "Upgrade required",
-          message: "Analytics are only available on the Pro plan. Please upgrade to access this feature."
+          message: "Analytics are only available on the Scale plan. Please upgrade to access this feature."
         });
       }
 
@@ -1713,12 +1787,12 @@ Generate 3-5 short, natural questions that would help the user learn more. Retur
         return res.status(403).json({ error: "Unauthorized" });
       }
 
-      // Verify user has paid subscription for conversation access (admins bypass this check)
+      // Verify user has Scale tier subscription for conversation access (admins bypass this check)
       const user = await storage.getUser(userId);
-      if (!user || (user.subscriptionTier !== "paid" && user.isAdmin !== "true")) {
+      if (!user || (user.subscriptionTier !== "scale" && user.isAdmin !== "true")) {
         return res.status(403).json({ 
           error: "Upgrade required",
-          message: "Conversation details are only available on the Pro plan. Please upgrade to access this feature."
+          message: "Conversation details are only available on the Scale plan. Please upgrade to access this feature."
         });
       }
 
@@ -1752,12 +1826,12 @@ Generate 3-5 short, natural questions that would help the user learn more. Retur
         return res.status(404).json({ error: "Chatbot not found" });
       }
 
-      // Verify user has paid subscription for analytics access
+      // Verify user has Scale tier subscription for analytics access
       const user = await storage.getUser(userId);
-      if (!user || user.subscriptionTier !== "paid") {
+      if (!user || user.subscriptionTier !== "scale") {
         return res.status(403).json({ 
           error: "Upgrade required",
-          message: "Conversation history is only available on the Pro plan. Please upgrade to access this feature."
+          message: "Conversation history is only available on the Scale plan. Please upgrade to access this feature."
         });
       }
 
@@ -2518,15 +2592,19 @@ Generate 3-5 short, natural questions that would help the user learn more. Retur
       const totalChatbots = await db.select({ count: sql<number>`count(*)::int` }).from(chatbots);
       const totalConversations = await db.select({ count: sql<number>`count(*)::int` }).from(conversations);
       const totalMessages = await db.select({ count: sql<number>`count(*)::int` }).from(conversationMessages);
-      const paidUsers = await db.select({ count: sql<number>`count(*)::int` }).from(users).where(eq(users.subscriptionTier, 'paid'));
+      const freeUsers = await db.select({ count: sql<number>`count(*)::int` }).from(users).where(eq(users.subscriptionTier, 'free'));
+      const proUsers = await db.select({ count: sql<number>`count(*)::int` }).from(users).where(eq(users.subscriptionTier, 'pro'));
+      const scaleUsers = await db.select({ count: sql<number>`count(*)::int` }).from(users).where(eq(users.subscriptionTier, 'scale'));
       
       res.json({
         totalUsers: totalUsers[0].count,
         totalChatbots: totalChatbots[0].count,
         totalConversations: totalConversations[0].count,
         totalMessages: totalMessages[0].count,
-        paidUsers: paidUsers[0].count,
-        freeUsers: totalUsers[0].count - paidUsers[0].count,
+        freeUsers: freeUsers[0].count,
+        proUsers: proUsers[0].count,
+        scaleUsers: scaleUsers[0].count,
+        paidUsers: proUsers[0].count + scaleUsers[0].count, // Combined for backwards compatibility
       });
     } catch (error) {
       console.error("Error fetching admin stats:", error);
@@ -2664,8 +2742,8 @@ Generate 3-5 short, natural questions that would help the user learn more. Retur
         return res.status(400).json({ error: "You cannot modify your own subscription via admin panel. Use the account page instead." });
       }
 
-      if (!tier || !['free', 'paid'].includes(tier)) {
-        return res.status(400).json({ error: "Invalid subscription tier. Must be 'free' or 'paid'" });
+      if (!tier || !['free', 'pro', 'scale'].includes(tier)) {
+        return res.status(400).json({ error: "Invalid subscription tier. Must be 'free', 'pro', or 'scale'" });
       }
 
       // Check if user exists
@@ -2722,9 +2800,31 @@ Generate 3-5 short, natural questions that would help the user learn more. Retur
         const userId = subscription.metadata?.userId;
         
         if (userId && subscription.status === 'active') {
-          // Update user to paid tier
+          // Determine tier from price ID
+          const priceId = subscription.items.data[0]?.price.id;
+          let tier: 'free' | 'pro' | 'scale' = 'free';
+          
+          // Map price IDs to tiers
+          const proMonthlyPriceId = process.env.STRIPE_MONTHLY_PRICE_ID; // Pro tier monthly
+          const proAnnualPriceId = process.env.STRIPE_ANNUAL_PRICE_ID; // Pro tier annual
+          const scaleMonthlyPriceId = process.env.STRIPE_SCALE_MONTHLY_PRICE_ID; // Scale tier monthly (needs to be created in Stripe)
+          const scaleAnnualPriceId = process.env.STRIPE_SCALE_ANNUAL_PRICE_ID; // Scale tier annual (needs to be created in Stripe)
+          
+          if (priceId === proMonthlyPriceId || priceId === proAnnualPriceId) {
+            tier = 'pro';
+            console.log(`[Webhook] Subscription assigned to Pro tier (priceId: ${priceId})`);
+          } else if (priceId === scaleMonthlyPriceId || priceId === scaleAnnualPriceId) {
+            tier = 'scale';
+            console.log(`[Webhook] Subscription assigned to Scale tier (priceId: ${priceId})`);
+          } else {
+            console.log(`[Webhook] Unknown price ID ${priceId}, defaulting to free tier`);
+          }
+          
           await db.update(users)
-            .set({ subscriptionTier: 'paid' })
+            .set({ 
+              subscriptionTier: tier,
+              stripePriceId: priceId || null,
+            })
             .where(eq(users.id, userId));
         }
         break;
@@ -2748,10 +2848,8 @@ Generate 3-5 short, natural questions that would help the user learn more. Retur
         const invoice = event.data.object as Stripe.Invoice;
         const invoiceSubscription: any = invoice;
         if (invoiceSubscription.subscription && invoice.metadata?.userId) {
-          // Ensure user is on paid tier
-          await db.update(users)
-            .set({ subscriptionTier: 'paid' })
-            .where(eq(users.id, invoice.metadata.userId));
+          // Payment succeeded - tier is already set by subscription.created/updated events
+          // No action needed here
         }
         break;
 

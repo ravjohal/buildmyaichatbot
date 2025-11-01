@@ -10,10 +10,14 @@ export interface IStorage {
   updateStripeSubscriptionId(userId: string, stripeSubscriptionId: string): Promise<User>;
   updateSubscriptionTier(userId: string, tier: "free" | "pro" | "scale"): Promise<User>;
   updateStripePriceId(userId: string, stripePriceId: string): Promise<User>;
+  incrementMonthlyConversationCount(userId: string): Promise<User>;
+  updateKnowledgeBaseSize(userId: string, sizeDeltaMB: number): Promise<User>;
+  atomicCheckAndUpdateKnowledgeBaseSize(userId: string, sizeDeltaMB: number, limitMB: number): Promise<{ success: boolean; currentSizeMB: number; error?: string }>;
   
   // Chatbot operations (user-scoped)
   getAllChatbots(userId: string): Promise<Chatbot[]>;
   getChatbot(id: string, userId: string): Promise<Chatbot | undefined>;
+  getChatbotById(id: string): Promise<Chatbot | undefined>; // System operation - no user scoping
   createChatbot(chatbot: InsertChatbot, userId: string): Promise<Chatbot>;
   updateChatbot(id: string, userId: string, chatbot: Partial<InsertChatbot>): Promise<Chatbot | undefined>;
   deleteChatbot(id: string, userId: string): Promise<boolean>;
@@ -142,6 +146,129 @@ export class DbStorage implements IStorage {
     return result[0];
   }
 
+  async incrementMonthlyConversationCount(userId: string): Promise<User> {
+    // Get current user data
+    const userResult = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+    
+    if (!userResult[0]) {
+      throw new Error("User not found");
+    }
+    
+    const user = userResult[0];
+    const now = new Date();
+    const resetDate = user.conversationCountResetDate ? new Date(user.conversationCountResetDate) : new Date(0);
+    
+    // Check if we need to reset the counter (new month)
+    const shouldReset = 
+      now.getMonth() !== resetDate.getMonth() || 
+      now.getFullYear() !== resetDate.getFullYear();
+    
+    const newCount = shouldReset ? "1" : (parseInt(user.monthlyConversationCount || "0") + 1).toString();
+    const newResetDate = shouldReset ? now : resetDate;
+    
+    const result = await db
+      .update(users)
+      .set({ 
+        monthlyConversationCount: newCount,
+        conversationCountResetDate: newResetDate,
+        updatedAt: new Date()
+      })
+      .where(eq(users.id, userId))
+      .returning();
+    
+    return result[0];
+  }
+
+  async updateKnowledgeBaseSize(userId: string, sizeDeltaMB: number): Promise<User> {
+    // Get current size
+    const userResult = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+    
+    if (!userResult[0]) {
+      throw new Error("User not found");
+    }
+    
+    const currentSize = parseFloat(userResult[0].totalKnowledgeBaseSizeMB || "0");
+    const newSize = Math.max(0, currentSize + sizeDeltaMB).toFixed(2);
+    
+    const result = await db
+      .update(users)
+      .set({ 
+        totalKnowledgeBaseSizeMB: newSize,
+        updatedAt: new Date()
+      })
+      .where(eq(users.id, userId))
+      .returning();
+    
+    return result[0];
+  }
+  
+  async atomicCheckAndUpdateKnowledgeBaseSize(
+    userId: string, 
+    sizeDeltaMB: number, 
+    limitMB: number
+  ): Promise<{ success: boolean; currentSizeMB: number; error?: string }> {
+    // Get current size
+    const userResult = await db
+      .select({ currentSize: users.totalKnowledgeBaseSizeMB })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+    
+    if (!userResult[0]) {
+      return { success: false, currentSizeMB: 0, error: "User not found" };
+    }
+    
+    const currentSize = parseFloat(userResult[0].currentSize || "0");
+    const newSize = currentSize + sizeDeltaMB;
+    
+    // Check if update would exceed limit
+    if (newSize > limitMB) {
+      return { 
+        success: false, 
+        currentSizeMB: currentSize,
+        error: `Would exceed limit of ${limitMB}MB (current: ${currentSize.toFixed(2)}MB, adding: ${sizeDeltaMB.toFixed(2)}MB)`
+      };
+    }
+    
+    // Atomic update using SQL - both check and update use database's current value
+    const result = await db
+      .update(users)
+      .set({ 
+        totalKnowledgeBaseSizeMB: sql`CAST(GREATEST(0, CAST(COALESCE(${users.totalKnowledgeBaseSizeMB}, '0') AS DECIMAL) + ${sizeDeltaMB}) AS VARCHAR)`,
+        updatedAt: new Date()
+      })
+      .where(
+        and(
+          eq(users.id, userId),
+          // Only update if current size + delta <= limit (atomic check)
+          sql`CAST(COALESCE(${users.totalKnowledgeBaseSizeMB}, '0') AS DECIMAL) + ${sizeDeltaMB} <= ${limitMB}`
+        )
+      )
+      .returning({ newSize: users.totalKnowledgeBaseSizeMB });
+    
+    if (result.length === 0) {
+      // Update failed - limit would be exceeded (race condition caught)
+      return { 
+        success: false, 
+        currentSizeMB: currentSize,
+        error: `Concurrent update detected: limit would be exceeded`
+      };
+    }
+    
+    return { 
+      success: true, 
+      currentSizeMB: parseFloat(result[0].newSize || "0")
+    };
+  }
+
   // Chatbot operations (user-scoped)
   async getAllChatbots(userId: string): Promise<Chatbot[]> {
     return await db
@@ -156,6 +283,15 @@ export class DbStorage implements IStorage {
       .select()
       .from(chatbots)
       .where(and(eq(chatbots.id, id), eq(chatbots.userId, userId)))
+      .limit(1);
+    return result[0];
+  }
+  
+  async getChatbotById(id: string): Promise<Chatbot | undefined> {
+    const result = await db
+      .select()
+      .from(chatbots)
+      .where(eq(chatbots.id, id))
       .limit(1);
     return result[0];
   }

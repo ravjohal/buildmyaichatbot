@@ -28,6 +28,9 @@ export const users = pgTable("users", {
   stripeSubscriptionId: varchar("stripe_subscription_id"),
   stripePriceId: varchar("stripe_price_id"), // Track which price plan they're on
   isAdmin: text("is_admin").notNull().default("false"),
+  monthlyConversationCount: text("monthly_conversation_count").notNull().default("0"),
+  conversationCountResetDate: timestamp("conversation_count_reset_date").defaultNow(),
+  totalKnowledgeBaseSizeMB: text("total_knowledge_base_size_mb").notNull().default("0"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

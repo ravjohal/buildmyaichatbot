@@ -29,7 +29,7 @@ The backend, built with Express.js, Node.js, and TypeScript, follows a RESTful A
 *   **Lead Capture System:** Collects visitor contact information via configurable forms with source tracking. Features a management dashboard with CSV export and source visualization.
 *   **On-Demand Knowledge Base Refresh:** Intelligently updates chatbot knowledge from website URLs by detecting content changes via MD5 hashing, only re-crawling modified content.
 *   **Analytics Dashboard:** Offers comprehensive chatbot analytics including key metrics, detailed conversation transcripts, message-level tracking, and performance breakdowns.
-*   **Freemium Pricing System:** Implements Free and Pro tiers with server-side enforcement of Pro-only features.
+*   **3-Tier Pricing System:** Implements Free, Pro ($29.99/mo or $300/year), and Scale ($99.99/mo or $999/year) tiers with server-side enforcement. Free tier: 1 chatbot, 3 total questions, 100MB storage. Pro tier: 5 chatbots, 5K conversations/month, 1GB storage. Scale tier: Unlimited chatbots, 50K conversations/month, 5GB storage, exclusive Analytics access. Monthly conversation limits auto-reset based on billing period. Admins (ravneetjohal@gmail.com) bypass all limits.
 *   **Admin System:** Provides full user management, system-wide statistics, and access to all chatbots for administrators.
 *   **Account Management:** Users can manage profile, subscription status, and billing via an integrated Stripe portal.
 *   **Shareable Links & QR Codes:** Enables easy distribution of chatbots via direct links and QR codes with a full-page chat interface.
@@ -41,7 +41,7 @@ The backend, built with Express.js, Node.js, and TypeScript, follows a RESTful A
 
 ### System Design Choices
 
-*   **Data Storage:** PostgreSQL with Drizzle ORM is used for all persistent data, including users, chatbots, conversations, leads, Q&A cache, manual overrides, and knowledge chunks.
+*   **Data Storage:** PostgreSQL with Drizzle ORM is used for all persistent data, including users, chatbots, conversations, leads, Q&A cache, manual overrides, and knowledge chunks. User records track monthly conversation counts with automatic reset on billing period boundaries, and total knowledge base size in MB with atomic limit enforcement to prevent race conditions.
 *   **AI Integration:** Google Gemini AI (gemini-2.5-flash) via the `@google/genai` SDK is used for NLP, utilizing a streaming API for real-time responses. System prompt engineering constrains AI responses, and chunk-based retrieval optimizes prompt size. Response priority is Manual Override → Exact Cache → Semantic Cache → LLM with Chunks, with automatic fallback. Question embeddings are cached for faster lookups.
 *   **File Storage:** Google Cloud Storage (via Replit Object Storage) stores user-uploaded files, with Uppy.js for client-side uploads using signed URLs.
 *   **Authentication & Security:** Custom email/password authentication (`passport-local`, bcrypt, session-based) with robust security features like `sanitizeUser()`, backend self-modification protection, CSRF protection, and Zod input validation. Multi-tenant architecture scopes chatbots.

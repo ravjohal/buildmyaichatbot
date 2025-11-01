@@ -32,6 +32,31 @@ async function processIndexingTask(taskId: string, jobId: string, chatbotId: str
       content = crawlResult.content || "";
       title = crawlResult.title || sourceUrl;
       
+      // Atomically check and update knowledge base size
+      const chatbot = await storage.getChatbotById(chatbotId);
+      if (chatbot) {
+        const user = await storage.getUser(chatbot.userId);
+        if (user && user.isAdmin !== "true") {
+          const { TIER_LIMITS } = await import("@shared/pricing");
+          const tier = user.subscriptionTier;
+          const limits = TIER_LIMITS[tier];
+          const contentSizeMB = Buffer.byteLength(content, 'utf8') / (1024 * 1024);
+          
+          // Use atomic check-and-update to prevent race conditions
+          const sizeCheckResult = await storage.atomicCheckAndUpdateKnowledgeBaseSize(
+            chatbot.userId,
+            contentSizeMB,
+            limits.knowledgeBaseSizeMB
+          );
+          
+          if (!sizeCheckResult.success) {
+            throw new Error(`Storage limit exceeded: ${tier} tier allows ${limits.knowledgeBaseSizeMB}MB, currently using ${sizeCheckResult.currentSizeMB.toFixed(2)}MB`);
+          }
+          
+          console.log(`[WORKER] Knowledge base size updated: ${sizeCheckResult.currentSizeMB.toFixed(2)}MB`);
+        }
+      }
+      
       // Store crawl metadata for future refresh
       const normalizedUrl = normalizeUrl(sourceUrl);
       const contentHash = calculateContentHash(content);
