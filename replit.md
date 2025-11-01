@@ -37,6 +37,7 @@ The backend, built with Express.js, Node.js, and TypeScript, follows a RESTful A
 *   **Satisfaction Ratings:** Allows visitors to rate their chat experience (1-5 stars) after engaging in a conversation, stored for analytics.
 *   **Proactive Chat Popup:** Automatically displays a customizable popup notification to website visitors after a configurable delay to encourage interaction.
 *   **Email Notifications:** Sends automated email alerts via Resend for new lead submissions, unanswered questions, and weekly performance reports. Users can manage preferences and custom email addresses. On-demand report generation available via Analytics dashboard. Emails sent from verified domain: `onboarding@resend.dev`.
+*   **Async Indexing Pipeline:** Non-blocking chatbot creation with background processing for website crawling. Documents process synchronously (text pre-extracted), while URLs queue for async processing. Frontend displays real-time indexing status with polling. Dashboard shows status badges (pending/processing/completed/failed). Worker processes jobs sequentially with automatic error recovery and progress tracking.
 
 ### System Design Choices
 
