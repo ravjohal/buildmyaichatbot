@@ -18,14 +18,14 @@ export class NotificationService {
       const { client, fromEmail } = await getUncachableResendClient();
       const template = emailTemplates.newLead(data);
       
-      await client.emails.send({
+      const result = await client.emails.send({
         from: fromEmail,
         to: toEmail,
         subject: template.subject,
         html: template.html,
       });
       
-      console.log(`[EMAIL] New lead notification sent to ${toEmail}`);
+      console.log(`[EMAIL] New lead notification sent to ${toEmail}:`, result);
     } catch (error) {
       console.error('[EMAIL] Failed to send new lead notification:', error);
       throw error;
@@ -46,14 +46,14 @@ export class NotificationService {
       const { client, fromEmail } = await getUncachableResendClient();
       const template = emailTemplates.unansweredQuestion(data);
       
-      await client.emails.send({
+      const result = await client.emails.send({
         from: fromEmail,
         to: toEmail,
         subject: template.subject,
         html: template.html,
       });
       
-      console.log(`[EMAIL] Unanswered question notification sent to ${toEmail}`);
+      console.log(`[EMAIL] Unanswered question notification sent to ${toEmail}:`, result);
     } catch (error) {
       console.error('[EMAIL] Failed to send unanswered question notification:', error);
       throw error;
