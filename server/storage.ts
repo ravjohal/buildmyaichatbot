@@ -556,9 +556,22 @@ export class DbStorage implements IStorage {
     const embeddingStr = `[${questionEmbedding.join(',')}]`;
     
     // Use cosine similarity to find most relevant chunks
-    const result = await db.execute<KnowledgeChunk>(
+    // Note: Using raw SQL here because Drizzle doesn't have native support for vector similarity operators
+    const result = await db.execute(
       sql`
-        SELECT *
+        SELECT 
+          id,
+          chatbot_id as "chatbotId",
+          source_type as "sourceType",
+          source_url as "sourceUrl",
+          source_title as "sourceTitle",
+          chunk_text as "chunkText",
+          chunk_index as "chunkIndex",
+          content_hash as "contentHash",
+          embedding,
+          metadata,
+          created_at as "createdAt",
+          updated_at as "updatedAt"
         FROM ${knowledgeChunks}
         WHERE ${knowledgeChunks.chatbotId} = ${chatbotId}
           AND ${knowledgeChunks.embedding} IS NOT NULL
@@ -567,7 +580,7 @@ export class DbStorage implements IStorage {
       `
     );
     
-    return result.rows;
+    return result.rows as KnowledgeChunk[];
   }
 
   async deleteChunksForChatbot(chatbotId: string): Promise<number> {
