@@ -104,18 +104,19 @@ export default function Dashboard() {
   const handleRefreshKnowledge = async (chatbotId: string) => {
     setRefreshingId(chatbotId);
     try {
-      const response = await apiRequest<{
-        success: boolean;
-        message: string;
-        changedUrls: number;
-        unchangedUrls: number;
-      }>("POST", `/api/chatbots/${chatbotId}/refresh-knowledge`, {});
+      const response = await apiRequest("POST", `/api/chatbots/${chatbotId}/refresh-knowledge`, {});
+      
+      if (!response.ok) {
+        throw new Error("Refresh failed");
+      }
+      
+      const data = await response.json();
       
       await queryClient.invalidateQueries({ queryKey: ["/api/chatbots"] });
       
       toast({
         title: "Knowledge base refreshed",
-        description: response.message,
+        description: data.message || "Your chatbot's knowledge base has been updated.",
       });
     } catch (error) {
       toast({
@@ -294,7 +295,7 @@ export default function Dashboard() {
                         <Bot className="w-6 h-6" style={{ color: chatbot.primaryColor }} />
                       </div>
                     )}
-                    {chatbot.indexingStatus === 'pending' || chatbot.indexingStatus === 'in_progress' ? (
+                    {chatbot.indexingStatus === 'pending' || chatbot.indexingStatus === 'processing' ? (
                       <Badge variant="secondary" className="text-xs bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300" data-testid={`badge-indexing-${chatbot.id}`}>
                         <Loader2 className="w-3 h-3 mr-1 animate-spin" />
                         Indexing

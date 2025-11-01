@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface IndexingStatus {
   jobId: string;
-  status: 'pending' | 'in_progress' | 'completed' | 'failed';
+  status: 'pending' | 'processing' | 'completed' | 'failed';
   progress: {
     totalUrls: number;
     processedUrls: number;
@@ -53,7 +53,7 @@ export function StepComplete({ chatbotId, indexingStatus }: StepCompleteProps) {
         </div>
 
         {/* Indexing Status Banner */}
-        {indexingStatus && (indexingStatus.status === 'pending' || indexingStatus.status === 'in_progress') && (
+        {indexingStatus && (indexingStatus.status === 'pending' || indexingStatus.status === 'processing') && (
           <Card className="bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
             <CardContent className="p-6">
               <div className="flex items-center gap-4">
