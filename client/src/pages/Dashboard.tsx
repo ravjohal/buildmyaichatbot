@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { Plus, Bot, Trash2, ExternalLink, Copy, LogOut, Pencil, MessageSquare, FileText, BarChart3, Globe, Crown, Share2, QrCode, User as UserIcon, Shield, UserPlus, RefreshCw, Settings } from "lucide-react";
+import { Plus, Bot, Trash2, ExternalLink, Copy, LogOut, Pencil, MessageSquare, FileText, BarChart3, Globe, Crown, Share2, QrCode, User as UserIcon, Shield, UserPlus, RefreshCw, Settings, Loader2, CheckCircle, XCircle } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
@@ -294,7 +294,22 @@ export default function Dashboard() {
                         <Bot className="w-6 h-6" style={{ color: chatbot.primaryColor }} />
                       </div>
                     )}
-                    <Badge variant="secondary" className="text-xs">Active</Badge>
+                    {chatbot.indexingStatus === 'pending' || chatbot.indexingStatus === 'in_progress' ? (
+                      <Badge variant="secondary" className="text-xs bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300" data-testid={`badge-indexing-${chatbot.id}`}>
+                        <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                        Indexing
+                      </Badge>
+                    ) : chatbot.indexingStatus === 'failed' ? (
+                      <Badge variant="secondary" className="text-xs bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300" data-testid={`badge-failed-${chatbot.id}`}>
+                        <XCircle className="w-3 h-3 mr-1" />
+                        Failed
+                      </Badge>
+                    ) : (
+                      <Badge variant="secondary" className="text-xs" data-testid={`badge-active-${chatbot.id}`}>
+                        <CheckCircle className="w-3 h-3 mr-1" />
+                        Active
+                      </Badge>
+                    )}
                   </div>
                   <div>
                     <CardTitle className="text-xl" data-testid={`text-chatbot-name-${chatbot.id}`}>
