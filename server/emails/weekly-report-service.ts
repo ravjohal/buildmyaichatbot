@@ -295,7 +295,7 @@ export async function sendWeeklyReport(userId: string, storage: IStorage): Promi
     };
 
     const result = await resend.emails.send({
-      from: "Chatbot Analytics <notifications@updates.replitchatbot.com>",
+      from: "Chatbot Analytics <onboarding@resend.dev>",
       to: recipientEmail,
       subject: `Weekly Report: ${formatDate(reportData.weekStart)} - ${formatDate(reportData.weekEnd)}`,
       html: htmlContent,
