@@ -1,0 +1,83 @@
+4:28:06 AM [express] GET /api/account 200 in 239ms :: {"id":"8f7d5345-80d2-4b93-847a-e784f9e17909","…
+[AUTH] isAuthenticated check: {
+  isAuthenticated: true,
+  hasUser: true,
+  hasSession: true,
+  sessionID: '_U84dc_5qPpEDOA_J9Uj6u2CqdGeI5yI'
+}
+[AUTH] ✓ Authenticated
+Created new Stripe customer: cus_TLa3IqzNGzabz9
+Creating subscription: tier=pro, billingCycle=monthly, priceId=price_1SJkjaCEODTZcKkWDGGojAw6
+Payment intent not found, creating one manually for invoice: {
+  invoiceId: 'in_1SOstiCEODTZcKkWc6LiOByU',
+  amount: 2999,
+  status: 'open'
+}
+Payment intent created manually: {
+  paymentIntentId: 'pi_3SOstkCEODTZcKkW1EXK1djZ',
+  amount: 2999,
+  status: 'requires_payment_method',
+  clientSecret: 'present'
+}
+Subscription created: {
+  subscriptionId: 'sub_1SOstiCEODTZcKkWlwQrT16r',
+  status: 'incomplete',
+  latestInvoiceType: 'object',
+  latestInvoiceId: 'in_1SOstiCEODTZcKkWc6LiOByU'
+}
+Invoice details: {
+  invoiceId: 'in_1SOstiCEODTZcKkWc6LiOByU',
+  status: 'open',
+  total: 2999,
+  paymentIntentType: 'object',
+  paymentIntentId: 'pi_3SOstkCEODTZcKkW1EXK1djZ'
+}
+Client secret extraction: { clientSecret: 'found', clientSecretPrefix: 'pi_3SOs...' }
+4:28:12 AM [express] POST /api/create-subscription 200 in 2326ms :: {"subscriptionId":"sub_1SOstiCEO…
+Webhook signature verification failed: Webhook payload must be provided as a string or a Buffer (https://nodejs.org/api/buffer.html) instance representing the _raw_ request body.Payload was provided as a parsed JavaScript object instead. 
+Signature verification is impossible without access to the original signed material. 
+
+Learn more about webhook signing and explore webhook integration examples for various frameworks at https://docs.stripe.com/webhooks/signature
+
+4:28:12 AM [express] POST /api/stripe-webhook 400 in 2ms
+[AUTH] isAuthenticated check: {
+  isAuthenticated: true,
+  hasUser: true,
+  hasSession: true,
+  sessionID: '_U84dc_5qPpEDOA_J9Uj6u2CqdGeI5yI'
+}
+[AUTH] ✓ Authenticated
+Using existing Stripe customer: cus_TLa3IqzNGzabz9
+Creating subscription: tier=pro, billingCycle=monthly, priceId=price_1SJkjaCEODTZcKkWDGGojAw6
+Payment intent not found, creating one manually for invoice: {
+  invoiceId: 'in_1SOsvyCEODTZcKkWajfNpbTw',
+  amount: 2999,
+  status: 'open'
+}
+Payment intent created manually: {
+  paymentIntentId: 'pi_3SOsw0CEODTZcKkW04oYVXo4',
+  amount: 2999,
+  status: 'requires_payment_method',
+  clientSecret: 'present'
+}
+Subscription created: {
+  subscriptionId: 'sub_1SOsvyCEODTZcKkWJHmpCCQ9',
+  status: 'incomplete',
+  latestInvoiceType: 'object',
+  latestInvoiceId: 'in_1SOsvyCEODTZcKkWajfNpbTw'
+}
+Invoice details: {
+  invoiceId: 'in_1SOsvyCEODTZcKkWajfNpbTw',
+  status: 'open',
+  total: 2999,
+  paymentIntentType: 'object',
+  paymentIntentId: 'pi_3SOsw0CEODTZcKkW04oYVXo4'
+}
+Client secret extraction: { clientSecret: 'found', clientSecretPrefix: 'pi_3SOs...' }
+Webhook signature verification failed: Webhook payload must be provided as a string or a Buffer (https://nodejs.org/api/buffer.html) instance representing the _raw_ request body.Payload was provided as a parsed JavaScript object instead. 
+Signature verification is impossible without access to the original signed material. 
+
+Learn more about webhook signing and explore webhook integration examples for various frameworks at https://docs.stripe.com/webhooks/signature
+
+4:30:32 AM [express] POST /api/stripe-webhook 400 in 1ms
+4:30:32 AM [express] POST /api/create-subscription 200 in 2450ms :: {"subscriptionId":"sub_1SOsvyCEO…

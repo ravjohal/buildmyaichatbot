@@ -124,6 +124,14 @@ export default function Subscribe() {
   const params = new URLSearchParams(location.split('?')[1] || '');
   const billingCycle = (params.get('plan') as "monthly" | "annual") || "monthly";
   const tier = (params.get('tier') as "pro" | "scale") || "pro";
+  
+  console.log('[Subscribe] URL location:', location);
+  console.log('[Subscribe] Params:', { 
+    tier: params.get('tier'), 
+    plan: params.get('plan'),
+    finalTier: tier,
+    finalBillingCycle: billingCycle 
+  });
 
   useEffect(() => {
     apiRequest("POST", "/api/create-subscription", { billingCycle, tier })
