@@ -1764,7 +1764,7 @@ Generate 3-5 short, natural questions that would help the user learn more. Retur
         completedTasks: completedTasks,
         failedTasks: failedTasks,
         currentUrl: processingTask?.sourceUrl || null,
-        error: job.error || null,
+        error: job.errorMessage || null,
       });
     } catch (error) {
       console.error("Error fetching indexing status:", error);
