@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Bot, MessageSquare, Sparkles, Zap, DollarSign, Check } from "lucide-react";
 import { Link } from "wouter";
+import { Logo } from "@/components/Logo";
 
 export default function Landing() {
   return (
@@ -9,10 +10,7 @@ export default function Landing() {
       <header className="border-b sticky top-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-50">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Bot className="w-8 h-8 text-primary" />
-              <span className="font-bold text-xl">AI Chatbot Builder</span>
-            </div>
+            <Logo size="sm" />
             <nav className="flex items-center gap-4">
               <Link href="/pricing">
                 <Button variant="ghost" data-testid="link-pricing">
@@ -36,11 +34,11 @@ export default function Landing() {
         <div className="max-w-4xl mx-auto text-center space-y-8">
           <div className="space-y-4">
             <h1 className="text-5xl font-bold tracking-tight">
-              AI-Powered Customer Support
-              <span className="block text-primary mt-2">Made Simple</span>
+              Build Your AI Support Assistant
+              <span className="block text-primary mt-2">In Minutes</span>
             </h1>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Create intelligent chatbots for your website in minutes. Train on your content,
+              Create intelligent chatbots for your website with BuildMyChatbot.Ai. Train on your content,
               customize the design, and deploy with a single line of code.
             </p>
           </div>
