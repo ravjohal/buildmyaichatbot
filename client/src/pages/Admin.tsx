@@ -35,6 +35,7 @@ import {
 import { useState } from "react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { DashboardHeader } from "@/components/DashboardHeader";
 
 interface AdminStats {
   totalUsers: number;
@@ -225,6 +226,8 @@ export default function Admin() {
 
   return (
     <div className="min-h-screen bg-background">
+      <DashboardHeader />
+      
       <div className="container mx-auto p-6 space-y-8">
         <div className="flex items-center gap-3">
           <Shield className="w-8 h-8 text-primary" />
