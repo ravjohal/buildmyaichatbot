@@ -1,5 +1,5 @@
 import { Link } from "wouter";
-import { Crown, LogOut, User as UserIcon, Shield, LayoutDashboard } from "lucide-react";
+import { Crown, LogOut, User as UserIcon, Shield, LayoutDashboard, Briefcase } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -59,16 +59,28 @@ export function DashboardHeader() {
               </Button>
             </Link>
             {isAdmin && (
-              <Link href="/admin">
-                <Button 
-                  variant="destructive" 
-                  size="default"
-                  data-testid="button-admin"
-                >
-                  <Shield className="w-4 h-4 mr-2" />
-                  Admin
-                </Button>
-              </Link>
+              <>
+                <Link href="/admin">
+                  <Button 
+                    variant="destructive" 
+                    size="default"
+                    data-testid="button-admin"
+                  >
+                    <Shield className="w-4 h-4 mr-2" />
+                    Admin
+                  </Button>
+                </Link>
+                <Link href="/admin/jobs">
+                  <Button 
+                    variant="outline" 
+                    size="default"
+                    data-testid="button-admin-jobs"
+                  >
+                    <Briefcase className="w-4 h-4 mr-2" />
+                    Jobs
+                  </Button>
+                </Link>
+              </>
             )}
             <Button 
               variant="outline" 
