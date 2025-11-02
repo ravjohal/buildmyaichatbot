@@ -6,8 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Progress } from "@/components/ui/progress";
 import type { Chatbot, User } from "@shared/schema";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { canCreateChatbot, TIER_LIMITS } from "@shared/pricing";
@@ -36,6 +37,16 @@ import {
 } from "@/components/ui/tooltip";
 import { DashboardHeader } from "@/components/DashboardHeader";
 
+interface IndexingStatus {
+  jobId: string | null;
+  status: "pending" | "processing" | "completed" | "failed";
+  totalTasks: number;
+  completedTasks: number;
+  failedTasks: number;
+  currentUrl: string | null;
+  error: string | null;
+}
+
 export default function Dashboard() {
   const { toast } = useToast();
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -44,6 +55,7 @@ export default function Dashboard() {
   const [shareDialogChatbot, setShareDialogChatbot] = useState<Chatbot | null>(null);
   const [embedDialogOpen, setEmbedDialogOpen] = useState(false);
   const [selectedEmbedCode, setSelectedEmbedCode] = useState("");
+  const [indexingStatuses, setIndexingStatuses] = useState<Record<string, IndexingStatus>>({});
 
   const { data: chatbots, isLoading } = useQuery<Chatbot[]>({
     queryKey: ["/api/chatbots"],
@@ -56,6 +68,52 @@ export default function Dashboard() {
   const isAdmin = user?.isAdmin === "true";
   const userTier = (user?.subscriptionTier ?? "free") as "free" | "pro" | "scale";
   const hasReachedChatbotLimit = !isAdmin && !canCreateChatbot(userTier, chatbots?.length ?? 0);
+
+  // Poll for indexing status of chatbots that are being indexed
+  useEffect(() => {
+    if (!chatbots) return;
+
+    const chatbotsBeingIndexed = chatbots.filter(
+      (c) => c.indexingStatus === "pending" || c.indexingStatus === "processing"
+    );
+
+    if (chatbotsBeingIndexed.length === 0) return;
+
+    const pollStatuses = async () => {
+      const statuses: Record<string, IndexingStatus> = {};
+      
+      await Promise.all(
+        chatbotsBeingIndexed.map(async (chatbot) => {
+          try {
+            const response = await fetch(`/api/chatbots/${chatbot.id}/indexing-status`);
+            if (response.ok) {
+              statuses[chatbot.id] = await response.json();
+            }
+          } catch (error) {
+            console.error(`Failed to fetch indexing status for ${chatbot.id}:`, error);
+          }
+        })
+      );
+
+      setIndexingStatuses(statuses);
+
+      // Refresh chatbots list if any have completed
+      const anyCompleted = Object.values(statuses).some(
+        (s) => s.status === "completed" || s.status === "failed"
+      );
+      if (anyCompleted) {
+        queryClient.invalidateQueries({ queryKey: ["/api/chatbots"] });
+      }
+    };
+
+    // Poll immediately
+    pollStatuses();
+
+    // Then poll every 3 seconds
+    const interval = setInterval(pollStatuses, 3000);
+
+    return () => clearInterval(interval);
+  }, [chatbots]);
 
   const handleDelete = async () => {
     if (!deleteId) return;
@@ -256,22 +314,38 @@ export default function Dashboard() {
                         <Bot className="w-6 h-6" style={{ color: chatbot.primaryColor }} />
                       </div>
                     )}
-                    {chatbot.indexingStatus === 'pending' || chatbot.indexingStatus === 'processing' ? (
-                      <Badge variant="secondary" className="text-xs bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300" data-testid={`badge-indexing-${chatbot.id}`}>
-                        <Loader2 className="w-3 h-3 mr-1 animate-spin" />
-                        Indexing
-                      </Badge>
-                    ) : chatbot.indexingStatus === 'failed' ? (
-                      <Badge variant="secondary" className="text-xs bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300" data-testid={`badge-failed-${chatbot.id}`}>
-                        <XCircle className="w-3 h-3 mr-1" />
-                        Failed
-                      </Badge>
-                    ) : (
-                      <Badge variant="secondary" className="text-xs" data-testid={`badge-active-${chatbot.id}`}>
-                        <CheckCircle className="w-3 h-3 mr-1" />
-                        Active
-                      </Badge>
-                    )}
+                    {(() => {
+                      const status = indexingStatuses[chatbot.id];
+                      const isIndexing = chatbot.indexingStatus === 'pending' || chatbot.indexingStatus === 'processing';
+                      
+                      if (isIndexing) {
+                        const progress = status 
+                          ? `${status.completedTasks}/${status.totalTasks}`
+                          : '';
+                        return (
+                          <div className="flex flex-col items-end gap-1">
+                            <Badge variant="secondary" className="text-xs bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300" data-testid={`badge-indexing-${chatbot.id}`}>
+                              <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                              {progress ? `Indexing ${progress}` : 'Indexing'}
+                            </Badge>
+                          </div>
+                        );
+                      } else if (chatbot.indexingStatus === 'failed') {
+                        return (
+                          <Badge variant="secondary" className="text-xs bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300" data-testid={`badge-failed-${chatbot.id}`}>
+                            <XCircle className="w-3 h-3 mr-1" />
+                            Failed
+                          </Badge>
+                        );
+                      } else {
+                        return (
+                          <Badge variant="secondary" className="text-xs" data-testid={`badge-active-${chatbot.id}`}>
+                            <CheckCircle className="w-3 h-3 mr-1" />
+                            Active
+                          </Badge>
+                        );
+                      }
+                    })()}
                   </div>
                   <div>
                     <CardTitle className="text-xl" data-testid={`text-chatbot-name-${chatbot.id}`}>
@@ -296,6 +370,29 @@ export default function Dashboard() {
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-3">
+                  {(() => {
+                    const status = indexingStatuses[chatbot.id];
+                    const isIndexing = chatbot.indexingStatus === 'pending' || chatbot.indexingStatus === 'processing';
+                    
+                    if (isIndexing && status && status.totalTasks > 0) {
+                      const percentage = Math.round((status.completedTasks / status.totalTasks) * 100);
+                      return (
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between text-xs text-muted-foreground">
+                            <span>Crawling pages...</span>
+                            <span>{status.completedTasks}/{status.totalTasks}</span>
+                          </div>
+                          <Progress value={percentage} className="h-2" data-testid={`progress-indexing-${chatbot.id}`} />
+                          {status.currentUrl && (
+                            <div className="text-xs text-muted-foreground truncate">
+                              {new URL(status.currentUrl).pathname}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    }
+                    return null;
+                  })()}
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <div className="flex items-center gap-1">
                       <div className="w-3 h-3 rounded-full" style={{ backgroundColor: chatbot.primaryColor }} />
@@ -318,10 +415,7 @@ export default function Dashboard() {
                   >
                     <FileText className="w-4 h-4 mr-2" />
                     {chatbot.indexingStatus === 'pending' || chatbot.indexingStatus === 'processing' ? (
-                      <>
-                        <Loader2 className="w-3 h-3 mr-1 animate-spin" />
-                        Indexing knowledge base...
-                      </>
+                      'Indexing in progress...'
                     ) : chatbot.websiteContent ? (
                       `View knowledge base (${Math.round(chatbot.websiteContent.length / 1000)}k characters)`
                     ) : (

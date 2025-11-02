@@ -451,14 +451,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         await storage.createIndexingTasks(tasks);
         
-        // Update chatbot indexing status
+        // Update chatbot indexing status in database
         await storage.updateChatbotIndexingStatus(chatbot.id, "pending", indexingJob.id);
+        
+        // Update the chatbot object to reflect the pending status
+        chatbot.indexingStatus = "pending";
+        chatbot.lastIndexingJobId = indexingJob.id;
         
         console.log(`[INDEXING] ✓ Created indexing job ${indexingJob.id} with ${tasks.length} URL tasks`);
         console.log(`[INDEXING] Background worker will crawl URLs asynchronously`);
       } else {
         // No URLs to index, mark as completed
         await storage.updateChatbotIndexingStatus(chatbot.id, "completed");
+        chatbot.indexingStatus = "completed";
         console.log("[INDEXING] No URLs to index, chatbot ready");
       }
       
