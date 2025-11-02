@@ -2896,6 +2896,117 @@ Generate 3-5 short, natural questions that would help the user learn more. Retur
     }
   });
 
+  // Get all indexing jobs (admin only)
+  app.get('/api/admin/indexing-jobs', isAdmin, async (req: any, res) => {
+    try {
+      const { status, limit } = req.query;
+      const jobs = await storage.listAllIndexingJobs({
+        status: status as string | undefined,
+        limit: limit ? parseInt(limit as string) : 100,
+      });
+
+      // Enrich with chatbot and user information
+      const enrichedJobs = await Promise.all(jobs.map(async (job) => {
+        const chatbot = await db.select({
+          id: chatbots.id,
+          name: chatbots.name,
+          userId: chatbots.userId,
+          userEmail: users.email,
+          userName: sql<string>`CONCAT(${users.firstName}, ' ', ${users.lastName})`,
+        })
+        .from(chatbots)
+        .leftJoin(users, eq(chatbots.userId, users.id))
+        .where(eq(chatbots.id, job.chatbotId))
+        .limit(1);
+
+        return {
+          ...job,
+          chatbot: chatbot[0],
+        };
+      }));
+
+      res.json(enrichedJobs);
+    } catch (error) {
+      console.error("Error fetching indexing jobs:", error);
+      res.status(500).json({ error: "Failed to fetch indexing jobs" });
+    }
+  });
+
+  // Get single indexing job details (admin only)
+  app.get('/api/admin/indexing-jobs/:id', isAdmin, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const job = await storage.getIndexingJob(id);
+      
+      if (!job) {
+        return res.status(404).json({ error: "Job not found" });
+      }
+
+      // Get tasks for this job
+      const tasks = await storage.getIndexingTasksForJob(id);
+
+      // Get chatbot info
+      const chatbot = await db.select({
+        id: chatbots.id,
+        name: chatbots.name,
+        userId: chatbots.userId,
+        userEmail: users.email,
+        userName: sql<string>`CONCAT(${users.firstName}, ' ', ${users.lastName})`,
+      })
+      .from(chatbots)
+      .leftJoin(users, eq(chatbots.userId, users.id))
+      .where(eq(chatbots.id, job.chatbotId))
+      .limit(1);
+
+      res.json({
+        ...job,
+        chatbot: chatbot[0],
+        tasks,
+      });
+    } catch (error) {
+      console.error("Error fetching job details:", error);
+      res.status(500).json({ error: "Failed to fetch job details" });
+    }
+  });
+
+  // Cancel an indexing job (admin only)
+  app.post('/api/admin/indexing-jobs/:id/cancel', isAdmin, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const success = await storage.cancelIndexingJob(id);
+      
+      if (!success) {
+        return res.status(400).json({ error: "Job cannot be cancelled (not found or already completed)" });
+      }
+
+      res.json({ success: true, message: "Job cancelled successfully" });
+    } catch (error) {
+      console.error("Error cancelling job:", error);
+      res.status(500).json({ error: "Failed to cancel job" });
+    }
+  });
+
+  // Retry a failed indexing job (admin only)
+  app.post('/api/admin/indexing-jobs/:id/retry', isAdmin, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const result = await storage.retryIndexingJob(id);
+      
+      if (!result.success) {
+        return res.status(400).json({ error: "Job cannot be retried (not found, no failed tasks, or invalid status)" });
+      }
+
+      res.json({ 
+        success: true, 
+        message: "Job retry initiated successfully",
+        newJobId: result.newJobId,
+      });
+    } catch (error) {
+      console.error("Error retrying job:", error);
+      res.status(500).json({ error: "Failed to retry job" });
+    }
+  });
+
   // Toggle admin status for a user (admin only)
   app.post('/api/admin/users/:userId/toggle-admin', isAdmin, async (req: any, res) => {
     try {

@@ -182,8 +182,16 @@ async function processIndexingJob(jobId: string): Promise<void> {
     // Process each task sequentially
     let completedCount = 0;
     let failedCount = 0;
+    let cancelledCount = 0;
     
     for (const task of tasks) {
+      // Check if job has been cancelled
+      const currentJob = await storage.getIndexingJob(jobId);
+      if (currentJob?.status === "cancelled") {
+        console.log(`[WORKER] Job ${jobId} has been cancelled, stopping processing`);
+        break;
+      }
+      
       if (task.status === "pending") {
         await processIndexingTask(task.id, jobId, task.chatbotId, task.sourceType, task.sourceUrl);
       }
@@ -192,10 +200,19 @@ async function processIndexingJob(jobId: string): Promise<void> {
       const updatedTasks = await storage.getIndexingTasksForJob(jobId);
       completedCount = updatedTasks.filter(t => t.status === "completed").length;
       failedCount = updatedTasks.filter(t => t.status === "failed").length;
+      cancelledCount = updatedTasks.filter(t => t.status === "cancelled").length;
       
-      // Update job progress
-      await storage.updateIndexingJobProgress(jobId, completedCount, failedCount);
-      console.log(`[WORKER] Job progress: ${completedCount}/${tasks.length} completed, ${failedCount} failed`);
+      // Update job progress (including cancelled count)
+      await db
+        .update(indexingJobs)
+        .set({
+          completedTasks: completedCount.toString(),
+          failedTasks: failedCount.toString(),
+          cancelledTasks: cancelledCount.toString(),
+        })
+        .where(eq(indexingJobs.id, jobId));
+      
+      console.log(`[WORKER] Job progress: ${completedCount}/${tasks.length} completed, ${failedCount} failed, ${cancelledCount} cancelled`);
     }
     
     // Complete the job
