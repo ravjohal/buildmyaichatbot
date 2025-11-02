@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Bot, MessageSquare, Sparkles, Zap, DollarSign, Check } from "lucide-react";
 import { Link } from "wouter";
 import { Logo } from "@/components/Logo";
+import { Footer } from "@/components/Footer";
 
 export default function Landing() {
   return (
@@ -184,6 +185,7 @@ export default function Landing() {
           </div>
         </div>
       </div>
+      <Footer />
     </div>
   );
 }

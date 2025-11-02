@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { UserPlus } from "lucide-react";
 import { Logo } from "@/components/Logo";
+import { Footer } from "@/components/Footer";
 
 export default function Register() {
   const [, navigate] = useLocation();
@@ -189,6 +190,7 @@ export default function Register() {
           </p>
         </CardFooter>
       </Card>
+      <Footer />
     </div>
   );
 }

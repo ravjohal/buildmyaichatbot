@@ -19,6 +19,9 @@ import NotificationSettings from "@/pages/NotificationSettings";
 import Landing from "@/pages/Landing";
 import Login from "@/pages/Login";
 import Register from "@/pages/Register";
+import TermsOfService from "@/pages/TermsOfService";
+import PrivacyPolicy from "@/pages/PrivacyPolicy";
+import AcceptableUsePolicy from "@/pages/AcceptableUsePolicy";
 import NotFound from "@/pages/not-found";
 import { useAuth } from "@/hooks/useAuth";
 import { IndexingStatusBanner } from "@/components/IndexingStatusBanner";
@@ -30,6 +33,9 @@ function PublicRouter() {
       <Route path="/login" component={Login} />
       <Route path="/register" component={Register} />
       <Route path="/pricing" component={Pricing} />
+      <Route path="/terms-of-service" component={TermsOfService} />
+      <Route path="/privacy-policy" component={PrivacyPolicy} />
+      <Route path="/acceptable-use-policy" component={AcceptableUsePolicy} />
       <Route path="/widget/:id" component={ChatWidget} />
       <Route path="/chat/:id" component={ChatWidget} />
       <Route component={Landing} />
@@ -86,7 +92,10 @@ function Router() {
                         location.startsWith('/chat/') ||
                         location === '/pricing' || 
                         location === '/login' || 
-                        location === '/register';
+                        location === '/register' ||
+                        location === '/terms-of-service' ||
+                        location === '/privacy-policy' ||
+                        location === '/acceptable-use-policy';
   
   if (isPublicRoute) {
     return <PublicRouter />;
