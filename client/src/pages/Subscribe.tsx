@@ -61,10 +61,20 @@ const SubscribeForm = ({ billingCycle, tier }: { billingCycle: "monthly" | "annu
       });
       setIsProcessing(false);
     } else {
-      toast({
-        title: "Payment Successful",
-        description: `You are now subscribed to the ${selectedPlan.name} plan!`,
-      });
+      // Payment succeeded! Sync subscription status from Stripe
+      try {
+        await apiRequest("POST", "/api/sync-subscription");
+        toast({
+          title: "Payment Successful",
+          description: `You are now subscribed to the ${selectedPlan.name} plan!`,
+        });
+      } catch (syncError) {
+        // Sync failed but payment succeeded - user can manually refresh
+        toast({
+          title: "Payment Successful",
+          description: `Payment confirmed! Please refresh the page to see your new plan.`,
+        });
+      }
       navigate("/");
     }
   };

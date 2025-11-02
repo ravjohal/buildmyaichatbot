@@ -2439,6 +2439,69 @@ Generate 3-5 short, natural questions that would help the user learn more. Retur
     }
   });
 
+  // Sync subscription status from Stripe
+  app.post('/api/sync-subscription', isAuthenticated, async (req: any, res) => {
+    if (!stripe) {
+      return res.status(503).json({ error: 'Stripe is not configured' });
+    }
+
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+      
+      if (!user || !user.stripeSubscriptionId) {
+        return res.status(404).json({ error: 'No subscription found' });
+      }
+
+      // Fetch subscription from Stripe
+      const subscription = await stripe.subscriptions.retrieve(user.stripeSubscriptionId);
+      
+      console.log(`[Sync] Checking subscription ${subscription.id}: status=${subscription.status}`);
+
+      // Update user tier based on subscription status
+      if (subscription.status === 'active' || subscription.status === 'trialing') {
+        const priceId = subscription.items.data[0]?.price.id;
+        let tier: 'free' | 'pro' | 'scale' = 'free';
+        
+        // Determine tier from price ID (same logic as webhook)
+        const proMonthlyTest = process.env.STRIPE_TEST_PRO_MONTHLY_PRICE_ID || process.env.STRIPE_TEST_MONTHLY_PRICE_ID || process.env.STRIPE_MONTHLY_PRICE_ID;
+        const proMonthlyLive = process.env.STRIPE_LIVE_PRO_MONTHLY_PRICE_ID || process.env.STRIPE_LIVE_MONTHLY_PRICE_ID || process.env.STRIPE_MONTHLY_PRICE_ID;
+        const proAnnualTest = process.env.STRIPE_TEST_PRO_ANNUAL_PRICE_ID || process.env.STRIPE_TEST_ANNUAL_PRICE_ID || process.env.STRIPE_ANNUAL_PRICE_ID;
+        const proAnnualLive = process.env.STRIPE_LIVE_PRO_ANNUAL_PRICE_ID || process.env.STRIPE_LIVE_ANNUAL_PRICE_ID || process.env.STRIPE_ANNUAL_PRICE_ID;
+        
+        const scaleMonthlyTest = process.env.STRIPE_TEST_SCALE_MONTHLY_PRICE_ID || process.env.STRIPE_SCALE_MONTHLY_PRICE_ID;
+        const scaleMonthlyLive = process.env.STRIPE_LIVE_SCALE_MONTHLY_PRICE_ID || process.env.STRIPE_SCALE_MONTHLY_PRICE_ID;
+        const scaleAnnualTest = process.env.STRIPE_TEST_SCALE_ANNUAL_PRICE_ID || process.env.STRIPE_SCALE_ANNUAL_PRICE_ID;
+        const scaleAnnualLive = process.env.STRIPE_LIVE_SCALE_ANNUAL_PRICE_ID || process.env.STRIPE_SCALE_ANNUAL_PRICE_ID;
+        
+        if (priceId === proMonthlyTest || priceId === proMonthlyLive || 
+            priceId === proAnnualTest || priceId === proAnnualLive) {
+          tier = 'pro';
+        } else if (priceId === scaleMonthlyTest || priceId === scaleMonthlyLive || 
+                   priceId === scaleAnnualTest || priceId === scaleAnnualLive) {
+          tier = 'scale';
+        }
+
+        console.log(`[Sync] Updating user to ${tier} tier (priceId: ${priceId})`);
+        
+        await db.update(users)
+          .set({ 
+            subscriptionTier: tier,
+            stripePriceId: priceId || null,
+          })
+          .where(eq(users.id, userId));
+          
+        res.json({ success: true, tier, status: subscription.status });
+      } else {
+        console.log(`[Sync] Subscription not active (status: ${subscription.status})`);
+        res.json({ success: false, status: subscription.status, message: 'Subscription is not active' });
+      }
+    } catch (error: any) {
+      console.error('[Sync] Error syncing subscription:', error);
+      res.status(500).json({ error: 'Failed to sync subscription' });
+    }
+  });
+
   // ===== CONVERSATION RATING ENDPOINTS (Feature 3) =====
   
   // Submit a rating for a conversation
