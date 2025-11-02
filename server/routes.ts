@@ -2977,7 +2977,8 @@ Generate 3-5 short, natural questions that would help the user learn more. Retur
         const subscription = event.data.object as Stripe.Subscription;
         const userId = subscription.metadata?.userId;
         
-        if (userId && subscription.status === 'active') {
+        // Accept 'active', 'trialing', or 'incomplete' status (incomplete becomes active after payment)
+        if (userId && (subscription.status === 'active' || subscription.status === 'trialing' || subscription.status === 'incomplete')) {
           // Determine tier from price ID
           const priceId = subscription.items.data[0]?.price.id;
           let tier: 'free' | 'pro' | 'scale' = 'free';
@@ -3035,11 +3036,50 @@ Generate 3-5 short, natural questions that would help the user learn more. Retur
         break;
 
       case 'invoice.payment_succeeded':
-        const invoice = event.data.object as Stripe.Invoice;
-        const invoiceSubscription: any = invoice;
-        if (invoiceSubscription.subscription && invoice.metadata?.userId) {
-          // Payment succeeded - tier is already set by subscription.created/updated events
-          // No action needed here
+        const invoice = event.data.object as any; // Stripe Invoice type doesn't include subscription property
+        const invoiceSubscriptionId = typeof invoice.subscription === 'string' 
+          ? invoice.subscription 
+          : invoice.subscription?.id;
+        
+        // Fallback: If payment succeeded, ensure user tier is updated
+        if (invoiceSubscriptionId && stripe) {
+          try {
+            const invoiceSub = await stripe.subscriptions.retrieve(invoiceSubscriptionId);
+            const invoiceUserId = invoiceSub.metadata?.userId;
+            
+            if (invoiceUserId && (invoiceSub.status === 'active' || invoiceSub.status === 'trialing')) {
+              const priceId = invoiceSub.items.data[0]?.price.id;
+              let tier: 'free' | 'pro' | 'scale' = 'free';
+              
+              // Map price IDs to tiers
+              const proMonthlyTest = process.env.STRIPE_TEST_PRO_MONTHLY_PRICE_ID || process.env.STRIPE_TEST_MONTHLY_PRICE_ID || process.env.STRIPE_MONTHLY_PRICE_ID;
+              const proMonthlyLive = process.env.STRIPE_LIVE_PRO_MONTHLY_PRICE_ID || process.env.STRIPE_LIVE_MONTHLY_PRICE_ID || process.env.STRIPE_MONTHLY_PRICE_ID;
+              const proAnnualTest = process.env.STRIPE_TEST_PRO_ANNUAL_PRICE_ID || process.env.STRIPE_TEST_ANNUAL_PRICE_ID || process.env.STRIPE_ANNUAL_PRICE_ID;
+              const proAnnualLive = process.env.STRIPE_LIVE_PRO_ANNUAL_PRICE_ID || process.env.STRIPE_LIVE_ANNUAL_PRICE_ID || process.env.STRIPE_ANNUAL_PRICE_ID;
+              
+              const scaleMonthlyTest = process.env.STRIPE_TEST_SCALE_MONTHLY_PRICE_ID || process.env.STRIPE_SCALE_MONTHLY_PRICE_ID;
+              const scaleMonthlyLive = process.env.STRIPE_LIVE_SCALE_MONTHLY_PRICE_ID || process.env.STRIPE_SCALE_MONTHLY_PRICE_ID;
+              const scaleAnnualTest = process.env.STRIPE_TEST_SCALE_ANNUAL_PRICE_ID || process.env.STRIPE_SCALE_ANNUAL_PRICE_ID;
+              const scaleAnnualLive = process.env.STRIPE_LIVE_SCALE_ANNUAL_PRICE_ID || process.env.STRIPE_SCALE_ANNUAL_PRICE_ID;
+              
+              if (priceId === proMonthlyTest || priceId === proMonthlyLive || 
+                  priceId === proAnnualTest || priceId === proAnnualLive) {
+                tier = 'pro';
+              } else if (priceId === scaleMonthlyTest || priceId === scaleMonthlyLive || 
+                         priceId === scaleAnnualTest || priceId === scaleAnnualLive) {
+                tier = 'scale';
+              }
+              
+              // Ensure tier is updated (fallback in case subscription.created didn't run)
+              await db.update(users)
+                .set({ subscriptionTier: tier })
+                .where(eq(users.id, invoiceUserId));
+              
+              console.log(`[Webhook] Payment succeeded - ensured user ${invoiceUserId} tier is ${tier}`);
+            }
+          } catch (error) {
+            console.error('[Webhook] Error handling invoice.payment_succeeded:', error);
+          }
         }
         break;
 
