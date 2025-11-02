@@ -70,6 +70,12 @@
 
   --input: 220 13% 85%;
   --ring: 210 100% 65%;
+  
+  /* Navy colors for indexing banner */
+  --navy: 217 65% 9%;
+  --navy-foreground: 0 0% 100%;
+  --navy-border: 217 50% 15%;
+  --navy-elevated: 217 50% 12%;
   --chart-1: 210 100% 55%;
   --chart-2: 199 89% 48%;
   --chart-3: 142 71% 45%;
@@ -188,6 +194,13 @@
 
   --input: 217 35% 26%;
   --ring: 210 100% 65%;
+  
+  /* Navy colors for indexing banner - same as light mode */
+  --navy: 217 65% 9%;
+  --navy-foreground: 0 0% 100%;
+  --navy-border: 217 50% 15%;
+  --navy-elevated: 217 50% 12%;
+  
   --chart-1: 210 100% 70%;
   --chart-2: 199 89% 58%;
   --chart-3: 142 71% 55%;
