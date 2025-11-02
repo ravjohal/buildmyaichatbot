@@ -639,33 +639,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Create an indexing job for the website URLs (if any)
       if (chatbot.websiteUrls && chatbot.websiteUrls.length > 0) {
-        const jobId = await storage.createIndexingJob({
-          chatbotId,
-          status: 'pending',
-          totalTasks: chatbot.websiteUrls.length,
-          completedTasks: 0,
-          failedTasks: 0,
-        });
+        const job = await storage.createIndexingJob(chatbotId, chatbot.websiteUrls.length);
         
-        console.log(`[Refresh] Created indexing job ${jobId} with ${chatbot.websiteUrls.length} URLs`);
+        console.log(`[Refresh] Created indexing job ${job.id} with ${chatbot.websiteUrls.length} URLs`);
         
         // Create indexing tasks for each URL
-        for (const url of chatbot.websiteUrls) {
-          await storage.createIndexingTask({
-            jobId,
-            chatbotId,
-            sourceType: 'website',
-            sourceUrl: url,
-            status: 'pending',
-          });
-        }
+        const tasks = chatbot.websiteUrls.map(url => ({
+          jobId: job.id,
+          chatbotId,
+          sourceType: 'website' as const,
+          sourceUrl: url,
+          status: 'pending' as const,
+        }));
+        
+        await storage.createIndexingTasks(tasks);
         
         console.log(`[Refresh] Created ${chatbot.websiteUrls.length} indexing tasks`);
         
         res.json({
           success: true,
           message: `Knowledge base refresh started. Indexing ${chatbot.websiteUrls.length} URL(s) in background.`,
-          jobId,
+          jobId: job.id,
           urlCount: chatbot.websiteUrls.length,
         });
       } else {
