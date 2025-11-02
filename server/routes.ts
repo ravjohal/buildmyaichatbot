@@ -2238,17 +2238,18 @@ Generate 3-5 short, natural questions that would help the user learn more. Retur
 
       // Map tier and billing cycle to correct Stripe price ID
       // Use test or live price IDs based on environment
+      // Supports both "PRO" naming and standard naming for backward compatibility
       let priceId: string | undefined;
       
       if (tier === "pro") {
         if (billingCycle === "monthly") {
           priceId = isProduction
-            ? (process.env.STRIPE_LIVE_MONTHLY_PRICE_ID || process.env.STRIPE_MONTHLY_PRICE_ID)
-            : (process.env.STRIPE_TEST_MONTHLY_PRICE_ID || process.env.STRIPE_MONTHLY_PRICE_ID);
+            ? (process.env.STRIPE_LIVE_PRO_MONTHLY_PRICE_ID || process.env.STRIPE_LIVE_MONTHLY_PRICE_ID || process.env.STRIPE_MONTHLY_PRICE_ID)
+            : (process.env.STRIPE_TEST_PRO_MONTHLY_PRICE_ID || process.env.STRIPE_TEST_MONTHLY_PRICE_ID || process.env.STRIPE_MONTHLY_PRICE_ID);
         } else {
           priceId = isProduction
-            ? (process.env.STRIPE_LIVE_ANNUAL_PRICE_ID || process.env.STRIPE_ANNUAL_PRICE_ID)
-            : (process.env.STRIPE_TEST_ANNUAL_PRICE_ID || process.env.STRIPE_ANNUAL_PRICE_ID);
+            ? (process.env.STRIPE_LIVE_PRO_ANNUAL_PRICE_ID || process.env.STRIPE_LIVE_ANNUAL_PRICE_ID || process.env.STRIPE_ANNUAL_PRICE_ID)
+            : (process.env.STRIPE_TEST_PRO_ANNUAL_PRICE_ID || process.env.STRIPE_TEST_ANNUAL_PRICE_ID || process.env.STRIPE_ANNUAL_PRICE_ID);
         }
       } else if (tier === "scale") {
         if (billingCycle === "monthly") {
@@ -2868,10 +2869,11 @@ Generate 3-5 short, natural questions that would help the user learn more. Retur
           let tier: 'free' | 'pro' | 'scale' = 'free';
           
           // Map price IDs to tiers - check both test and live price IDs
-          const proMonthlyTest = process.env.STRIPE_TEST_MONTHLY_PRICE_ID || process.env.STRIPE_MONTHLY_PRICE_ID;
-          const proMonthlyLive = process.env.STRIPE_LIVE_MONTHLY_PRICE_ID || process.env.STRIPE_MONTHLY_PRICE_ID;
-          const proAnnualTest = process.env.STRIPE_TEST_ANNUAL_PRICE_ID || process.env.STRIPE_ANNUAL_PRICE_ID;
-          const proAnnualLive = process.env.STRIPE_LIVE_ANNUAL_PRICE_ID || process.env.STRIPE_ANNUAL_PRICE_ID;
+          // Supports both "PRO" naming and standard naming for backward compatibility
+          const proMonthlyTest = process.env.STRIPE_TEST_PRO_MONTHLY_PRICE_ID || process.env.STRIPE_TEST_MONTHLY_PRICE_ID || process.env.STRIPE_MONTHLY_PRICE_ID;
+          const proMonthlyLive = process.env.STRIPE_LIVE_PRO_MONTHLY_PRICE_ID || process.env.STRIPE_LIVE_MONTHLY_PRICE_ID || process.env.STRIPE_MONTHLY_PRICE_ID;
+          const proAnnualTest = process.env.STRIPE_TEST_PRO_ANNUAL_PRICE_ID || process.env.STRIPE_TEST_ANNUAL_PRICE_ID || process.env.STRIPE_ANNUAL_PRICE_ID;
+          const proAnnualLive = process.env.STRIPE_LIVE_PRO_ANNUAL_PRICE_ID || process.env.STRIPE_LIVE_ANNUAL_PRICE_ID || process.env.STRIPE_ANNUAL_PRICE_ID;
           
           const scaleMonthlyTest = process.env.STRIPE_TEST_SCALE_MONTHLY_PRICE_ID || process.env.STRIPE_SCALE_MONTHLY_PRICE_ID;
           const scaleMonthlyLive = process.env.STRIPE_LIVE_SCALE_MONTHLY_PRICE_ID || process.env.STRIPE_SCALE_MONTHLY_PRICE_ID;
