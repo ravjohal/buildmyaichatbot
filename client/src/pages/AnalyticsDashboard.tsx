@@ -6,10 +6,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { 
-  Loader2, BarChart3, ArrowLeft, LogOut, User as UserIcon, Crown, UserPlus, 
-  MessageSquare, Mail, Users, Star, TrendingUp, Send, Settings 
+  Loader2, BarChart3, 
+  MessageSquare, Mail, Users, Star, TrendingUp, Send
 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { DashboardHeader } from "@/components/DashboardHeader";
 
 interface ChatbotStat {
   chatbotId: string;
@@ -93,73 +94,28 @@ export default function AnalyticsDashboard() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="w-8 h-8 animate-spin" data-testid="loading-spinner" />
+      <div className="min-h-screen bg-background">
+        <DashboardHeader />
+        <div className="flex items-center justify-center h-96">
+          <Loader2 className="w-8 h-8 animate-spin" data-testid="loading-spinner" />
+        </div>
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-background">
+      <DashboardHeader />
+      
       <div className="border-b">
         <div className="max-w-7xl mx-auto px-6 md:px-12 py-6">
-          <div className="flex items-center justify-between gap-4 flex-wrap">
-            <div className="flex items-center gap-4">
-              <Link href="/">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  data-testid="button-back-dashboard"
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                </Button>
-              </Link>
-              <div>
-                <h1 className="text-3xl font-bold tracking-tight" data-testid="text-page-title">
-                  Analytics Overview
-                </h1>
-                <p className="text-muted-foreground mt-1">
-                  Comprehensive performance metrics across all your chatbots
-                </p>
-              </div>
-            </div>
-            <div className="flex gap-3 flex-wrap">
-              {user?.isAdmin === "true" && (
-                <Link href="/admin">
-                  <Button variant="outline" className="gap-2" data-testid="button-admin">
-                    <Crown className="w-4 h-4" />
-                    Admin
-                  </Button>
-                </Link>
-              )}
-              <Link href="/leads">
-                <Button variant="outline" className="gap-2" data-testid="button-leads">
-                  <UserPlus className="w-4 h-4" />
-                  Leads
-                </Button>
-              </Link>
-              <Link href="/account/notifications">
-                <Button variant="outline" className="gap-2" data-testid="button-notifications">
-                  <Settings className="w-4 h-4" />
-                  Notifications
-                </Button>
-              </Link>
-              <Link href="/account">
-                <Button variant="outline" className="gap-2" data-testid="button-account">
-                  <UserIcon className="w-4 h-4" />
-                  Account
-                </Button>
-              </Link>
-              <Button
-                variant="outline"
-                onClick={handleLogout}
-                className="gap-2"
-                data-testid="button-logout"
-              >
-                <LogOut className="w-4 h-4" />
-                Logout
-              </Button>
-            </div>
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight" data-testid="text-page-title">
+              Analytics Overview
+            </h1>
+            <p className="text-muted-foreground mt-1">
+              Comprehensive performance metrics across all your chatbots
+            </p>
           </div>
         </div>
       </div>
