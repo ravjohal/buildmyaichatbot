@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ChevronDown, ChevronUp, X, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -18,21 +18,30 @@ interface IndexingJob {
 
 export function IndexingStatusBanner() {
   const [isExpanded, setIsExpanded] = useState(false);
-  const [isDismissed, setIsDismissed] = useState(false);
+  const [isHidden, setIsHidden] = useState(false);
 
   const { data: jobs = [], isLoading } = useQuery<IndexingJob[]>({
     queryKey: ["/api/indexing/status"],
     refetchInterval: 5000,
-    enabled: !isDismissed,
   });
 
-  if (isLoading || jobs.length === 0 || isDismissed) {
+  useEffect(() => {
+    if (jobs.length > 0) {
+      setIsHidden(false);
+    }
+  }, [jobs.length, jobs]);
+
+  if (isLoading || jobs.length === 0) {
     return null;
   }
 
-  const totalProgress = jobs.reduce((sum, job) => sum + job.progressPercentage, 0) / jobs.length;
+  if (isHidden) {
+    return null;
+  }
+
   const totalCompleted = jobs.reduce((sum, job) => sum + job.completedTasks, 0);
   const totalTasks = jobs.reduce((sum, job) => sum + job.totalTasks, 0);
+  const totalProgress = totalTasks > 0 ? Math.round((totalCompleted / totalTasks) * 100) : 0;
 
   return (
     <div className="w-full bg-navy border-b border-navy-border" data-testid="banner-indexing-status">
@@ -72,7 +81,7 @@ export function IndexingStatusBanner() {
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => setIsDismissed(true)}
+              onClick={() => setIsHidden(true)}
               className="h-8 w-8 text-white/70 hover-elevate"
               data-testid="button-dismiss-banner"
             >
@@ -102,7 +111,7 @@ export function IndexingStatusBanner() {
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => setIsDismissed(true)}
+                onClick={() => setIsHidden(true)}
                 className="h-8 w-8 text-white/70 hover-elevate"
                 data-testid="button-dismiss-banner-expanded"
               >
