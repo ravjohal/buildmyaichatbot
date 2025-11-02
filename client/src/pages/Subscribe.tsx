@@ -9,10 +9,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { PRICING_PLANS } from "@shared/pricing";
 import { DashboardHeader } from "@/components/DashboardHeader";
 
-if (!import.meta.env.VITE_STRIPE_PUBLIC_KEY) {
-  throw new Error('Missing required Stripe key: VITE_STRIPE_PUBLIC_KEY');
+// Support both TESTING_VITE_STRIPE_PUBLIC_KEY (sandbox) and VITE_STRIPE_PUBLIC_KEY (production)
+const stripePublicKey = import.meta.env.TESTING_VITE_STRIPE_PUBLIC_KEY || import.meta.env.VITE_STRIPE_PUBLIC_KEY;
+if (!stripePublicKey) {
+  throw new Error('Missing required Stripe key: TESTING_VITE_STRIPE_PUBLIC_KEY or VITE_STRIPE_PUBLIC_KEY');
 }
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
+const stripePromise = loadStripe(stripePublicKey);
 
 const SubscribeForm = ({ billingCycle, tier }: { billingCycle: "monthly" | "annual", tier: "pro" | "scale" }) => {
   const stripe = useStripe();

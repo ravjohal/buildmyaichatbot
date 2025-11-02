@@ -25,7 +25,9 @@ const upload = multer({
 });
 
 // Initialize Stripe only if the secret is available
-const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY) : null;
+// Support both TESTING_STRIPE_SECRET_KEY (sandbox) and STRIPE_SECRET_KEY (production)
+const stripeSecretKey = process.env.TESTING_STRIPE_SECRET_KEY || process.env.STRIPE_SECRET_KEY;
+const stripe = stripeSecretKey ? new Stripe(stripeSecretKey) : null;
 
 // In-memory store for background indexing jobs
 interface IndexingJob {
