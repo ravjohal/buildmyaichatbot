@@ -24,18 +24,30 @@ const upload = multer({
   }
 });
 
-// Initialize Stripe only if the secret is available
-// Support both TESTING_STRIPE_SECRET_KEY (sandbox) and STRIPE_SECRET_KEY (production)
-const stripeSecretKey = process.env.TESTING_STRIPE_SECRET_KEY || process.env.STRIPE_SECRET_KEY;
+// Initialize Stripe - automatically use test or live keys based on environment
+// REPLIT_DEPLOYMENT is set to "1" when published (production), undefined in development
+const isProduction = process.env.REPLIT_DEPLOYMENT === "1";
+
+// Choose the appropriate Stripe secret key based on environment
+const stripeSecretKey = isProduction
+  ? (process.env.STRIPE_LIVE_SECRET_KEY || process.env.STRIPE_SECRET_KEY)  // Production: use live keys
+  : (process.env.STRIPE_TEST_SECRET_KEY || process.env.TESTING_STRIPE_SECRET_KEY || process.env.STRIPE_SECRET_KEY);  // Development: use test keys
+
 const stripe = stripeSecretKey ? new Stripe(stripeSecretKey) : null;
 
 // Log which Stripe key is being used (only show first/last 4 chars for security)
 if (stripeSecretKey) {
   const keyPrefix = stripeSecretKey.substring(0, 7); // sk_test or sk_live
-  const keySource = process.env.TESTING_STRIPE_SECRET_KEY ? 'TESTING_STRIPE_SECRET_KEY' : 'STRIPE_SECRET_KEY';
-  console.log(`[Stripe] Initialized with ${keySource}: ${keyPrefix}...${stripeSecretKey.slice(-4)}`);
+  const mode = isProduction ? 'PRODUCTION (Live)' : 'DEVELOPMENT (Test)';
+  console.log(`[Stripe] ${mode} mode - Key: ${keyPrefix}...${stripeSecretKey.slice(-4)}`);
+  if (!isProduction && keyPrefix.includes('live')) {
+    console.warn('[Stripe] WARNING: Using LIVE key in development mode!');
+  }
+  if (isProduction && keyPrefix.includes('test')) {
+    console.warn('[Stripe] WARNING: Using TEST key in production mode!');
+  }
 } else {
-  console.warn('[Stripe] No Stripe secret key found! Set TESTING_STRIPE_SECRET_KEY or STRIPE_SECRET_KEY');
+  console.error('[Stripe] No Stripe secret key found! Set appropriate environment variables.');
 }
 
 // In-memory store for background indexing jobs
@@ -2225,16 +2237,29 @@ Generate 3-5 short, natural questions that would help the user learn more. Retur
       }
 
       // Map tier and billing cycle to correct Stripe price ID
+      // Use test or live price IDs based on environment
       let priceId: string | undefined;
       
       if (tier === "pro") {
-        priceId = billingCycle === "monthly" 
-          ? process.env.STRIPE_MONTHLY_PRICE_ID  // Pro monthly
-          : process.env.STRIPE_ANNUAL_PRICE_ID;  // Pro annual
+        if (billingCycle === "monthly") {
+          priceId = isProduction
+            ? (process.env.STRIPE_LIVE_MONTHLY_PRICE_ID || process.env.STRIPE_MONTHLY_PRICE_ID)
+            : (process.env.STRIPE_TEST_MONTHLY_PRICE_ID || process.env.STRIPE_MONTHLY_PRICE_ID);
+        } else {
+          priceId = isProduction
+            ? (process.env.STRIPE_LIVE_ANNUAL_PRICE_ID || process.env.STRIPE_ANNUAL_PRICE_ID)
+            : (process.env.STRIPE_TEST_ANNUAL_PRICE_ID || process.env.STRIPE_ANNUAL_PRICE_ID);
+        }
       } else if (tier === "scale") {
-        priceId = billingCycle === "monthly"
-          ? process.env.STRIPE_SCALE_MONTHLY_PRICE_ID  // Scale monthly
-          : process.env.STRIPE_SCALE_ANNUAL_PRICE_ID;  // Scale annual
+        if (billingCycle === "monthly") {
+          priceId = isProduction
+            ? (process.env.STRIPE_LIVE_SCALE_MONTHLY_PRICE_ID || process.env.STRIPE_SCALE_MONTHLY_PRICE_ID)
+            : (process.env.STRIPE_TEST_SCALE_MONTHLY_PRICE_ID || process.env.STRIPE_SCALE_MONTHLY_PRICE_ID);
+        } else {
+          priceId = isProduction
+            ? (process.env.STRIPE_LIVE_SCALE_ANNUAL_PRICE_ID || process.env.STRIPE_SCALE_ANNUAL_PRICE_ID)
+            : (process.env.STRIPE_TEST_SCALE_ANNUAL_PRICE_ID || process.env.STRIPE_SCALE_ANNUAL_PRICE_ID);
+        }
       }
 
       if (!priceId) {
@@ -2815,10 +2840,15 @@ Generate 3-5 short, natural questions that would help the user learn more. Retur
 
     let event;
     try {
+      // Use test or live webhook secret based on environment
+      const webhookSecret = isProduction
+        ? (process.env.STRIPE_LIVE_WEBHOOK_SECRET || process.env.STRIPE_WEBHOOK_SECRET)
+        : (process.env.STRIPE_TEST_WEBHOOK_SECRET || process.env.STRIPE_WEBHOOK_SECRET);
+      
       event = stripe.webhooks.constructEvent(
         req.body,
         sig,
-        process.env.STRIPE_WEBHOOK_SECRET || ''
+        webhookSecret || ''
       );
     } catch (err: any) {
       console.error('Webhook signature verification failed:', err.message);
@@ -2837,19 +2867,30 @@ Generate 3-5 short, natural questions that would help the user learn more. Retur
           const priceId = subscription.items.data[0]?.price.id;
           let tier: 'free' | 'pro' | 'scale' = 'free';
           
-          // Map price IDs to tiers
-          const proMonthlyPriceId = process.env.STRIPE_MONTHLY_PRICE_ID; // Pro tier monthly
-          const proAnnualPriceId = process.env.STRIPE_ANNUAL_PRICE_ID; // Pro tier annual
-          const scaleMonthlyPriceId = process.env.STRIPE_SCALE_MONTHLY_PRICE_ID; // Scale tier monthly (needs to be created in Stripe)
-          const scaleAnnualPriceId = process.env.STRIPE_SCALE_ANNUAL_PRICE_ID; // Scale tier annual (needs to be created in Stripe)
+          // Map price IDs to tiers - check both test and live price IDs
+          const proMonthlyTest = process.env.STRIPE_TEST_MONTHLY_PRICE_ID || process.env.STRIPE_MONTHLY_PRICE_ID;
+          const proMonthlyLive = process.env.STRIPE_LIVE_MONTHLY_PRICE_ID || process.env.STRIPE_MONTHLY_PRICE_ID;
+          const proAnnualTest = process.env.STRIPE_TEST_ANNUAL_PRICE_ID || process.env.STRIPE_ANNUAL_PRICE_ID;
+          const proAnnualLive = process.env.STRIPE_LIVE_ANNUAL_PRICE_ID || process.env.STRIPE_ANNUAL_PRICE_ID;
           
-          if (priceId === proMonthlyPriceId || priceId === proAnnualPriceId) {
+          const scaleMonthlyTest = process.env.STRIPE_TEST_SCALE_MONTHLY_PRICE_ID || process.env.STRIPE_SCALE_MONTHLY_PRICE_ID;
+          const scaleMonthlyLive = process.env.STRIPE_LIVE_SCALE_MONTHLY_PRICE_ID || process.env.STRIPE_SCALE_MONTHLY_PRICE_ID;
+          const scaleAnnualTest = process.env.STRIPE_TEST_SCALE_ANNUAL_PRICE_ID || process.env.STRIPE_SCALE_ANNUAL_PRICE_ID;
+          const scaleAnnualLive = process.env.STRIPE_LIVE_SCALE_ANNUAL_PRICE_ID || process.env.STRIPE_SCALE_ANNUAL_PRICE_ID;
+          
+          // Check if price ID matches Pro tier (either test or live)
+          if (priceId === proMonthlyTest || priceId === proMonthlyLive || 
+              priceId === proAnnualTest || priceId === proAnnualLive) {
             tier = 'pro';
             console.log(`[Webhook] Subscription assigned to Pro tier (priceId: ${priceId})`);
-          } else if (priceId === scaleMonthlyPriceId || priceId === scaleAnnualPriceId) {
+          } 
+          // Check if price ID matches Scale tier (either test or live)
+          else if (priceId === scaleMonthlyTest || priceId === scaleMonthlyLive || 
+                   priceId === scaleAnnualTest || priceId === scaleAnnualLive) {
             tier = 'scale';
             console.log(`[Webhook] Subscription assigned to Scale tier (priceId: ${priceId})`);
-          } else {
+          } 
+          else {
             console.log(`[Webhook] Unknown price ID ${priceId}, defaulting to free tier`);
           }
           

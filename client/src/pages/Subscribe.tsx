@@ -9,11 +9,19 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { PRICING_PLANS } from "@shared/pricing";
 import { DashboardHeader } from "@/components/DashboardHeader";
 
-// Support both TESTING_VITE_STRIPE_PUBLIC_KEY (sandbox) and VITE_STRIPE_PUBLIC_KEY (production)
-const stripePublicKey = import.meta.env.TESTING_VITE_STRIPE_PUBLIC_KEY || import.meta.env.VITE_STRIPE_PUBLIC_KEY;
+// Automatically choose test or live Stripe key based on environment
+// REPLIT_DEPLOYMENT is set when published (production)
+const isProduction = import.meta.env.REPLIT_DEPLOYMENT === "1";
+
+const stripePublicKey = isProduction
+  ? (import.meta.env.VITE_STRIPE_LIVE_PUBLIC_KEY || import.meta.env.VITE_STRIPE_PUBLIC_KEY)  // Production: use live key
+  : (import.meta.env.VITE_STRIPE_TEST_PUBLIC_KEY || import.meta.env.TESTING_VITE_STRIPE_PUBLIC_KEY || import.meta.env.VITE_STRIPE_PUBLIC_KEY);  // Development: use test key
+
 if (!stripePublicKey) {
-  throw new Error('Missing required Stripe key: TESTING_VITE_STRIPE_PUBLIC_KEY or VITE_STRIPE_PUBLIC_KEY');
+  throw new Error('Missing required Stripe public key. Set VITE_STRIPE_TEST_PUBLIC_KEY or VITE_STRIPE_LIVE_PUBLIC_KEY');
 }
+
+console.log(`[Stripe] Using ${isProduction ? 'LIVE' : 'TEST'} mode public key`);
 const stripePromise = loadStripe(stripePublicKey);
 
 const SubscribeForm = ({ billingCycle, tier }: { billingCycle: "monthly" | "annual", tier: "pro" | "scale" }) => {
