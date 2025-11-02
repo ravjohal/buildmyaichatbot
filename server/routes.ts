@@ -2303,12 +2303,13 @@ Generate 3-5 short, natural questions that would help the user learn more. Retur
       console.log(`Creating subscription: tier=${tier}, billingCycle=${billingCycle}, priceId=${priceId}`);
 
       // Create subscription using pre-created price
+      // Use 'allow_incomplete' instead of 'default_incomplete' to ensure payment intent is created
       let subscription = await stripe.subscriptions.create({
         customer: stripeCustomerId,
         items: [{
           price: priceId,
         }],
-        payment_behavior: 'default_incomplete',
+        payment_behavior: 'allow_incomplete',
         payment_settings: {
           save_default_payment_method: 'on_subscription',
           payment_method_types: ['card'],
@@ -2324,49 +2325,8 @@ Generate 3-5 short, natural questions that would help the user learn more. Retur
       // Store subscription ID
       await storage.updateStripeSubscriptionId(user.id, subscription.id);
       
-      // Check if payment intent was created, if not, manually create one
+      // Get the latest invoice (should have payment intent with 'allow_incomplete')
       let latestInvoice = subscription.latest_invoice;
-      if (typeof latestInvoice === 'object' && latestInvoice !== null) {
-        const invoice = latestInvoice as any;
-        
-        // If invoice doesn't have a payment intent, create one manually
-        if (!invoice.payment_intent && invoice.amount_due > 0) {
-          console.log('Payment intent not found, creating one manually for invoice:', {
-            invoiceId: invoice.id,
-            amount: invoice.amount_due,
-            status: invoice.status,
-          });
-          
-          // Create a payment intent for this invoice
-          const paymentIntent = await stripe.paymentIntents.create({
-            amount: invoice.amount_due,
-            currency: invoice.currency || 'usd',
-            customer: stripeCustomerId,
-            metadata: {
-              invoiceId: invoice.id,
-              subscriptionId: subscription.id,
-              userId: user.id,
-            },
-            automatic_payment_methods: {
-              enabled: true,
-            },
-          });
-          
-          console.log('Payment intent created manually:', {
-            paymentIntentId: paymentIntent.id,
-            amount: paymentIntent.amount,
-            status: paymentIntent.status,
-            clientSecret: paymentIntent.client_secret ? 'present' : 'missing',
-          });
-          
-          // Update the invoice with the payment intent
-          // Note: Stripe doesn't allow direct update, but we'll use the PI for frontend
-          latestInvoice = {
-            ...invoice,
-            payment_intent: paymentIntent,
-          };
-        }
-      }
 
       // Get the client secret from the payment intent
       let clientSecret: string | null = null;
