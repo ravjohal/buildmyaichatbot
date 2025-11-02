@@ -2303,17 +2303,12 @@ Generate 3-5 short, natural questions that would help the user learn more. Retur
       console.log(`Creating subscription: tier=${tier}, billingCycle=${billingCycle}, priceId=${priceId}`);
 
       // Create subscription using pre-created price
-      // Use 'allow_incomplete' instead of 'default_incomplete' to ensure payment intent is created
       let subscription = await stripe.subscriptions.create({
         customer: stripeCustomerId,
         items: [{
           price: priceId,
         }],
-        payment_behavior: 'allow_incomplete',
-        payment_settings: {
-          save_default_payment_method: 'on_subscription',
-          payment_method_types: ['card'],
-        },
+        payment_behavior: 'default_incomplete',
         expand: ['latest_invoice.payment_intent'],
         metadata: {
           userId: user.id,
