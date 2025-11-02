@@ -250,14 +250,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.json([]);
       }
       
-      // Get active indexing jobs (pending or processing) for these chatbots
+      // Get active and recently completed indexing jobs for these chatbots
+      // Include completed/failed jobs from the last 2 minutes so users can see final status
+      const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000);
+      
       const activeJobs = await db.query.indexingJobs.findMany({
-        where: (jobs, { inArray, or, eq }) => 
+        where: (jobs, { inArray, or, eq, and: andOp, gte }) => 
           and(
             inArray(jobs.chatbotId, chatbotIds),
             or(
               eq(jobs.status, "pending"),
-              eq(jobs.status, "processing")
+              eq(jobs.status, "processing"),
+              // Include recently completed/failed jobs
+              andOp(
+                or(
+                  eq(jobs.status, "completed"),
+                  eq(jobs.status, "failed"),
+                  eq(jobs.status, "partial")
+                ),
+                gte(jobs.completedAt, twoMinutesAgo)
+              )
             )
           ),
         orderBy: (jobs, { desc }) => [desc(jobs.createdAt)],
