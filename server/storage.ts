@@ -915,6 +915,102 @@ export class DbStorage implements IStorage {
       })
       .where(eq(chatbots.id, chatbotId));
   }
+
+  // Admin Job Management operations
+  async listAllIndexingJobs(options?: { status?: string; limit?: number }): Promise<IndexingJob[]> {
+    const { status, limit = 100 } = options || {};
+    
+    let query = db
+      .select()
+      .from(indexingJobs)
+      .orderBy(desc(indexingJobs.createdAt))
+      .limit(limit);
+    
+    if (status) {
+      query = query.where(eq(indexingJobs.status, status as any)) as any;
+    }
+    
+    return await query;
+  }
+
+  async cancelIndexingJob(jobId: string): Promise<boolean> {
+    const job = await this.getIndexingJob(jobId);
+    if (!job) return false;
+    
+    // Only cancel if job is pending or processing
+    if (!["pending", "processing"].includes(job.status)) {
+      return false;
+    }
+    
+    // Cancel all pending/processing tasks
+    await db
+      .update(indexingTasks)
+      .set({ 
+        status: "cancelled",
+        cancelledAt: new Date()
+      })
+      .where(and(
+        eq(indexingTasks.jobId, jobId),
+        sql`${indexingTasks.status} IN ('pending', 'processing')`
+      ));
+    
+    // Update job status
+    await db
+      .update(indexingJobs)
+      .set({ 
+        status: "cancelled",
+        cancelledAt: new Date(),
+        completedAt: new Date()
+      })
+      .where(eq(indexingJobs.id, jobId));
+    
+    // Update chatbot status
+    await this.updateChatbotIndexingStatus(job.chatbotId, "failed");
+    
+    return true;
+  }
+
+  async retryIndexingJob(jobId: string): Promise<{ success: boolean; newJobId?: string }> {
+    const job = await this.getIndexingJob(jobId);
+    if (!job) return { success: false };
+    
+    // Only retry failed or partial jobs
+    if (!["failed", "partial", "cancelled"].includes(job.status)) {
+      return { success: false };
+    }
+    
+    // Get all failed/cancelled tasks
+    const failedTasks = await db
+      .select()
+      .from(indexingTasks)
+      .where(and(
+        eq(indexingTasks.jobId, jobId),
+        sql`${indexingTasks.status} IN ('failed', 'cancelled')`
+      ));
+    
+    if (failedTasks.length === 0) {
+      return { success: false };
+    }
+    
+    // Create new job
+    const newJob = await this.createIndexingJob(job.chatbotId, failedTasks.length);
+    
+    // Create new tasks from failed ones
+    const newTasks = failedTasks.map(task => ({
+      jobId: newJob.id,
+      chatbotId: task.chatbotId,
+      sourceType: task.sourceType,
+      sourceUrl: task.sourceUrl,
+      status: "pending" as const,
+    }));
+    
+    await this.createIndexingTasks(newTasks);
+    
+    // Update chatbot status
+    await this.updateChatbotIndexingStatus(job.chatbotId, "pending", newJob.id);
+    
+    return { success: true, newJobId: newJob.id };
+  }
 }
 
 export const storage = new DbStorage();

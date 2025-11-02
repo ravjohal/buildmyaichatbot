@@ -322,14 +322,16 @@ export type InsertKnowledgeChunk = z.infer<typeof insertKnowledgeChunkSchema>;
 export const indexingJobs = pgTable("indexing_jobs", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   chatbotId: varchar("chatbot_id").notNull().references(() => chatbots.id, { onDelete: "cascade" }),
-  status: varchar("status", { enum: ["pending", "processing", "completed", "failed", "partial"] }).notNull().default("pending"),
+  status: varchar("status", { enum: ["pending", "processing", "completed", "failed", "partial", "cancelled"] }).notNull().default("pending"),
   totalTasks: text("total_tasks").notNull().default("0"), // Total number of tasks (URLs + documents)
   completedTasks: text("completed_tasks").notNull().default("0"),
   failedTasks: text("failed_tasks").notNull().default("0"),
+  cancelledTasks: text("cancelled_tasks").notNull().default("0"),
   errorMessage: text("error_message"), // Overall job error if completely failed
   createdAt: timestamp("created_at").defaultNow().notNull(),
   startedAt: timestamp("started_at"),
   completedAt: timestamp("completed_at"),
+  cancelledAt: timestamp("cancelled_at"),
 });
 
 export type IndexingJob = typeof indexingJobs.$inferSelect;
@@ -342,13 +344,14 @@ export const indexingTasks = pgTable("indexing_tasks", {
   chatbotId: varchar("chatbot_id").notNull().references(() => chatbots.id, { onDelete: "cascade" }),
   sourceType: varchar("source_type", { enum: ["website", "document"] }).notNull(),
   sourceUrl: text("source_url").notNull(), // URL or document path
-  status: varchar("status", { enum: ["pending", "processing", "completed", "failed"] }).notNull().default("pending"),
+  status: varchar("status", { enum: ["pending", "processing", "completed", "failed", "cancelled"] }).notNull().default("pending"),
   retryCount: text("retry_count").notNull().default("0"),
   chunksCreated: text("chunks_created").notNull().default("0"), // Number of chunks created from this source
   errorMessage: text("error_message"), // Error for this specific task
   createdAt: timestamp("created_at").defaultNow().notNull(),
   startedAt: timestamp("started_at"),
   completedAt: timestamp("completed_at"),
+  cancelledAt: timestamp("cancelled_at"),
 });
 
 export type IndexingTask = typeof indexingTasks.$inferSelect;
