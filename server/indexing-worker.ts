@@ -30,20 +30,24 @@ async function processIndexingTask(taskId: string, jobId: string, chatbotId: str
         sameDomainOnly: true,
       });
       
-      if (crawlResults.error) {
-        throw new Error(crawlResults.error);
+      // crawlResults is an array of crawled pages
+      console.log(`[WORKER] Crawled ${crawlResults.length} pages from ${sourceUrl}`);
+      
+      if (crawlResults.length === 0) {
+        throw new Error("No pages could be crawled from the website");
       }
       
-      // Combine all crawled pages into single content
-      const allPages = crawlResults.result || [];
-      console.log(`[WORKER] Crawled ${allPages.length} pages from ${sourceUrl}`);
-      
       // Concatenate all page content with separators
-      content = allPages
-        .map(page => `=== ${page.title || page.url} ===\n\n${page.content}`)
+      content = crawlResults
+        .filter((page: any) => page.content && !page.error)
+        .map((page: any) => `=== ${page.title || page.url} ===\n\n${page.content}`)
         .join('\n\n---\n\n');
       
-      title = allPages[0]?.title || sourceUrl;
+      title = crawlResults[0]?.title || sourceUrl;
+      
+      if (!content || content.trim().length === 0) {
+        throw new Error("All crawled pages were empty or had errors");
+      }
       
       // Atomically check and update knowledge base size
       const chatbot = await storage.getChatbotById(chatbotId);

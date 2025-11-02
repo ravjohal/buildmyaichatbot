@@ -611,7 +611,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Refresh knowledge base on-demand (protected)
+  // Refresh knowledge base on-demand (protected) - Force complete re-index via async job
   app.post("/api/chatbots/:id/refresh-knowledge", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id;
@@ -625,112 +625,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Chatbot not found" });
       }
       
-      // Get existing URL crawl metadata
-      const existingMetadata = await db.select()
-        .from(urlCrawlMetadata)
-        .where(eq(urlCrawlMetadata.chatbotId, chatbotId));
+      // Clear existing chunks and metadata to force complete re-index
+      const deletedChunks = await storage.deleteChunksForChatbot(chatbotId);
+      console.log(`[Refresh] Deleted ${deletedChunks} existing chunks`);
       
-      console.log(`[Refresh] Found ${existingMetadata.length} existing crawl metadata records`);
+      // Delete existing URL crawl metadata
+      await db.delete(urlCrawlMetadata).where(eq(urlCrawlMetadata.chatbotId, chatbotId));
+      console.log(`[Refresh] Deleted crawl metadata`);
       
-      // Create a map of previous crawl data for efficient lookup
-      const previousCrawlData = new Map(
-        existingMetadata.map(meta => [
-          meta.url,
-          { 
-            hash: meta.contentHash,
-            etag: meta.etag || undefined,
-            lastModified: meta.lastModified || undefined
-          }
-        ])
-      );
+      // Clear Q&A cache since we're rebuilding knowledge base
+      const clearedCache = await storage.clearChatbotCache(chatbotId);
+      console.log(`[Refresh] Cleared ${clearedCache} cached Q&A entries`);
       
-      // Refresh website URLs with intelligent change detection
-      let updatedContent = chatbot.websiteContent || '';
-      let changedCount = 0;
-      let unchangedCount = 0;
-      
+      // Create an indexing job for the website URLs (if any)
       if (chatbot.websiteUrls && chatbot.websiteUrls.length > 0) {
-        console.log(`[Refresh] Refreshing ${chatbot.websiteUrls.length} website URLs`);
+        const jobId = await storage.createIndexingJob({
+          chatbotId,
+          status: 'pending',
+          totalTasks: chatbot.websiteUrls.length,
+          completedTasks: 0,
+          failedTasks: 0,
+        });
         
-        // Normalize URLs before refreshing to match stored metadata
-        const normalizedUrls = chatbot.websiteUrls.map(url => normalizeUrl(url));
+        console.log(`[Refresh] Created indexing job ${jobId} with ${chatbot.websiteUrls.length} URLs`);
         
-        const refreshResults = await refreshWebsites(normalizedUrls, previousCrawlData);
-        
-        // Count changes
-        changedCount = refreshResults.filter(r => r.changed && !r.error).length;
-        unchangedCount = refreshResults.filter(r => !r.changed).length;
-        
-        console.log(`[Refresh] Results: ${changedCount} changed, ${unchangedCount} unchanged`);
-        
-        // If any URLs changed, rebuild the website content
-        if (changedCount > 0) {
-          const changedUrls = refreshResults.filter(r => r.changed && r.content);
-          
-          // Build new content from changed URLs
-          updatedContent = changedUrls
-            .map(result => `URL: ${result.url}\nTitle: ${result.title || 'N/A'}\n\n${result.content}`)
-            .join('\n\n---\n\n');
-          
-          // Update or insert crawl metadata for changed URLs
-          for (const result of refreshResults) {
-            if (result.changed && result.contentHash) {
-              // Normalize result URL to match stored metadata
-              const normalizedResultUrl = normalizeUrl(result.url);
-              const existing = existingMetadata.find(m => m.url === normalizedResultUrl);
-              
-              if (existing) {
-                // Update existing metadata
-                await db.update(urlCrawlMetadata)
-                  .set({
-                    contentHash: result.contentHash,
-                    lastCrawledAt: new Date(),
-                  })
-                  .where(eq(urlCrawlMetadata.id, existing.id));
-                console.log(`[Refresh] Updated metadata for ${normalizedResultUrl}`);
-              } else {
-                // Insert new metadata (for newly added URLs)
-                await db.insert(urlCrawlMetadata).values({
-                  chatbotId: chatbotId,
-                  url: normalizedResultUrl,
-                  contentHash: result.contentHash,
-                  lastCrawledAt: new Date(),
-                });
-                console.log(`[Refresh] Inserted new metadata for ${normalizedResultUrl}`);
-              }
-            }
-          }
-          
-          // Update chatbot with new content and timestamp
-          await db.update(chatbots)
-            .set({
-              websiteContent: updatedContent,
-              lastKnowledgeUpdate: new Date(),
-            })
-            .where(eq(chatbots.id, chatbotId));
-          
-          // Clear Q&A cache since knowledge base has changed
-          const clearedCount = await storage.clearChatbotCache(chatbotId);
-          console.log(`[Refresh] Cleared ${clearedCount} cached Q&A entries due to knowledge base update`);
-          
-          console.log(`[Refresh] Knowledge base updated successfully`);
-        } else {
-          console.log(`[Refresh] No changes detected, knowledge base is up to date`);
+        // Create indexing tasks for each URL
+        for (const url of chatbot.websiteUrls) {
+          await storage.createIndexingTask({
+            jobId,
+            chatbotId,
+            sourceType: 'website',
+            sourceUrl: url,
+            status: 'pending',
+          });
         }
+        
+        console.log(`[Refresh] Created ${chatbot.websiteUrls.length} indexing tasks`);
+        
+        res.json({
+          success: true,
+          message: `Knowledge base refresh started. Indexing ${chatbot.websiteUrls.length} URL(s) in background.`,
+          jobId,
+          urlCount: chatbot.websiteUrls.length,
+        });
+      } else {
+        // No URLs to refresh
+        res.json({
+          success: true,
+          message: "No website URLs to refresh.",
+          urlCount: 0,
+        });
       }
-      
-      // Note: Documents are not refreshed unless new ones are uploaded via the edit page
-      // This matches the requirement: "do not do a re-index of the documents unless a new document was uploaded"
-      
-      res.json({
-        success: true,
-        message: changedCount > 0 
-          ? `Knowledge base refreshed successfully. ${changedCount} URL(s) updated.`
-          : "Knowledge base is already up to date.",
-        changedUrls: changedCount,
-        unchangedUrls: unchangedCount,
-        lastUpdate: new Date(),
-      });
       
     } catch (error) {
       console.error("Error refreshing knowledge base:", error);
