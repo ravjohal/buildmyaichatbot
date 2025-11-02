@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { Plus, Bot, Trash2, ExternalLink, Copy, LogOut, Pencil, MessageSquare, FileText, BarChart3, Globe, Crown, Share2, QrCode, User as UserIcon, Shield, UserPlus, RefreshCw, Settings, Loader2, CheckCircle, XCircle } from "lucide-react";
+import { Plus, Bot, Trash2, ExternalLink, Copy, Pencil, MessageSquare, FileText, BarChart3, Globe, Crown, Share2, QrCode, UserPlus, RefreshCw, Loader2, CheckCircle, XCircle } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
@@ -34,6 +34,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { DashboardHeader } from "@/components/DashboardHeader";
 
 export default function Dashboard() {
   const { toast } = useToast();
@@ -137,8 +138,9 @@ export default function Dashboard() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background p-6 md:p-12">
-        <div className="max-w-7xl mx-auto space-y-8">
+      <div className="min-h-screen bg-background">
+        <DashboardHeader />
+        <div className="max-w-7xl mx-auto px-6 md:px-12 py-12 space-y-8">
           <div className="h-12 w-64 bg-muted animate-pulse rounded-lg" />
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[1, 2, 3].map((i) => (
@@ -152,6 +154,8 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-background">
+      <DashboardHeader />
+      
       <div className="border-b">
         <div className="max-w-7xl mx-auto px-6 md:px-12 py-6">
           <div className="flex items-center justify-between gap-4 flex-wrap">
@@ -160,14 +164,6 @@ export default function Dashboard() {
               <p className="text-muted-foreground mt-1">Create and manage your AI-powered support assistants</p>
             </div>
             <div className="flex gap-3 flex-wrap">
-              {userTier !== "scale" && !isAdmin && (
-                <Link href="/pricing">
-                  <Button size="lg" variant="default" data-testid="button-upgrade-pro">
-                    <Crown className="w-5 h-5 mr-2" />
-                    {userTier === "free" ? "Upgrade to Pro" : "Upgrade to Scale"}
-                  </Button>
-                </Link>
-              )}
               <Tooltip>
                 <TooltipTrigger asChild>
                   {hasReachedChatbotLimit ? (
@@ -179,7 +175,7 @@ export default function Dashboard() {
                     </span>
                   ) : (
                     <Link href="/create">
-                      <Button size="lg" variant={userTier === "free" ? "outline" : "default"} data-testid="button-create-chatbot">
+                      <Button size="lg" variant="default" data-testid="button-create-chatbot">
                         <Plus className="w-5 h-5 mr-2" />
                         Create Chatbot
                       </Button>
@@ -216,51 +212,6 @@ export default function Dashboard() {
                   Leads
                 </Button>
               </Link>
-              <Link href="/account">
-                <Button 
-                  variant="outline" 
-                  size="lg"
-                  data-testid="button-account"
-                >
-                  <UserIcon className="w-5 h-5 mr-2" />
-                  Account
-                </Button>
-              </Link>
-              <Link href="/account/notifications">
-                <Button 
-                  variant="outline" 
-                  size="lg"
-                  data-testid="button-notifications"
-                >
-                  <Settings className="w-5 h-5 mr-2" />
-                  Notifications
-                </Button>
-              </Link>
-              {user?.isAdmin === "true" && (
-                <Link href="/admin">
-                  <Button 
-                    variant="destructive" 
-                    size="lg"
-                    data-testid="button-admin"
-                  >
-                    <Shield className="w-5 h-5 mr-2" />
-                    Admin
-                  </Button>
-                </Link>
-              )}
-              <Button 
-                variant="outline" 
-                size="lg"
-                onClick={async () => {
-                  await apiRequest("POST", "/api/auth/logout", {});
-                  queryClient.clear();
-                  window.location.href = "/";
-                }}
-                data-testid="button-logout"
-              >
-                <LogOut className="w-5 h-5 mr-2" />
-                Logout
-              </Button>
             </div>
           </div>
         </div>
