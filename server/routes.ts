@@ -2303,13 +2303,14 @@ Generate 3-5 short, natural questions that would help the user learn more. Retur
       console.log(`Creating subscription: tier=${tier}, billingCycle=${billingCycle}, priceId=${priceId}`);
 
       // Create subscription using pre-created price
+      // Note: Not using save_default_payment_method since we collect payment method AFTER subscription creation
       let subscription = await stripe.subscriptions.create({
         customer: stripeCustomerId,
         items: [{
           price: priceId,
         }],
         payment_behavior: 'default_incomplete',
-        expand: ['latest_invoice.payment_intent'],
+        expand: ['latest_invoice.payment_intent', 'pending_setup_intent'],
         metadata: {
           userId: user.id,
           billingCycle,
@@ -2323,7 +2324,7 @@ Generate 3-5 short, natural questions that would help the user learn more. Retur
       // Get the latest invoice (should have payment intent with 'allow_incomplete')
       let latestInvoice = subscription.latest_invoice;
 
-      // Get the client secret from the payment intent
+      // Get the client secret from payment intent OR setup intent
       let clientSecret: string | null = null;
       
       console.log('Subscription created:', {
@@ -2331,9 +2332,10 @@ Generate 3-5 short, natural questions that would help the user learn more. Retur
         status: subscription.status,
         latestInvoiceType: typeof latestInvoice,
         latestInvoiceId: typeof latestInvoice === 'object' ? (latestInvoice as any)?.id : latestInvoice,
+        pendingSetupIntentType: typeof subscription.pending_setup_intent,
       });
       
-      // Extract payment intent from the expanded invoice
+      // First, try to extract payment intent from the expanded invoice
       if (typeof latestInvoice === 'object' && latestInvoice !== null) {
         const invoice = latestInvoice as any;
         const paymentIntent = invoice.payment_intent;
@@ -2365,6 +2367,22 @@ Generate 3-5 short, natural questions that would help the user learn more. Retur
         }
       }
 
+      // If no payment intent, check for setup intent (for $0 invoices or trials)
+      if (!clientSecret && subscription.pending_setup_intent) {
+        const setupIntent = subscription.pending_setup_intent as any;
+        console.log('Using SetupIntent instead:', {
+          setupIntentId: typeof setupIntent === 'object' ? setupIntent?.id : setupIntent,
+          clientSecretFound: typeof setupIntent === 'object' ? !!setupIntent?.client_secret : false,
+        });
+        
+        if (typeof setupIntent === 'object' && setupIntent !== null && setupIntent.client_secret) {
+          clientSecret = setupIntent.client_secret;
+        } else if (typeof setupIntent === 'string') {
+          const si = await stripe.setupIntents.retrieve(setupIntent);
+          clientSecret = si.client_secret;
+        }
+      }
+
       console.log('Client secret extraction:', {
         clientSecret: clientSecret ? 'found' : 'missing',
         clientSecretPrefix: clientSecret ? clientSecret.substring(0, 7) + '...' : 'none',
@@ -2380,6 +2398,7 @@ Generate 3-5 short, natural questions that would help the user learn more. Retur
             status: (latestInvoice as any)?.status,
             payment_intent: (latestInvoice as any)?.payment_intent ? 'exists' : 'missing'
           } : latestInvoice,
+          pending_setup_intent: subscription.pending_setup_intent ? 'exists' : 'missing',
         }, null, 2));
         throw new Error('Failed to create payment intent. The subscription was created but payment setup failed. Please contact support.');
       }
