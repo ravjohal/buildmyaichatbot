@@ -84,7 +84,7 @@ setInterval(() => {
 // Middleware to check if user is an admin
 const isAdmin = async (req: any, res: any, next: any) => {
   try {
-    if (!req.isAuthenticated() || !req.user?.claims?.sub) {
+    if (!req.isAuthenticated() || !req.user?.id) {
       return res.status(401).json({ error: "Unauthorized" });
     }
     
