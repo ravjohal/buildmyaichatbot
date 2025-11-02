@@ -56,40 +56,48 @@ const SubscribeForm = ({ billingCycle, tier }: { billingCycle: "monthly" | "annu
     setIsProcessing(true);
     console.log('[Subscribe] Confirming payment...');
 
-    const { error } = await stripe.confirmPayment({
-      elements,
-      confirmParams: {
-        return_url: `${window.location.origin}/?payment=success`,
-      },
-    });
-
-    console.log('[Subscribe] Payment result:', { error: error?.message || 'none' });
-
-    if (error) {
-      console.error('[Subscribe] Payment failed:', error);
+    // Submit the elements to ensure payment method is collected
+    const { error: submitError } = await elements.submit();
+    if (submitError) {
+      console.error('[Subscribe] Elements submit failed:', submitError);
       toast({
-        title: "Payment Failed",
-        description: error.message,
+        title: "Payment Error",
+        description: submitError.message || "Please fill in all required payment fields.",
         variant: "destructive",
       });
       setIsProcessing(false);
-    } else {
-      console.log('[Subscribe] Payment succeeded, syncing...');
-      // Payment succeeded! Sync subscription status from Stripe
-      try {
-        await apiRequest("POST", "/api/sync-subscription");
+      return;
+    }
+    console.log('[Subscribe] Elements submitted successfully');
+
+    try {
+      const { error } = await stripe.confirmPayment({
+        elements,
+        confirmParams: {
+          return_url: `${window.location.origin}/?payment=success`,
+        },
+      });
+
+      console.log('[Subscribe] Payment result:', { error: error?.message || 'none' });
+
+      if (error) {
+        console.error('[Subscribe] Payment failed:', error);
         toast({
-          title: "Payment Successful",
-          description: `You are now subscribed to the ${selectedPlan.name} plan!`,
+          title: "Payment Failed",
+          description: error.message || "Unable to process payment. Please check your payment details and try again.",
+          variant: "destructive",
         });
-      } catch (syncError) {
-        // Sync failed but payment succeeded - user can manually refresh
-        toast({
-          title: "Payment Successful",
-          description: `Payment confirmed! Please refresh the page to see your new plan.`,
-        });
+        setIsProcessing(false);
       }
-      navigate("/");
+      // If no error, the page will redirect to return_url
+    } catch (err: any) {
+      console.error('[Subscribe] Unexpected error:', err);
+      toast({
+        title: "Payment Error",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      });
+      setIsProcessing(false);
     }
   };
 
