@@ -1,0 +1,42 @@
+[AUTH] ✓ Authenticated
+Stored customer ID cus_TLTFZLIQ32JVwI not found - creating new customer
+Created new Stripe customer: cus_TLZa1V8G8PE0OP
+Creating subscription: tier=pro, billingCycle=monthly, priceId=price_1SJkjaCEODTZcKkWDGGojAw6
+Payment intent not found, creating one manually for invoice: {
+  invoiceId: 'in_1SOsRPCEODTZcKkW3pVTiRGV',
+  amount: 2999,
+  status: 'open'
+}
+Payment intent created manually: {
+  paymentIntentId: 'pi_3SOsRRCEODTZcKkW0KbydvZO',
+  amount: 2999,
+  status: 'requires_payment_method',
+  clientSecret: 'present'
+}
+Subscription created: {
+  subscriptionId: 'sub_1SOsRPCEODTZcKkWey9TOHkK',
+  status: 'incomplete',
+  latestInvoiceType: 'object',
+  latestInvoiceId: 'in_1SOsRPCEODTZcKkW3pVTiRGV'
+}
+Invoice details: {
+  invoiceId: 'in_1SOsRPCEODTZcKkW3pVTiRGV',
+  status: 'open',
+  total: 2999,
+  paymentIntentType: 'object',
+  paymentIntentId: 'pi_3SOsRRCEODTZcKkW0KbydvZO'
+}
+Client secret extraction: { clientSecret: 'found', clientSecretPrefix: 'pi_3SOs...' }
+Webhook signature verification failed: Webhook payload must be provided as a string or a Buffer (https://nodejs.org/api/buffer.html) instance representing the _raw_ request body.Payload was provided as a parsed JavaScript object instead. 
+Signature verification is impossible without access to the original signed material. 
+
+Learn more about webhook signing and explore webhook integration examples for various frameworks at https://docs.stripe.com/webhooks/signature
+
+3:58:57 AM [express] POST /api/stripe-webhook 400 in 3ms
+3:58:57 AM [express] POST /api/create-subscription 200 in 2867ms :: {"subscriptionId":"sub_1SOsRPCEO…
+Webhook signature verification failed: Webhook payload must be provided as a string or a Buffer (https://nodejs.org/api/buffer.html) instance representing the _raw_ request body.Payload was provided as a parsed JavaScript object instead. 
+Signature verification is impossible without access to the original signed material. 
+
+Learn more about webhook signing and explore webhook integration examples for various frameworks at https://docs.stripe.com/webhooks/signature
+
+3:59:12 AM [express] POST /api/stripe-webhook 400 in 2ms
