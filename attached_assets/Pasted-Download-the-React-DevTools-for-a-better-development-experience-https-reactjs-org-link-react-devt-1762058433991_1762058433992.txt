@@ -1,0 +1,70 @@
+Download the React DevTools for a better development experience: https://reactjs.org/link/react-devtools
+Subscribe.tsx:24 [Stripe] Using TEST mode public key
+Subscribe.tsx:132 Subscription response: {subscriptionId: 'sub_1SOt57CEODTZcKkW91miqzuT', clientSecret: 'pi_3SOt59CEODTZcKkW0WJ4bqmG_secret_TgBKkkAUj3huHL1jXST7U2vBx'}
+controller-with-dual-preconnect-control-851f4f308b03c6810b61cb9070937b8a.js:1 [Stripe.js] The following payment method types are not activated:
+
+- klarna
+
+They will be displayed in test mode, but hidden in live mode. Please activate the payment method types in your dashboard (https://dashboard.stripe.com/settings/payment_methods) and ensure your account is enabled for any preview features that you are trying to use.
+warn @ controller-with-dual-preconnect-control-851f4f308b03c6810b61cb9070937b8a.js:1
+(anonymous) @ controller-with-dual-preconnect-control-851f4f308b03c6810b61cb9070937b8a.js:1
+_y @ controller-with-dual-preconnect-control-851f4f308b03c6810b61cb9070937b8a.js:1
+(anonymous) @ controller-with-dual-preconnect-control-851f4f308b03c6810b61cb9070937b8a.js:1
+controller-with-dual-preconnect-control-851f4f308b03c6810b61cb9070937b8a.js:1 [Stripe.js] You have not registered or verified the domain, so the following payment methods are not enabled in the Payment Element: 
+
+- apple_pay
+
+Please follow https://stripe.com/docs/payments/payment-methods/pmd-registration to register and verify the domain.
+warn @ controller-with-dual-preconnect-control-851f4f308b03c6810b61cb9070937b8a.js:1
+warn @ controller-with-dual-preconnect-control-851f4f308b03c6810b61cb9070937b8a.js:1
+value @ controller-with-dual-preconnect-control-851f4f308b03c6810b61cb9070937b8a.js:1
+value @ shared-d6f9858041493…70dd1809e247b4.js:1
+d._sendControllerMessage @ shared-d6f9858041493…70dd1809e247b4.js:1
+d.warn @ shared-d6f9858041493…70dd1809e247b4.js:1
+(anonymous) @ elements-inner-payme…acd134c10689bb.js:4
+la @ elements-inner-payme…acd134c10689bb.js:1
+Ha @ elements-inner-payme…acd134c10689bb.js:1
+n.unstable_runWithPriority @ elements-inner-payme…acd134c10689bb.js:1
+wn @ elements-inner-payme…acd134c10689bb.js:1
+Va @ elements-inner-payme…acd134c10689bb.js:1
+Sa @ elements-inner-payme…acd134c10689bb.js:1
+(anonymous) @ elements-inner-payme…acd134c10689bb.js:1
+n.unstable_runWithPriority @ elements-inner-payme…acd134c10689bb.js:1
+wn @ elements-inner-payme…acd134c10689bb.js:1
+Ln @ elements-inner-payme…acd134c10689bb.js:1
+In @ elements-inner-payme…acd134c10689bb.js:1
+Aa @ elements-inner-payme…acd134c10689bb.js:1
+(anonymous) @ elements-inner-payme…acd134c10689bb.js:1
+(anonymous) @ shared-d6f9858041493…70dd1809e247b4.js:1
+setTimeout
+(anonymous) @ shared-d6f9858041493…70dd1809e247b4.js:1
+(anonymous) @ elements-inner-payme…acd134c10689bb.js:1
+(anonymous) @ elements-inner-payme…acd134c10689bb.js:1
+(anonymous) @ shared-d6f9858041493…70dd1809e247b4.js:1
+r.test._emit @ shared-d6f9858041493…70dd1809e247b4.js:1
+value @ shared-d6f9858041493…70dd1809e247b4.js:1
+value @ shared-d6f9858041493…70dd1809e247b4.js:1
+(anonymous) @ shared-d6f9858041493…70dd1809e247b4.js:1
+value @ controller-with-dual-preconnect-control-851f4f308b03c6810b61cb9070937b8a.js:1
+(anonymous) @ controller-with-dual-preconnect-control-851f4f308b03c6810b61cb9070937b8a.js:1
+value @ controller-with-dual-preconnect-control-851f4f308b03c6810b61cb9070937b8a.js:1
+(anonymous) @ controller-with-dual-preconnect-control-851f4f308b03c6810b61cb9070937b8a.js:1
+n @ shared-d6f98580414937781070dd1809e247b4.js:1
+(anonymous) @ shared-d6f98580414937781070dd1809e247b4.js:1
+(anonymous) @ shared-d6f98580414937781070dd1809e247b4.js:1
+a @ shared-d6f98580414937781070dd1809e247b4.js:1
+i @ shared-d6f98580414937781070dd1809e247b4.js:1
+Promise.then
+a @ shared-d6f98580414937781070dd1809e247b4.js:1
+i @ shared-d6f98580414937781070dd1809e247b4.js:1
+(anonymous) @ shared-d6f98580414937781070dd1809e247b4.js:1
+(anonymous) @ shared-d6f98580414937781070dd1809e247b4.js:1
+(anonymous) @ controller-with-dual-preconnect-control-851f4f308b03c6810b61cb9070937b8a.js:1
+(anonymous) @ controller-with-dual-preconnect-control-851f4f308b03c6810b61cb9070937b8a.js:1
+dispatch @ controller-with-dual-preconnect-control-851f4f308b03c6810b61cb9070937b8a.js:1
+(anonymous) @ controller-with-dual-preconnect-control-851f4f308b03c6810b61cb9070937b8a.js:1
+n @ shared-d6f98580414937781070dd1809e247b4.js:1
+(anonymous) @ shared-d6f98580414937781070dd1809e247b4.js:1
+(anonymous) @ shared-d6f98580414937781070dd1809e247b4.js:1
+a @ shared-d6f98580414937781070dd1809e247b4.js:1
+i @ shared-d6f98580414937781070dd1809e247b4.js:1
