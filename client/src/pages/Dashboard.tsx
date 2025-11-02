@@ -357,31 +357,54 @@ export default function Dashboard() {
                       {chatbot.suggestedQuestions.length} suggested question{chatbot.suggestedQuestions.length !== 1 ? 's' : ''}
                     </div>
                   )}
-                  {chatbot.websiteContent && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setViewKnowledgeBase(chatbot)}
-                      className="w-full justify-start text-sm text-muted-foreground hover:text-foreground"
-                      data-testid={`button-view-knowledge-${chatbot.id}`}
-                    >
-                      <FileText className="w-4 h-4 mr-2" />
-                      View indexed content ({Math.round(chatbot.websiteContent.length / 1000)}k characters)
-                    </Button>
-                  )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => chatbot.websiteContent && setViewKnowledgeBase(chatbot)}
+                    disabled={!chatbot.websiteContent || chatbot.indexingStatus === 'pending' || chatbot.indexingStatus === 'processing'}
+                    className="w-full justify-start text-sm text-muted-foreground hover:text-foreground"
+                    data-testid={`button-view-knowledge-${chatbot.id}`}
+                  >
+                    <FileText className="w-4 h-4 mr-2" />
+                    {chatbot.indexingStatus === 'pending' || chatbot.indexingStatus === 'processing' ? (
+                      <>
+                        <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                        Indexing knowledge base...
+                      </>
+                    ) : chatbot.websiteContent ? (
+                      `View knowledge base (${Math.round(chatbot.websiteContent.length / 1000)}k characters)`
+                    ) : (
+                      'No content indexed yet'
+                    )}
+                  </Button>
                 </CardContent>
                 <CardFooter className="flex gap-2 flex-wrap">
-                  <Link href={`/chat/${chatbot.id}`} target="_blank">
-                    <Button
-                      variant="default"
-                      size="sm"
-                      data-testid={`button-test-${chatbot.id}`}
-                      className="flex-1"
-                    >
-                      <MessageSquare className="w-4 h-4 mr-2" />
-                      Test
-                    </Button>
-                  </Link>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="flex-1">
+                        <Button
+                          variant="default"
+                          size="sm"
+                          data-testid={`button-test-${chatbot.id}`}
+                          className="w-full"
+                          disabled={chatbot.indexingStatus === 'pending' || chatbot.indexingStatus === 'processing'}
+                          onClick={() => {
+                            if (chatbot.indexingStatus !== 'pending' && chatbot.indexingStatus !== 'processing') {
+                              window.open(`/chat/${chatbot.id}`, '_blank');
+                            }
+                          }}
+                        >
+                          <MessageSquare className="w-4 h-4 mr-2" />
+                          Test
+                        </Button>
+                      </span>
+                    </TooltipTrigger>
+                    {(chatbot.indexingStatus === 'pending' || chatbot.indexingStatus === 'processing') && (
+                      <TooltipContent>
+                        <p>Please wait for indexing to complete before testing</p>
+                      </TooltipContent>
+                    )}
+                  </Tooltip>
                   {userTier !== "scale" && !isAdmin ? (
                     <Button
                       variant="outline"
@@ -448,36 +471,72 @@ export default function Dashboard() {
                       </TooltipContent>
                     )}
                   </Tooltip>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleCopyEmbed(chatbot.id)}
-                    data-testid={`button-copy-embed-${chatbot.id}`}
-                    className="flex-1"
-                  >
-                    <Copy className="w-4 h-4 mr-2" />
-                    Embed
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => window.open(`/demo.html?chatbotId=${chatbot.id}`, '_blank')}
-                    data-testid={`button-demo-${chatbot.id}`}
-                    className="flex-1"
-                  >
-                    <Globe className="w-4 h-4 mr-2" />
-                    Demo
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShareDialogChatbot(chatbot)}
-                    data-testid={`button-share-${chatbot.id}`}
-                    className="flex-1"
-                  >
-                    <Share2 className="w-4 h-4 mr-2" />
-                    Share
-                  </Button>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="flex-1">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleCopyEmbed(chatbot.id)}
+                          data-testid={`button-copy-embed-${chatbot.id}`}
+                          className="w-full"
+                          disabled={chatbot.indexingStatus === 'pending' || chatbot.indexingStatus === 'processing'}
+                        >
+                          <Copy className="w-4 h-4 mr-2" />
+                          Embed
+                        </Button>
+                      </span>
+                    </TooltipTrigger>
+                    {(chatbot.indexingStatus === 'pending' || chatbot.indexingStatus === 'processing') && (
+                      <TooltipContent>
+                        <p>Please wait for indexing to complete before embedding</p>
+                      </TooltipContent>
+                    )}
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="flex-1">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => window.open(`/demo.html?chatbotId=${chatbot.id}`, '_blank')}
+                          data-testid={`button-demo-${chatbot.id}`}
+                          className="w-full"
+                          disabled={chatbot.indexingStatus === 'pending' || chatbot.indexingStatus === 'processing'}
+                        >
+                          <Globe className="w-4 h-4 mr-2" />
+                          Demo
+                        </Button>
+                      </span>
+                    </TooltipTrigger>
+                    {(chatbot.indexingStatus === 'pending' || chatbot.indexingStatus === 'processing') && (
+                      <TooltipContent>
+                        <p>Please wait for indexing to complete before viewing demo</p>
+                      </TooltipContent>
+                    )}
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="flex-1">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setShareDialogChatbot(chatbot)}
+                          data-testid={`button-share-${chatbot.id}`}
+                          className="w-full"
+                          disabled={chatbot.indexingStatus === 'pending' || chatbot.indexingStatus === 'processing'}
+                        >
+                          <Share2 className="w-4 h-4 mr-2" />
+                          Share
+                        </Button>
+                      </span>
+                    </TooltipTrigger>
+                    {(chatbot.indexingStatus === 'pending' || chatbot.indexingStatus === 'processing') && (
+                      <TooltipContent>
+                        <p>Please wait for indexing to complete before sharing</p>
+                      </TooltipContent>
+                    )}
+                  </Tooltip>
                   <Button
                     variant="outline"
                     size="sm"
