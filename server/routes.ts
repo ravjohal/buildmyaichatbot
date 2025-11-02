@@ -1001,7 +1001,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const currentQuestionCount = parseInt(chatbot.questionCount);
           if (currentQuestionCount >= TIER_LIMITS.free.conversationsPerMonth) {
             return res.json({ 
-              message: "I apologize, but this chatbot has reached its free tier limit of 3 total questions. The chatbot owner needs to upgrade to Pro for 5,000 conversations per month.",
+              message: "I apologize, but this chatbot has reached its free tier limit. The chatbot owner needs to upgrade to continue.",
               shouldEscalate: false,
             });
           }
@@ -1310,7 +1310,7 @@ Generate 3-5 short, natural questions that would help the user learn more. Retur
           if (currentQuestionCount >= TIER_LIMITS.free.conversationsPerMonth) {
             res.write(`data: ${JSON.stringify({ 
               type: "complete",
-              message: "I apologize, but this chatbot has reached its free tier limit of 3 total questions. The chatbot owner needs to upgrade to Pro for 5,000 conversations per month.",
+              message: "I apologize, but this chatbot has reached its free tier limit. The chatbot owner needs to upgrade to continue.",
               shouldEscalate: false,
             })}\n\n`);
             return res.end();
