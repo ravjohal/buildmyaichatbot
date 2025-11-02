@@ -1,0 +1,76 @@
+Stripe] Using TEST mode public key
+Subscribe.tsx:128 [Subscribe] URL location: /subscribe
+Subscribe.tsx:129 [Subscribe] Params: {tier: null, plan: null, finalTier: 'pro', finalBillingCycle: 'monthly'}
+Subscribe.tsx:140 Subscription response: {subscriptionId: 'sub_1SOsy3CEODTZcKkWJxuY1phf', clientSecret: 'pi_3SOsy4CEODTZcKkW0Zab0kdL_secret_AeabIYPncdqUsSJMHL5lUjnyT'}
+Subscribe.tsx:128 [Subscribe] URL location: /subscribe
+Subscribe.tsx:129 [Subscribe] Params: {tier: null, plan: null, finalTier: 'pro', finalBillingCycle: 'monthly'}
+controller-with-dual-preconnect-treatment-a80446776c7aab767f0f1f83a2501b21.js:1 [Stripe.js] The following payment method types are not activated:
+
+- klarna
+
+They will be displayed in test mode, but hidden in live mode. Please activate the payment method types in your dashboard (https://dashboard.stripe.com/settings/payment_methods) and ensure your account is enabled for any preview features that you are trying to use.
+warn @ controller-with-dual-preconnect-treatment-a80446776c7aab767f0f1f83a2501b21.js:1
+(anonymous) @ controller-with-dual-preconnect-treatment-a80446776c7aab767f0f1f83a2501b21.js:1
+_y @ controller-with-dual-preconnect-treatment-a80446776c7aab767f0f1f83a2501b21.js:1
+(anonymous) @ controller-with-dual-preconnect-treatment-a80446776c7aab767f0f1f83a2501b21.js:1
+subscribe?tier=scale&plan=monthly:1 Unable to download payment manifest "https://pay.google.com/about/redirect/".
+subscribe?tier=scale&plan=monthly:1 Unable to download payment manifest "https://pay.google.com/about/redirect/".
+subscribe?tier=scale&plan=monthly:1 Unable to download payment manifest "https://pay.google.com/about/redirect/".
+controller-with-dual-preconnect-treatment-a80446776c7aab767f0f1f83a2501b21.js:1 [Stripe.js] You have not registered or verified the domain, so the following payment methods are not enabled in the Payment Element: 
+
+- apple_pay
+
+Please follow https://stripe.com/docs/payments/payment-methods/pmd-registration to register and verify the domain.
+warn @ controller-with-dual-preconnect-treatment-a80446776c7aab767f0f1f83a2501b21.js:1
+warn @ controller-with-dual-preconnect-treatment-a80446776c7aab767f0f1f83a2501b21.js:1
+value @ controller-with-dual-preconnect-treatment-a80446776c7aab767f0f1f83a2501b21.js:1
+value @ shared-d6f9858041493…70dd1809e247b4.js:1
+d._sendControllerMessage @ shared-d6f9858041493…70dd1809e247b4.js:1
+d.warn @ shared-d6f9858041493…70dd1809e247b4.js:1
+(anonymous) @ elements-inner-payme…acd134c10689bb.js:4
+la @ elements-inner-payme…acd134c10689bb.js:1
+Ha @ elements-inner-payme…acd134c10689bb.js:1
+n.unstable_runWithPriority @ elements-inner-payme…acd134c10689bb.js:1
+wn @ elements-inner-payme…acd134c10689bb.js:1
+Va @ elements-inner-payme…acd134c10689bb.js:1
+Sa @ elements-inner-payme…acd134c10689bb.js:1
+(anonymous) @ elements-inner-payme…acd134c10689bb.js:1
+n.unstable_runWithPriority @ elements-inner-payme…acd134c10689bb.js:1
+wn @ elements-inner-payme…acd134c10689bb.js:1
+Ln @ elements-inner-payme…acd134c10689bb.js:1
+In @ elements-inner-payme…acd134c10689bb.js:1
+Aa @ elements-inner-payme…acd134c10689bb.js:1
+(anonymous) @ elements-inner-payme…acd134c10689bb.js:1
+(anonymous) @ shared-d6f9858041493…70dd1809e247b4.js:1
+setTimeout
+(anonymous) @ shared-d6f9858041493…70dd1809e247b4.js:1
+(anonymous) @ elements-inner-payme…acd134c10689bb.js:1
+(anonymous) @ elements-inner-payme…acd134c10689bb.js:1
+(anonymous) @ shared-d6f9858041493…70dd1809e247b4.js:1
+r.test._emit @ shared-d6f9858041493…70dd1809e247b4.js:1
+value @ shared-d6f9858041493…70dd1809e247b4.js:1
+value @ shared-d6f9858041493…70dd1809e247b4.js:1
+(anonymous) @ shared-d6f9858041493…70dd1809e247b4.js:1
+value @ controller-with-dual-preconnect-treatment-a80446776c7aab767f0f1f83a2501b21.js:1
+(anonymous) @ controller-with-dual-preconnect-treatment-a80446776c7aab767f0f1f83a2501b21.js:1
+value @ controller-with-dual-preconnect-treatment-a80446776c7aab767f0f1f83a2501b21.js:1
+(anonymous) @ controller-with-dual-preconnect-treatment-a80446776c7aab767f0f1f83a2501b21.js:1
+n @ shared-d6f98580414937781070dd1809e247b4.js:1
+(anonymous) @ shared-d6f98580414937781070dd1809e247b4.js:1
+(anonymous) @ shared-d6f98580414937781070dd1809e247b4.js:1
+a @ shared-d6f98580414937781070dd1809e247b4.js:1
+i @ shared-d6f98580414937781070dd1809e247b4.js:1
+Promise.then
+a @ shared-d6f98580414937781070dd1809e247b4.js:1
+i @ shared-d6f98580414937781070dd1809e247b4.js:1
+(anonymous) @ shared-d6f98580414937781070dd1809e247b4.js:1
+(anonymous) @ shared-d6f98580414937781070dd1809e247b4.js:1
+(anonymous) @ controller-with-dual-preconnect-treatment-a80446776c7aab767f0f1f83a2501b21.js:1
+(anonymous) @ controller-with-dual-preconnect-treatment-a80446776c7aab767f0f1f83a2501b21.js:1
+dispatch @ controller-with-dual-preconnect-treatment-a80446776c7aab767f0f1f83a2501b21.js:1
+(anonymous) @ controller-with-dual-preconnect-treatment-a80446776c7aab767f0f1f83a2501b21.js:1
+n @ shared-d6f98580414937781070dd1809e247b4.js:1
+(anonymous) @ shared-d6f98580414937781070dd1809e247b4.js:1
+(anonymous) @ shared-d6f98580414937781070dd1809e247b4.js:1
+a @ shared-d6f98580414937781070dd1809e247b4.js:1
+i @ shared-d6f98580414937781070dd1809e247b4.js:1

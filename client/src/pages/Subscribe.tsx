@@ -116,22 +116,14 @@ const SubscribeForm = ({ billingCycle, tier }: { billingCycle: "monthly" | "annu
 };
 
 export default function Subscribe() {
-  const [location] = useLocation();
   const [, navigate] = useLocation();
   const [clientSecret, setClientSecret] = useState("");
   const { toast } = useToast();
   
-  const params = new URLSearchParams(location.split('?')[1] || '');
+  // Use window.location.search to get query parameters (wouter's location doesn't include them)
+  const params = new URLSearchParams(window.location.search);
   const billingCycle = (params.get('plan') as "monthly" | "annual") || "monthly";
   const tier = (params.get('tier') as "pro" | "scale") || "pro";
-  
-  console.log('[Subscribe] URL location:', location);
-  console.log('[Subscribe] Params:', { 
-    tier: params.get('tier'), 
-    plan: params.get('plan'),
-    finalTier: tier,
-    finalBillingCycle: billingCycle 
-  });
 
   useEffect(() => {
     apiRequest("POST", "/api/create-subscription", { billingCycle, tier })
