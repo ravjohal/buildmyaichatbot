@@ -29,6 +29,15 @@ const upload = multer({
 const stripeSecretKey = process.env.TESTING_STRIPE_SECRET_KEY || process.env.STRIPE_SECRET_KEY;
 const stripe = stripeSecretKey ? new Stripe(stripeSecretKey) : null;
 
+// Log which Stripe key is being used (only show first/last 4 chars for security)
+if (stripeSecretKey) {
+  const keyPrefix = stripeSecretKey.substring(0, 7); // sk_test or sk_live
+  const keySource = process.env.TESTING_STRIPE_SECRET_KEY ? 'TESTING_STRIPE_SECRET_KEY' : 'STRIPE_SECRET_KEY';
+  console.log(`[Stripe] Initialized with ${keySource}: ${keyPrefix}...${stripeSecretKey.slice(-4)}`);
+} else {
+  console.warn('[Stripe] No Stripe secret key found! Set TESTING_STRIPE_SECRET_KEY or STRIPE_SECRET_KEY');
+}
+
 // In-memory store for background indexing jobs
 interface IndexingJob {
   id: string;
