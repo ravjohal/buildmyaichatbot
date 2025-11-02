@@ -45,6 +45,7 @@ The backend, built with Express.js, Node.js, and TypeScript, follows a RESTful A
 *   **AI Integration:** Google Gemini AI (gemini-2.5-flash) via the `@google/genai` SDK is used for NLP, utilizing a streaming API for real-time responses. System prompt engineering constrains AI responses, and chunk-based retrieval optimizes prompt size. Response priority is Manual Override → Exact Cache → Semantic Cache → LLM with Chunks, with automatic fallback. Question embeddings are cached for faster lookups.
 *   **File Storage:** Google Cloud Storage (via Replit Object Storage) stores user-uploaded files, with Uppy.js for client-side uploads using signed URLs.
 *   **Authentication & Security:** Custom email/password authentication (`passport-local`, bcrypt, session-based) with robust security features like `sanitizeUser()`, backend self-modification protection, CSRF protection, and Zod input validation. Multi-tenant architecture scopes chatbots.
+*   **Payment Processing:** Stripe integration with automatic subscription tier management via webhooks. Express middleware configured to provide raw request body to `/api/stripe-webhook` endpoint for proper signature verification, while all other routes receive JSON-parsed bodies.
 *   **Deployment Architecture:** Frontend assets are built with Vite, server code with esbuild. Configured for development and production, with dynamic environment-based configurations. SPA crawler uses Playwright with system Chromium from Nix for production.
 
 ## External Dependencies

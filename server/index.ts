@@ -6,6 +6,12 @@ import { checkAndSendWeeklyReports } from "./emails/weekly-report-service";
 import { storage } from "./storage";
 
 const app = express();
+
+// CRITICAL: Stripe webhook needs raw body for signature verification
+// Apply express.raw() ONLY to the webhook endpoint BEFORE express.json()
+app.use('/api/stripe-webhook', express.raw({ type: 'application/json' }));
+
+// Apply JSON parsing to all other routes
 app.use(express.json({ limit: '50mb' })); // Increased limit for large chatbot configurations
 app.use(express.urlencoded({ extended: false, limit: '50mb' }));
 
