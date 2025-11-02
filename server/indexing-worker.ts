@@ -1,5 +1,5 @@
 import { storage } from "./storage";
-import { crawlWebsite, calculateContentHash, normalizeUrl } from "./crawler";
+import { crawlWebsite, crawlMultipleWebsitesRecursive, calculateContentHash, normalizeUrl } from "./crawler";
 import { chunkContent } from "./chunker";
 import { embeddingService } from "./embedding";
 import type { InsertKnowledgeChunk } from "@shared/schema";
@@ -22,16 +22,28 @@ async function processIndexingTask(taskId: string, jobId: string, chatbotId: str
     let title = "";
     
     if (sourceType === "website") {
-      // Crawl the website
-      console.log(`[WORKER] Crawling URL: ${sourceUrl}`);
-      const crawlResult = await crawlWebsite(sourceUrl);
+      // Recursively crawl the website (max 2 levels deep, max 50 pages)
+      console.log(`[WORKER] Recursively crawling website: ${sourceUrl} (max depth: 2, max pages: 50)`);
+      const crawlResults = await crawlMultipleWebsitesRecursive([sourceUrl], {
+        maxDepth: 2,
+        maxPages: 50,
+        sameDomainOnly: true,
+      });
       
-      if (crawlResult.error) {
-        throw new Error(crawlResult.error);
+      if (crawlResults.error) {
+        throw new Error(crawlResults.error);
       }
       
-      content = crawlResult.content || "";
-      title = crawlResult.title || sourceUrl;
+      // Combine all crawled pages into single content
+      const allPages = crawlResults.result || [];
+      console.log(`[WORKER] Crawled ${allPages.length} pages from ${sourceUrl}`);
+      
+      // Concatenate all page content with separators
+      content = allPages
+        .map(page => `=== ${page.title || page.url} ===\n\n${page.content}`)
+        .join('\n\n---\n\n');
+      
+      title = allPages[0]?.title || sourceUrl;
       
       // Atomically check and update knowledge base size
       const chatbot = await storage.getChatbotById(chatbotId);
