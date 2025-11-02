@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useRoute, useLocation } from "wouter";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { ArrowLeft, Check } from "lucide-react";
+import { useQuery, useMutation } from "@tantml:react-query";
+import { Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
@@ -14,6 +14,7 @@ import { StepPersonality } from "@/components/wizard/StepPersonality";
 import { StepCustomization } from "@/components/wizard/StepCustomization";
 import { StepEscalation } from "@/components/wizard/StepEscalation";
 import { StepLeadCapture } from "@/components/wizard/StepLeadCapture";
+import { DashboardHeader } from "@/components/DashboardHeader";
 
 type WizardStep = "name" | "knowledge" | "personality" | "customization" | "escalation" | "leadcapture";
 
@@ -133,10 +134,13 @@ export default function EditChatbot() {
 
   if (isLoading || !chatbot) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
-          <p className="text-muted-foreground">Loading chatbot...</p>
+      <div className="min-h-screen bg-background">
+        <DashboardHeader />
+        <div className="flex items-center justify-center h-96">
+          <div className="text-center space-y-4">
+            <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
+            <p className="text-muted-foreground">Loading chatbot...</p>
+          </div>
         </div>
       </div>
     );
@@ -146,14 +150,7 @@ export default function EditChatbot() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="border-b">
-        <div className="max-w-5xl mx-auto px-6 py-6">
-          <Button variant="ghost" onClick={() => navigate("/")} data-testid="button-back-dashboard">
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Dashboard
-          </Button>
-        </div>
-      </div>
+      <DashboardHeader />
 
       <div className="max-w-5xl mx-auto px-6 py-12">
         <div className="mb-8">

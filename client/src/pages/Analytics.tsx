@@ -12,6 +12,7 @@ import type { Chatbot, Conversation, ConversationMessage } from "@shared/schema"
 import { formatDistanceToNow } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { DashboardHeader } from "@/components/DashboardHeader";
 
 interface AnalyticsData {
   metrics: {
@@ -132,10 +133,13 @@ export default function Analytics() {
 
   if (analyticsLoading || !chatbot || !analytics) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <MessageSquare className="w-12 h-12 text-primary mx-auto mb-4 animate-pulse" />
-          <p className="text-muted-foreground">Loading analytics...</p>
+      <div className="min-h-screen bg-background">
+        <DashboardHeader />
+        <div className="flex items-center justify-center h-96">
+          <div className="text-center">
+            <MessageSquare className="w-12 h-12 text-primary mx-auto mb-4 animate-pulse" />
+            <p className="text-muted-foreground">Loading analytics...</p>
+          </div>
         </div>
       </div>
     );
@@ -143,6 +147,8 @@ export default function Analytics() {
 
   return (
     <div className="min-h-screen bg-background">
+      <DashboardHeader />
+      
       <div className="border-b">
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between gap-4">

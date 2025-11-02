@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
-import { ArrowLeft, ArrowRight, Check, Bot, Loader2, CheckCircle, XCircle } from "lucide-react";
+import { ArrowRight, Check, Bot, Loader2, CheckCircle, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { StepIndicator } from "@/components/StepIndicator";
@@ -15,6 +15,7 @@ import type { InsertChatbot, User } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
+import { DashboardHeader } from "@/components/DashboardHeader";
 
 const STEPS = [
   { number: 1, title: "Name", description: "Identify your chatbot" },
@@ -224,6 +225,8 @@ export default function CreateChatbot() {
 
   return (
     <div className="min-h-screen bg-background relative">
+      <DashboardHeader />
+      
       {/* Loading Overlay */}
       {isSubmitting && (
         <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">

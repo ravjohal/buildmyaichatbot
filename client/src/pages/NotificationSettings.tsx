@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Link } from "wouter";
 import { queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,7 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Mail, Bell, AlertCircle, BarChart3, ArrowLeft, LogOut, User as UserIcon, Crown, UserPlus } from "lucide-react";
+import { Loader2, Mail, Bell, AlertCircle, BarChart3 } from "lucide-react";
+import { DashboardHeader } from "@/components/DashboardHeader";
 
 interface EmailSettings {
   id: string;
@@ -30,11 +30,6 @@ export default function NotificationSettings() {
   const { data: settings, isLoading } = useQuery<EmailSettings>({
     queryKey: ['/api/notification-settings'],
   });
-
-  const handleLogout = async () => {
-    await fetch("/api/auth/logout", { method: "POST" });
-    window.location.href = "/login";
-  };
 
   const [formData, setFormData] = useState({
     enableNewLeadNotifications: true,
@@ -97,65 +92,26 @@ export default function NotificationSettings() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="w-8 h-8 animate-spin" data-testid="loading-spinner" />
+      <div className="min-h-screen bg-background">
+        <DashboardHeader />
+        <div className="flex items-center justify-center h-96">
+          <Loader2 className="w-8 h-8 animate-spin" data-testid="loading-spinner" />
+        </div>
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-background">
+      <DashboardHeader />
+      
       <div className="border-b">
         <div className="max-w-7xl mx-auto px-6 md:px-12 py-6">
-          <div className="flex items-center justify-between gap-4 flex-wrap">
-            <div className="flex items-center gap-4">
-              <Link href="/">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  data-testid="button-back-dashboard"
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                </Button>
-              </Link>
-              <div>
-                <h1 className="text-3xl font-bold tracking-tight" data-testid="text-page-title">Email Notifications</h1>
-                <p className="text-muted-foreground mt-1">
-                  Configure how and when you receive email alerts about your chatbots
-                </p>
-              </div>
-            </div>
-            <div className="flex gap-3 flex-wrap">
-              {user?.isAdmin === "true" && (
-                <Link href="/admin">
-                  <Button variant="outline" className="gap-2" data-testid="button-admin">
-                    <Crown className="w-4 h-4" />
-                    Admin
-                  </Button>
-                </Link>
-              )}
-              <Link href="/leads">
-                <Button variant="outline" className="gap-2" data-testid="button-leads">
-                  <UserPlus className="w-4 h-4" />
-                  Leads
-                </Button>
-              </Link>
-              <Link href="/account">
-                <Button variant="outline" className="gap-2" data-testid="button-account">
-                  <UserIcon className="w-4 h-4" />
-                  Account
-                </Button>
-              </Link>
-              <Button
-                variant="outline"
-                onClick={handleLogout}
-                className="gap-2"
-                data-testid="button-logout"
-              >
-                <LogOut className="w-4 h-4" />
-                Logout
-              </Button>
-            </div>
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight" data-testid="text-page-title">Email Notifications</h1>
+            <p className="text-muted-foreground mt-1">
+              Configure how and when you receive email alerts about your chatbots
+            </p>
           </div>
         </div>
       </div>

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { ArrowLeft, Send, Bot } from "lucide-react";
+import { Send, Bot } from "lucide-react";
 import { useRoute, Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { Chatbot, ChatMessage } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
+import { DashboardHeader } from "@/components/DashboardHeader";
 
 export default function TestChatbot() {
   const [, params] = useRoute("/test/:id");
@@ -100,10 +101,13 @@ export default function TestChatbot() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <Bot className="w-12 h-12 text-primary mx-auto mb-4 animate-pulse" />
-          <p className="text-muted-foreground">Loading chatbot...</p>
+      <div className="min-h-screen bg-background">
+        <DashboardHeader />
+        <div className="flex items-center justify-center h-96">
+          <div className="text-center">
+            <Bot className="w-12 h-12 text-primary mx-auto mb-4 animate-pulse" />
+            <p className="text-muted-foreground">Loading chatbot...</p>
+          </div>
         </div>
       </div>
     );
@@ -111,13 +115,16 @@ export default function TestChatbot() {
 
   if (!chatbot) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold mb-2">Chatbot not found</h2>
-          <p className="text-muted-foreground mb-4">The chatbot you're looking for doesn't exist.</p>
-          <Link href="/">
-            <Button>Go to Dashboard</Button>
-          </Link>
+      <div className="min-h-screen bg-background">
+        <DashboardHeader />
+        <div className="flex items-center justify-center h-96">
+          <div className="text-center">
+            <h2 className="text-2xl font-bold mb-2">Chatbot not found</h2>
+            <p className="text-muted-foreground mb-4">The chatbot you're looking for doesn't exist.</p>
+            <Link href="/">
+              <Button>Go to Dashboard</Button>
+            </Link>
+          </div>
         </div>
       </div>
     );
@@ -139,6 +146,8 @@ export default function TestChatbot() {
 
   return (
     <div className="min-h-screen bg-background">
+      <DashboardHeader />
+      
       <div className="border-b" style={{ backgroundColor: chatbot.primaryColor }}>
         <div className="max-w-4xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between gap-4">
@@ -146,7 +155,7 @@ export default function TestChatbot() {
               <Link href="/">
                 <Button
                   variant="ghost"
-                  size="icon"
+                  size="sm"
                   className="text-white hover:bg-white/20"
                   data-testid="button-back-dashboard"
                 >
