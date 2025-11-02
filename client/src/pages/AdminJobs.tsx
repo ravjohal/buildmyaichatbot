@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import DashboardHeader from "@/components/DashboardHeader";
+import { DashboardHeader } from "@/components/DashboardHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -138,9 +138,7 @@ export default function AdminJobs() {
 
   const cancelMutation = useMutation({
     mutationFn: async (jobId: string) => {
-      return apiRequest(`/api/admin/indexing-jobs/${jobId}/cancel`, {
-        method: "POST",
-      });
+      return apiRequest("POST", `/api/admin/indexing-jobs/${jobId}/cancel`, {});
     },
     onSuccess: () => {
       toast({
@@ -161,9 +159,7 @@ export default function AdminJobs() {
 
   const retryMutation = useMutation({
     mutationFn: async (jobId: string) => {
-      return apiRequest(`/api/admin/indexing-jobs/${jobId}/retry`, {
-        method: "POST",
-      });
+      return apiRequest("POST", `/api/admin/indexing-jobs/${jobId}/retry`, {});
     },
     onSuccess: () => {
       toast({
