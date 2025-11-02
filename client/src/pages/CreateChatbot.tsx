@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
-import { ArrowRight, Check, Bot, Loader2, CheckCircle, XCircle } from "lucide-react";
+import { ArrowRight, ArrowLeft, Check, Bot, Loader2, CheckCircle, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { StepIndicator } from "@/components/StepIndicator";

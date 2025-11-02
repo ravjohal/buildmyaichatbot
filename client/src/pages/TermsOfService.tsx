@@ -199,7 +199,7 @@ export default function TermsOfService() {
             </p>
             <div className="bg-muted/30 border border-border rounded-md p-4 mt-3">
               <p><strong>BuildMyChatbot.Ai</strong></p>
-              <p>Email: support@buildmychatbot.ai</p>
+              <p>Email: buildmyaichatbot@gmail.com</p>
             </div>
           </section>
         </div>
