@@ -2368,11 +2368,19 @@ Generate 3-5 short, natural questions that would help the user learn more. Retur
       }
 
       // If no payment intent, check for setup intent (for $0 invoices or trials)
+      console.log('Checking for SetupIntent:', {
+        hasClientSecret: !!clientSecret,
+        hasPendingSetupIntent: !!subscription.pending_setup_intent,
+        pendingSetupIntentValue: subscription.pending_setup_intent,
+      });
+      
       if (!clientSecret && subscription.pending_setup_intent) {
         const setupIntent = subscription.pending_setup_intent as any;
         console.log('Using SetupIntent instead:', {
           setupIntentId: typeof setupIntent === 'object' ? setupIntent?.id : setupIntent,
+          setupIntentType: typeof setupIntent,
           clientSecretFound: typeof setupIntent === 'object' ? !!setupIntent?.client_secret : false,
+          fullSetupIntent: JSON.stringify(setupIntent, null, 2),
         });
         
         if (typeof setupIntent === 'object' && setupIntent !== null && setupIntent.client_secret) {
