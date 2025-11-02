@@ -2302,15 +2302,15 @@ Generate 3-5 short, natural questions that would help the user learn more. Retur
 
       console.log(`Creating subscription: tier=${tier}, billingCycle=${billingCycle}, priceId=${priceId}`);
 
-      // Create subscription using pre-created price
-      // Note: Not using save_default_payment_method since we collect payment method AFTER subscription creation
+      // WORKAROUND: Create subscription without automatic payment intent creation
+      // Then manually create and attach a PaymentIntent to the invoice
       let subscription = await stripe.subscriptions.create({
         customer: stripeCustomerId,
         items: [{
           price: priceId,
         }],
         payment_behavior: 'default_incomplete',
-        expand: ['latest_invoice.payment_intent', 'pending_setup_intent'],
+        expand: ['latest_invoice'],
         metadata: {
           userId: user.id,
           billingCycle,
@@ -2321,8 +2321,47 @@ Generate 3-5 short, natural questions that would help the user learn more. Retur
       // Store subscription ID
       await storage.updateStripeSubscriptionId(user.id, subscription.id);
       
-      // Get the latest invoice (should have payment intent with 'allow_incomplete')
+      // Get the latest invoice
       let latestInvoice = subscription.latest_invoice;
+      
+      // Manually create a PaymentIntent for the invoice if one doesn't exist
+      if (typeof latestInvoice === 'object' && latestInvoice !== null) {
+        const invoice = latestInvoice as any;
+        
+        // If no payment intent exists, create one manually
+        if (!invoice.payment_intent && invoice.amount_due > 0) {
+          console.log('Manually creating PaymentIntent for invoice:', {
+            invoiceId: invoice.id,
+            amount: invoice.amount_due,
+            currency: invoice.currency,
+          });
+          
+          const paymentIntent = await stripe.paymentIntents.create({
+            amount: invoice.amount_due,
+            currency: invoice.currency || 'usd',
+            customer: stripeCustomerId,
+            automatic_payment_methods: {
+              enabled: true,
+            },
+            metadata: {
+              invoiceId: invoice.id,
+              subscriptionId: subscription.id,
+              userId: user.id,
+            },
+          });
+          
+          console.log('PaymentIntent created:', {
+            id: paymentIntent.id,
+            clientSecret: paymentIntent.client_secret ? 'present' : 'missing',
+          });
+          
+          // Update latestInvoice with the payment intent
+          latestInvoice = {
+            ...invoice,
+            payment_intent: paymentIntent,
+          };
+        }
+      }
 
       // Get the client secret from payment intent OR setup intent
       let clientSecret: string | null = null;
