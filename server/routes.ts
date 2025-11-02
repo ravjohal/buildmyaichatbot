@@ -1729,30 +1729,42 @@ Generate 3-5 short, natural questions that would help the user learn more. Retur
       }
 
       // Get the latest indexing job if exists
-      let jobDetails = null;
-      if (chatbot.lastIndexingJobId) {
-        const job = await storage.getIndexingJob(chatbot.lastIndexingJobId);
-        if (job) {
-          const tasks = await storage.getIndexingTasksForJob(job.id);
-          jobDetails = {
-            ...job,
-            tasks: tasks.map(t => ({
-              id: t.id,
-              sourceType: t.sourceType,
-              sourceUrl: t.sourceUrl,
-              status: t.status,
-              chunksCreated: t.chunksCreated,
-              errorMessage: t.errorMessage,
-            })),
-          };
-        }
+      if (!chatbot.lastIndexingJobId) {
+        return res.json({
+          jobId: null,
+          status: 'completed',
+          totalTasks: 0,
+          completedTasks: 0,
+          currentUrl: null,
+          error: null,
+        });
       }
 
+      const job = await storage.getIndexingJob(chatbot.lastIndexingJobId);
+      if (!job) {
+        return res.json({
+          jobId: null,
+          status: 'completed',
+          totalTasks: 0,
+          completedTasks: 0,
+          currentUrl: null,
+          error: null,
+        });
+      }
+
+      const tasks = await storage.getIndexingTasksForJob(job.id);
+      const completedTasks = tasks.filter(t => t.status === 'completed').length;
+      const failedTasks = tasks.filter(t => t.status === 'failed').length;
+      const processingTask = tasks.find(t => t.status === 'processing');
+
       res.json({
-        chatbotId,
-        indexingStatus: chatbot.indexingStatus,
-        lastIndexingJobId: chatbot.lastIndexingJobId,
-        job: jobDetails,
+        jobId: job.id,
+        status: job.status,
+        totalTasks: tasks.length,
+        completedTasks: completedTasks,
+        failedTasks: failedTasks,
+        currentUrl: processingTask?.sourceUrl || null,
+        error: job.error || null,
       });
     } catch (error) {
       console.error("Error fetching indexing status:", error);
