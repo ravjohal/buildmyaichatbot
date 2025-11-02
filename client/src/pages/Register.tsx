@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { UserPlus } from "lucide-react";
+import { Logo } from "@/components/Logo";
 
 export default function Register() {
   const [, navigate] = useLocation();
@@ -87,10 +88,13 @@ export default function Register() {
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
+        <CardHeader className="text-center space-y-4">
+          <div className="flex justify-center">
+            <Logo size="md" />
+          </div>
           <CardTitle className="text-2xl">Create Account</CardTitle>
           <CardDescription>
-            Sign up to start building AI chatbots
+            Start building AI chatbots with BuildMyChatbot.Ai
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
