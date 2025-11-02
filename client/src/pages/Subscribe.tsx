@@ -175,7 +175,11 @@ export default function Subscribe() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Elements stripe={stripePromise} options={{ clientSecret }}>
+            <Elements 
+              stripe={stripePromise} 
+              options={{ clientSecret }}
+              key={clientSecret}
+            >
               <SubscribeForm billingCycle={billingCycle} tier={tier} />
             </Elements>
           </CardContent>
