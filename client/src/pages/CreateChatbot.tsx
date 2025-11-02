@@ -187,7 +187,13 @@ export default function CreateChatbot() {
       // Create chatbot immediately - backend handles async indexing
       const res = await apiRequest("POST", "/api/chatbots", formData as any);
       const chatbot = await res.json();
-      await queryClient.invalidateQueries({ queryKey: ["/api/chatbots"] });
+      
+      // Optimistically add the new chatbot to the cache with its initial status
+      // This ensures the dashboard shows "pending" state immediately
+      queryClient.setQueryData(["/api/chatbots"], (old: any) => {
+        if (!old) return [chatbot];
+        return [...old, chatbot];
+      });
       
       // If chatbot has an indexing job, start polling for status
       if (chatbot.indexingJobId) {
