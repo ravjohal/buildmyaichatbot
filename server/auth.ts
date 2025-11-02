@@ -134,12 +134,15 @@ export async function setupAuth(app: Express) {
       // Hash password
       const hashedPassword = await bcrypt.hash(password, 10);
       
-      // Create user
+      // Create user with consent timestamps
+      const now = new Date();
       await storage.upsertUser({
         email,
         password: hashedPassword,
         firstName: firstName || '',
         lastName: lastName || '',
+        termsAcceptedAt: now,
+        privacyAcceptedAt: now,
       });
       
       // Get the created user

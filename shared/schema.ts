@@ -31,6 +31,8 @@ export const users = pgTable("users", {
   monthlyConversationCount: text("monthly_conversation_count").notNull().default("0"),
   conversationCountResetDate: timestamp("conversation_count_reset_date").defaultNow(),
   totalKnowledgeBaseSizeMB: text("total_knowledge_base_size_mb").notNull().default("0"),
+  termsAcceptedAt: timestamp("terms_accepted_at"),
+  privacyAcceptedAt: timestamp("privacy_accepted_at"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

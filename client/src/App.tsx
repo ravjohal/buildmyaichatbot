@@ -25,6 +25,7 @@ import AcceptableUsePolicy from "@/pages/AcceptableUsePolicy";
 import NotFound from "@/pages/not-found";
 import { useAuth } from "@/hooks/useAuth";
 import { IndexingStatusBanner } from "@/components/IndexingStatusBanner";
+import { CookieConsent } from "@/components/CookieConsent";
 
 function PublicRouter() {
   return (
@@ -110,6 +111,7 @@ function App() {
       <TooltipProvider>
         <Toaster />
         <Router />
+        <CookieConsent />
       </TooltipProvider>
     </QueryClientProvider>
   );

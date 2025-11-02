@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Link } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { UserPlus } from "lucide-react";
@@ -20,6 +22,7 @@ export default function Register() {
     firstName: "",
     lastName: "",
   });
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -31,6 +34,15 @@ export default function Register() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!agreedToTerms) {
+      toast({
+        title: "Terms Required",
+        description: "Please agree to the Terms of Service and Privacy Policy to continue.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     if (formData.password !== formData.confirmPassword) {
       toast({
@@ -165,10 +177,35 @@ export default function Register() {
                 data-testid="input-confirm-password"
               />
             </div>
+            <div className="flex items-start gap-3 py-2">
+              <Checkbox
+                id="terms"
+                checked={agreedToTerms}
+                onCheckedChange={(checked) => setAgreedToTerms(checked === true)}
+                data-testid="checkbox-terms"
+              />
+              <label
+                htmlFor="terms"
+                className="text-sm leading-relaxed cursor-pointer select-none"
+              >
+                I agree to the{" "}
+                <Link href="/terms-of-service">
+                  <a className="text-primary hover:underline font-medium" data-testid="link-terms-inline" target="_blank" rel="noopener noreferrer">
+                    Terms of Service
+                  </a>
+                </Link>
+                {" "}and{" "}
+                <Link href="/privacy-policy">
+                  <a className="text-primary hover:underline font-medium" data-testid="link-privacy-inline" target="_blank" rel="noopener noreferrer">
+                    Privacy Policy
+                  </a>
+                </Link>
+              </label>
+            </div>
             <Button
               type="submit"
               className="w-full"
-              disabled={isLoading}
+              disabled={isLoading || !agreedToTerms}
               data-testid="button-register"
             >
               <UserPlus className="w-4 h-4 mr-2" />
