@@ -71,12 +71,20 @@ const SubscribeForm = ({ billingCycle, tier }: { billingCycle: "monthly" | "annu
     console.log('[Subscribe] Elements submitted successfully');
 
     try {
-      const { error } = await stripe.confirmPayment({
+      // Create a timeout promise (15 seconds)
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Payment confirmation timeout')), 15000);
+      });
+
+      // Race between payment confirmation and timeout
+      const confirmPromise = stripe.confirmPayment({
         elements,
         confirmParams: {
           return_url: `${window.location.origin}/?payment=success`,
         },
       });
+
+      const { error } = await Promise.race([confirmPromise, timeoutPromise]) as any;
 
       console.log('[Subscribe] Payment result:', { error: error?.message || 'none' });
 
@@ -92,11 +100,20 @@ const SubscribeForm = ({ billingCycle, tier }: { billingCycle: "monthly" | "annu
       // If no error, the page will redirect to return_url
     } catch (err: any) {
       console.error('[Subscribe] Unexpected error:', err);
-      toast({
-        title: "Payment Error",
-        description: "An unexpected error occurred. Please try again.",
-        variant: "destructive",
-      });
+      
+      if (err.message === 'Payment confirmation timeout') {
+        toast({
+          title: "Payment Timeout",
+          description: "Payment confirmation is taking too long. Please refresh and check your account page, or contact support.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Payment Error",
+          description: "An unexpected error occurred. Please try again.",
+          variant: "destructive",
+        });
+      }
       setIsProcessing(false);
     }
   };
