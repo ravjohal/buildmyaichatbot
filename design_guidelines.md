@@ -1,44 +1,76 @@
-# Design Guidelines: AI-Powered Customer Support Chatbot Builder
+# Design Guidelines: BuildMyChatbot.Ai
+
+## Brand Identity
+
+**Brand Name:** BuildMyChatbot.Ai  
+**Logo:** Stylized "BC" letters in modern geometric design  
+**Brand Personality:** Professional, innovative, tech-forward, trustworthy  
+**Target Audience:** Non-technical business owners seeking AI-powered customer support solutions
+
+**Logo Usage:**
+- Primary logo: Full "BC" mark with "BuildMyChatbot.Ai" wordmark
+- Navigation logo: 48px height for headers and sidebars
+- Hero logo: 64-96px height for landing page
+- Favicon: "BC" mark only
+- Always maintain clear space around logo (minimum padding equal to logo height × 0.25)
+
+---
 
 ## Design Approach: Professional SaaS Product System
 
-**Selected Approach:** Design System (Stripe/Linear-inspired clean aesthetic)
-
-**Justification:** This is a utility-focused B2B SaaS product for non-technical users requiring maximum clarity, learnability, and trust. The interface must guide users confidently through complex workflows while maintaining a professional, modern appearance that instills confidence in the AI technology.
+**Selected Approach:** Design System with modern tech aesthetic
 
 **Core Principles:**
 - Clarity over decoration: Every element serves a functional purpose
 - Progressive disclosure: Complex features revealed as needed
 - Trust through consistency: Predictable patterns reduce cognitive load
 - Professional warmth: Approachable but not playful
+- Tech-forward design: Modern, clean, AI-focused aesthetic
 
 ---
 
 ## Color Palette
 
+**Brand Colors:**
+- **Navy Background:** 217 65% 9% (deep navy blue - #0F1829)
+- **Bright Blue Accent:** 210 100% 65% (vibrant blue - #4A9FFF)
+- **White:** 0 0% 100% (crisp white for text and surfaces)
+- **Light Blue:** 210 100% 70% (used for ".Ai" suffix and secondary highlights)
+
 **Light Mode:**
-- **Primary Brand:** 214 88% 51% (vibrant blue - trust, technology)
-- **Primary Hover:** 214 88% 45%
 - **Background:** 0 0% 100% (pure white)
-- **Surface:** 220 13% 97% (subtle gray for cards)
+- **Card/Surface:** 220 13% 97% (subtle gray for cards)
 - **Border:** 220 13% 91%
-- **Text Primary:** 222 47% 11% (near black)
+- **Primary:** 210 100% 65% (bright blue - #4A9FFF)
+- **Primary Foreground:** 0 0% 100% (white text on primary)
+- **Text Primary:** 217 65% 9% (navy for main text)
 - **Text Secondary:** 215 16% 47% (muted slate)
+- **Accent:** 210 100% 70% (light blue for highlights)
+- **Accent Foreground:** 217 65% 9% (navy text on accent)
 
 **Dark Mode:**
-- **Primary Brand:** 214 88% 58%
-- **Primary Hover:** 214 88% 65%
-- **Background:** 222 47% 11%
-- **Surface:** 217 33% 17%
-- **Border:** 217 33% 24%
-- **Text Primary:** 210 40% 98%
-- **Text Secondary:** 215 16% 65%
+- **Background:** 217 65% 9% (navy background - #0F1829)
+- **Card/Surface:** 217 45% 14% (slightly lighter navy for cards)
+- **Border:** 217 35% 20%
+- **Primary:** 210 100% 65% (bright blue - maintained)
+- **Primary Foreground:** 0 0% 100% (white)
+- **Text Primary:** 210 40% 98% (near white)
+- **Text Secondary:** 215 20% 70% (light gray)
+- **Accent:** 210 100% 70% (light blue)
+- **Accent Foreground:** 0 0% 100% (white)
 
 **Semantic Colors:**
 - **Success:** 142 71% 45% (green for confirmations)
 - **Warning:** 38 92% 50% (amber for cautions)
 - **Error:** 0 72% 51% (red for errors)
-- **Info:** 199 89% 48% (cyan for information)
+- **Info:** 210 100% 65% (use primary blue)
+
+**Sidebar Colors (Dark Mode Optimized):**
+- **Sidebar Background:** 217 65% 9% (navy)
+- **Sidebar Foreground:** 210 40% 98% (white)
+- **Sidebar Primary:** 210 100% 65% (bright blue)
+- **Sidebar Accent:** 217 45% 14% (lighter navy for hover states)
+- **Sidebar Border:** 217 35% 20%
 
 ---
 
@@ -46,7 +78,7 @@
 
 **Font Families:**
 - **Primary:** 'Inter', system-ui, sans-serif (body, UI elements)
-- **Display:** 'Inter', system-ui, sans-serif (headings - use weight variation)
+- **Display:** 'Inter', system-ui, sans-serif (headings - use heavier weights for contrast)
 - **Mono:** 'JetBrains Mono', 'Courier New', monospace (code snippets, embed codes)
 
 **Scale & Hierarchy:**
@@ -59,11 +91,16 @@
 - **Small:** text-sm, font-normal
 - **Tiny:** text-xs, font-medium (labels, captions)
 
+**Brand Typography:**
+- Use font-semibold or font-bold for headings to ensure strong contrast against backgrounds
+- ".Ai" suffix should use text-primary or accent color to differentiate from "BuildMyChatbot"
+- Maintain Inter font family throughout for consistency
+
 ---
 
 ## Layout System
 
-**Spacing Primitives:** Tailwind units of 2, 4, 6, 8, 12, 16, 24
+**Spacing Primitives:** Tailwind units of 4, 6, 8, 12, 16, 24
 - Component padding: p-4 to p-6
 - Section spacing: py-12 to py-24
 - Card gaps: gap-4 to gap-6
@@ -87,116 +124,129 @@
 ### Admin Dashboard Interface
 
 **Navigation:**
-- Persistent left sidebar (w-64) with logo, main nav items, and user menu at bottom
-- Top bar with breadcrumbs, global search, and profile dropdown
+- Persistent left sidebar with BC logo, "BuildMyChatbot.Ai" wordmark, main nav items
+- Top bar with sidebar toggle, breadcrumbs, and theme toggle
 - Mobile: Collapsible drawer with overlay
+- Sidebar background uses navy color with bright blue accents for active items
 
 **Dashboard Cards:**
-- White/dark surface with subtle border, rounded-xl corners
-- Hover state with subtle shadow elevation (shadow-md to shadow-lg)
+- Card surface with subtle border, rounded-md corners
+- Hover state with subtle elevation (use hover-elevate utility)
 - Action buttons positioned top-right
 - Status badges with semantic colors
 
 **Wizard Steps:**
-- Numbered step indicator at top (1→2→3→4→5) with visual progress
+- Numbered step indicator at top with visual progress
 - Content area with clear section headings
-- Bottom action bar with "Back" and "Continue" buttons, sticky positioning
+- Bottom action bar with "Back" and "Continue" buttons
 - Visual completion checkmarks on completed steps
 
 **Form Elements:**
 - Labels: text-sm font-medium mb-2
-- Inputs: Consistent height (h-11), rounded-lg, border focus ring with primary color
+- Inputs: Consistent height (h-11), rounded-md, border with focus ring
 - File upload: Drag-drop zone with dashed border, icon, and helper text
 - Color picker: Preview circle next to hex input
-- Toggle switches for boolean settings (not checkboxes)
+- Toggle switches for boolean settings
 
-**Knowledge Base Setup:**
-- URL input with validation indicator and "Scan Website" button
-- Document upload area: Grid of uploaded files with thumbnails, names, and remove icons
-- Processing status: Animated progress indicator during indexing
-
-**Customization Preview:**
-- Live preview panel showing widget as it will appear
-- Split view: Controls on left (60%), live preview on right (40%)
-- Preview updates in real-time as user adjusts settings
-
-**Embed Code Display:**
-- Code block with syntax highlighting (light/dark aware)
-- One-click copy button positioned top-right
-- Clear step-by-step instructions below with numbered list
-- Platform-specific tabs (Generic HTML, WordPress, Squarespace)
+**Buttons:**
+- Primary actions: Use primary color (bright blue) with white text
+- Secondary actions: Use outline or ghost variants
+- Destructive actions: Use destructive variant (red)
+- Icon buttons: Use size="icon" variant
 
 ### Client-Side Chat Widget
 
 **Floating Button:**
 - Fixed bottom-right position (bottom-6 right-6)
 - Circular, 60px diameter, shadow-xl
-- Primary brand color background with white icon
-- Subtle pulse animation on first load (then static)
-- Unread badge indicator if needed
+- Primary brand color (bright blue) background with white icon
+- Subtle pulse animation on first load
 
 **Chat Window:**
 - Slides up from button position with smooth animation
 - Dimensions: 400px wide × 600px tall on desktop, full-screen on mobile
 - Rounded-2xl with shadow-2xl
-- Header: Custom logo (40px), business name, minimize/close buttons
-- Body: Messages container with smooth scroll
-- Footer: Input field with send button
+- Header: BC logo (40px), "BuildMyChatbot.Ai" branding, minimize/close buttons
+- Uses brand colors: navy background in dark mode, white in light mode
 
 **Message Styles:**
-- User messages: Right-aligned, primary brand color background, white text, rounded-2xl rounded-tr-sm
-- Bot messages: Left-aligned, surface background, primary text, rounded-2xl rounded-tl-sm
-- Timestamp: text-xs text-secondary below each message
+- User messages: Right-aligned, primary brand color (bright blue) background, white text
+- Bot messages: Left-aligned, surface background, primary text
 - Typing indicator: Three animated dots in bot message style
-
-**Welcome Screen:**
-- Centered welcome message with larger text
-- Suggested questions as clickable pills (bg-surface, hover:bg-primary hover:text-white)
-- Arranged in 2-column grid with gap-2
-
-**Escalation Display:**
-- When providing phone number: Highlighted message with phone icon
-- Click-to-call button on mobile devices
-- "Call Support" CTA in primary color
 
 ---
 
 ## Key Screens & Flows
 
 **Landing Page (Marketing):**
-- Hero section (80vh): Bold headline "Build Your AI Support Assistant in Minutes", subheading, CTA button, hero image/illustration showing dashboard
-- Features section: 3-column grid showcasing core capabilities with icons
-- How It Works: 5-step visual process flow
-- Widget demo: Interactive preview of chat widget
-- Pricing table: Simple 2-3 tier comparison
-- Footer with trust badges, links, newsletter signup
+- Hero section: BC logo, bold headline "Build Your AI Support Assistant in Minutes"
+- Features section: 3-column grid with icons
+- Widget demo: Interactive preview
+- Pricing table: Free, Pro, Scale tiers
+- Footer with BuildMyChatbot.Ai branding
+
+**Authentication Pages:**
+- Centered card with BC logo at top (64px height)
+- "BuildMyChatbot.Ai" wordmark below logo
+- Clean, focused forms with primary CTA buttons
+- Navy accent elements
 
 **Dashboard:**
-- Welcome message with quick stats (total chatbots, conversations this month)
-- "Create New Chatbot" prominent CTA card at top
-- Grid of existing chatbots with preview thumbnails, status, and quick actions
-- Empty state: Illustration with encouraging message and create button
+- Sidebar with BC logo and navigation
+- Welcome message with quick stats
+- "Create New Chatbot" CTA with primary color
+- Grid of existing chatbots
 
 **Creation Wizard:**
 - Clean, focused, one thing at a time
-- Progress clearly visible
-- Next/Back navigation always accessible
-- Success confirmation screen with immediate "Get Embed Code" option
-
-**Chat Widget (Embedded):**
-- Seamless brand integration with client's site
-- Instant load with no layout shift
-- Accessible keyboard navigation
-- Responsive from 320px to 1920px viewports
+- Progress clearly visible with brand colors
+- Success screen with BC logo and celebration
 
 ---
 
 ## Images & Visual Assets
 
-**Dashboard/Marketing Images:**
-- Hero illustration: Modern, abstract representation of AI + customer service (chat bubbles, network nodes, friendly robot character)
-- Feature icons: Use Heroicons (outline style) for consistency
-- Dashboard screenshots: Actual product UI mockups showing key features
-- Success/empty states: Friendly illustrations (undraw.co style)
+**Logo Files:**
+- Primary: BC logo with full wordmark (SVG preferred)
+- Mark only: BC letters for favicon and small spaces
+- Use bright blue (#4A9FFF) for logo elements
 
-**No custom SVG generation needed - use Heroicons CDN for all interface icons**
+**Icons:**
+- Use Lucide React icons throughout
+- Match icon color to text color for consistency
+- Use primary color for accent icons
+
+**Illustrations:**
+- Modern, tech-focused style
+- Use brand colors: navy, bright blue, white
+- Friendly but professional tone
+
+---
+
+## Dark Mode Strategy
+
+**Approach:** Navy-based dark mode that mirrors brand identity
+
+**Key Differences:**
+- Background: Switch to navy (#0F1829) instead of black
+- Cards: Slightly lighter navy for elevation
+- Text: Near-white with good contrast
+- Primary blue: Maintains brightness and visibility
+- Borders: Subtle with low contrast
+- Elevate utilities: Blue-tinted translucency for hover states
+
+**Testing:**
+- Ensure all text meets WCAG AA contrast requirements
+- Verify CTA buttons stand out clearly
+- Test charts and data visualizations for readability
+
+---
+
+## Accessibility
+
+- Maintain WCAG AA contrast ratios (4.5:1 for normal text, 3:1 for large text)
+- Bright blue primary color (#4A9FFF) on navy background: excellent contrast
+- White text on navy background: excellent contrast
+- All interactive elements have visible focus states
+- Keyboard navigation supported throughout
+- Screen reader friendly labels and ARIA attributes
