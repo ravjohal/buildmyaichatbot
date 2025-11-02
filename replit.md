@@ -14,6 +14,8 @@ Preferred communication style: Simple, everyday language.
 
 The frontend uses React and TypeScript, with Vite for development and Wouter for routing. TanStack Query manages server state. Tailwind CSS with shadcn/ui (New York variant) provides a professional SaaS aesthetic, featuring a multi-step chatbot creation wizard, real-time customization previews, and a responsive layout.
 
+**Global Navigation Pattern:** All authenticated pages use a unified `DashboardHeader` component (located at `client/src/components/DashboardHeader.tsx`) providing consistent global navigation with Logo, Dashboard, Account, Admin (admin-only), Upgrade to Pro (free tier only), and Logout buttons. Page content areas contain page-specific actions and controls. This pattern ensures consistent UX and reduces navigation confusion across: Dashboard, Admin, Leads, Analytics Dashboard, Analytics, Create Chatbot, Edit Chatbot, Test Chatbot, Notification Settings, and Account pages.
+
 ### Technical Implementations
 
 The backend, built with Express.js, Node.js, and TypeScript, follows a RESTful API design. Zod is used for data validation. PostgreSQL with Drizzle ORM handles data persistence. The embeddable chat widget is delivered via an iframe for isolation.
