@@ -2209,21 +2209,50 @@ Generate 3-5 short, natural questions that would help the user learn more. Retur
 
       // Check if user already has an active subscription
       if (user.stripeSubscriptionId) {
-        const subscription = await stripe.subscriptions.retrieve(user.stripeSubscriptionId, {
-          expand: ['latest_invoice.payment_intent'],
-        });
-        
-        if (subscription.status === 'active' || subscription.status === 'trialing') {
-          const latestInvoice: any = subscription.latest_invoice;
-          return res.json({
-            subscriptionId: subscription.id,
-            clientSecret: latestInvoice?.payment_intent?.client_secret,
+        try {
+          const subscription = await stripe.subscriptions.retrieve(user.stripeSubscriptionId, {
+            expand: ['latest_invoice.payment_intent'],
           });
+          
+          if (subscription.status === 'active' || subscription.status === 'trialing') {
+            const latestInvoice: any = subscription.latest_invoice;
+            return res.json({
+              subscriptionId: subscription.id,
+              clientSecret: latestInvoice?.payment_intent?.client_secret,
+            });
+          }
+        } catch (err: any) {
+          // Subscription doesn't exist (likely from different Stripe account)
+          if (err.code === 'resource_missing') {
+            console.log(`Stored subscription ID ${user.stripeSubscriptionId} not found - will create new subscription`);
+            // Continue to create new subscription
+          } else {
+            throw err; // Re-throw other errors
+          }
         }
       }
 
       // Create or retrieve Stripe customer
+      // Handle case where stored customer ID is from a different Stripe account
       let stripeCustomerId = user.stripeCustomerId;
+      
+      // Verify the customer exists in current Stripe account
+      if (stripeCustomerId) {
+        try {
+          await stripe.customers.retrieve(stripeCustomerId);
+          console.log(`Using existing Stripe customer: ${stripeCustomerId}`);
+        } catch (err: any) {
+          // Customer doesn't exist (likely from different Stripe account)
+          if (err.code === 'resource_missing') {
+            console.log(`Stored customer ID ${stripeCustomerId} not found - creating new customer`);
+            stripeCustomerId = null; // Force creation of new customer
+          } else {
+            throw err; // Re-throw other errors
+          }
+        }
+      }
+      
+      // Create new customer if needed
       if (!stripeCustomerId) {
         const customer = await stripe.customers.create({
           email: user.email || undefined,
@@ -2234,6 +2263,7 @@ Generate 3-5 short, natural questions that would help the user learn more. Retur
         });
         stripeCustomerId = customer.id;
         await storage.updateStripeCustomerId(user.id, stripeCustomerId);
+        console.log(`Created new Stripe customer: ${stripeCustomerId}`);
       }
 
       // Map tier and billing cycle to correct Stripe price ID
