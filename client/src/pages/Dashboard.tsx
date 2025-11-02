@@ -297,7 +297,7 @@ export default function Dashboard() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {chatbots.map((chatbot) => (
-              <Card key={chatbot.id} className="hover-elevate" data-testid={`card-chatbot-${chatbot.id}`}>
+              <Card key={chatbot.id} className="hover-elevate cursor-pointer" data-testid={`card-chatbot-${chatbot.id}`} onClick={() => window.location.href = `/edit/${chatbot.id}`}>
                 <CardHeader className="space-y-3">
                   <div className="flex items-start justify-between gap-2">
                     {chatbot.logoUrl ? (
@@ -358,6 +358,7 @@ export default function Dashboard() {
                           target="_blank" 
                           rel="noopener noreferrer"
                           className="text-sm hover:underline flex items-center gap-1"
+                          onClick={(e) => e.stopPropagation()}
                         >
                           {new URL(chatbot.websiteUrls[0]).hostname}
                           {chatbot.websiteUrls.length > 1 && ` +${chatbot.websiteUrls.length - 1} more`}
@@ -408,7 +409,10 @@ export default function Dashboard() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => chatbot.websiteContent && setViewKnowledgeBase(chatbot)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      chatbot.websiteContent && setViewKnowledgeBase(chatbot);
+                    }}
                     disabled={!chatbot.websiteContent || chatbot.indexingStatus === 'pending' || chatbot.indexingStatus === 'processing'}
                     className="w-full justify-start text-sm text-muted-foreground hover:text-foreground"
                     data-testid={`button-view-knowledge-${chatbot.id}`}
@@ -423,7 +427,7 @@ export default function Dashboard() {
                     )}
                   </Button>
                 </CardContent>
-                <CardFooter className="flex gap-2 flex-wrap">
+                <CardFooter className="flex gap-2 flex-wrap" onClick={(e) => e.stopPropagation()}>
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <span className="flex-1">
@@ -433,7 +437,8 @@ export default function Dashboard() {
                           data-testid={`button-test-${chatbot.id}`}
                           className="w-full"
                           disabled={chatbot.indexingStatus === 'pending' || chatbot.indexingStatus === 'processing'}
-                          onClick={() => {
+                          onClick={(e) => {
+                            e.stopPropagation();
                             if (chatbot.indexingStatus !== 'pending' && chatbot.indexingStatus !== 'processing') {
                               window.open(`/chat/${chatbot.id}`, '_blank');
                             }
