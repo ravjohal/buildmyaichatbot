@@ -39,12 +39,22 @@ const SubscribeForm = ({ billingCycle, tier }: { billingCycle: "monthly" | "annu
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    console.log('[Subscribe] Form submitted');
+    console.log('[Subscribe] Stripe:', !!stripe, 'Elements:', !!elements);
 
     if (!stripe || !elements) {
+      console.log('[Subscribe] Missing stripe or elements, aborting');
+      toast({
+        title: "Error",
+        description: "Payment system not ready. Please refresh and try again.",
+        variant: "destructive",
+      });
       return;
     }
 
     setIsProcessing(true);
+    console.log('[Subscribe] Confirming payment...');
 
     const { error } = await stripe.confirmPayment({
       elements,
@@ -53,7 +63,10 @@ const SubscribeForm = ({ billingCycle, tier }: { billingCycle: "monthly" | "annu
       },
     });
 
+    console.log('[Subscribe] Payment result:', { error: error?.message || 'none' });
+
     if (error) {
+      console.error('[Subscribe] Payment failed:', error);
       toast({
         title: "Payment Failed",
         description: error.message,
@@ -61,6 +74,7 @@ const SubscribeForm = ({ billingCycle, tier }: { billingCycle: "monthly" | "annu
       });
       setIsProcessing(false);
     } else {
+      console.log('[Subscribe] Payment succeeded, syncing...');
       // Payment succeeded! Sync subscription status from Stripe
       try {
         await apiRequest("POST", "/api/sync-subscription");
