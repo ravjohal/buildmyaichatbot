@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { User } from "@shared/schema";
+import { Logo } from "@/components/Logo";
 
 export function DashboardHeader() {
   const { data: user } = useQuery<User>({
@@ -24,9 +25,9 @@ export function DashboardHeader() {
       <div className="max-w-7xl mx-auto px-6 md:px-12 py-4">
         <div className="flex items-center justify-between gap-4 flex-wrap">
           <Link href="/">
-            <h1 className="text-2xl font-bold tracking-tight cursor-pointer hover:text-primary transition-colors" data-testid="link-dashboard">
-              AI Chatbot Builder
-            </h1>
+            <div className="cursor-pointer hover:opacity-80 transition-opacity" data-testid="link-dashboard">
+              <Logo size="sm" />
+            </div>
           </Link>
           <div className="flex gap-3 flex-wrap">
             <Link href="/">
