@@ -4,7 +4,8 @@ import { chunkContent } from "./chunker";
 import { embeddingService } from "./embedding";
 import type { InsertKnowledgeChunk } from "@shared/schema";
 import { db } from "./db";
-import { urlCrawlMetadata } from "@shared/schema";
+import { urlCrawlMetadata, indexingJobs, indexingTasks } from "@shared/schema";
+import { eq } from "drizzle-orm";
 
 const POLL_INTERVAL_MS = 3000; // Check for new jobs every 3 seconds
 const MAX_RETRY_COUNT = 3;

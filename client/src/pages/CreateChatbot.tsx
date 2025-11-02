@@ -195,7 +195,7 @@ export default function CreateChatbot() {
         return [...old, chatbot];
       });
       
-      // If chatbot has an indexing job, start polling for status
+      // If chatbot has an indexing job, set up status and stay on wizard to show progress
       if (chatbot.indexingJobId) {
         setIndexingStatus({
           jobId: chatbot.indexingJobId,
@@ -205,15 +205,16 @@ export default function CreateChatbot() {
             processedUrls: 0,
           },
         });
+        setCreatedChatbotId(chatbot.id);
+        // Don't show toast yet - user will see the indexing progress
+      } else {
+        // No indexing needed, show completion immediately
+        setCreatedChatbotId(chatbot.id);
+        toast({
+          title: "Chatbot created!",
+          description: "Your AI assistant is ready to deploy.",
+        });
       }
-      
-      setCreatedChatbotId(chatbot.id);
-      toast({
-        title: "Chatbot created!",
-        description: chatbot.indexingJobId 
-          ? "Your chatbot is ready! URLs are being indexed in the background."
-          : "Your AI assistant is ready to deploy.",
-      });
     } catch (error) {
       toast({
         title: "Error",
@@ -225,7 +226,8 @@ export default function CreateChatbot() {
     }
   };
 
-  if (createdChatbotId) {
+  // Show completion screen only when done or if user chooses to skip waiting
+  if (createdChatbotId && (!indexingStatus || indexingStatus.status === 'completed' || indexingStatus.status === 'failed')) {
     return <StepComplete chatbotId={createdChatbotId} indexingStatus={indexingStatus} />;
   }
 
@@ -272,50 +274,78 @@ export default function CreateChatbot() {
       <div className="max-w-4xl mx-auto px-6 py-8">
         <StepIndicator steps={STEPS} currentStep={currentStep} />
 
-        {/* Indexing Status Indicator */}
-        {indexingStatus && (
-          <div className={`mt-6 p-4 rounded-lg border ${
-            indexingStatus.status === 'completed' 
-              ? 'bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800' 
-              : indexingStatus.status === 'failed'
-              ? 'bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800'
-              : 'bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800'
-          }`} data-testid="indexing-status">
-            <div className="flex items-center gap-3">
-              {indexingStatus.status === 'processing' || indexingStatus.status === 'pending' ? (
-                <Loader2 className="w-5 h-5 text-blue-600 dark:text-blue-400 animate-spin" />
-              ) : indexingStatus.status === 'completed' ? (
-                <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400" />
-              ) : (
-                <XCircle className="w-5 h-5 text-red-600 dark:text-red-400" />
-              )}
-              <div className="flex-1">
-                <p className={`font-medium ${
-                  indexingStatus.status === 'completed'
-                    ? 'text-green-900 dark:text-green-100'
-                    : indexingStatus.status === 'failed'
-                    ? 'text-red-900 dark:text-red-100'
-                    : 'text-blue-900 dark:text-blue-100'
-                }`}>
-                  {indexingStatus.status === 'processing' && 'Indexing your content in the background...'}
-                  {indexingStatus.status === 'pending' && 'Starting content indexing...'}
-                  {indexingStatus.status === 'completed' && 'Content indexed successfully!'}
-                  {indexingStatus.status === 'failed' && 'Indexing failed'}
-                </p>
-                {(indexingStatus.status === 'processing' || indexingStatus.status === 'pending') && (
-                  <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
-                    Processing {indexingStatus.progress.processedUrls} of {indexingStatus.progress.totalUrls} URLs
-                  </p>
-                )}
-                {indexingStatus.status === 'failed' && indexingStatus.error && (
-                  <p className="text-sm text-red-700 dark:text-red-300 mt-1">
-                    {indexingStatus.error}
-                  </p>
-                )}
+        {/* Real-time Indexing Progress - shown during wizard */}
+        {createdChatbotId && indexingStatus && (indexingStatus.status === 'pending' || indexingStatus.status === 'processing') && (
+          <Card className="bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
+            <CardContent className="p-6">
+              <div className="flex items-start gap-4">
+                <Loader2 className="w-6 h-6 text-blue-600 dark:text-blue-400 animate-spin flex-shrink-0 mt-1" />
+                <div className="flex-1 space-y-3">
+                  <div>
+                    <h3 className="font-semibold text-blue-900 dark:text-blue-100 text-lg">
+                      Indexing Your Content
+                    </h3>
+                    <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
+                      {indexingStatus.status === 'pending' 
+                        ? 'Starting indexing process...' 
+                        : 'Crawling and analyzing your website content'}
+                    </p>
+                  </div>
+                  
+                  {/* Progress Bar */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-blue-700 dark:text-blue-300">
+                        {indexingStatus.progress.processedUrls} of {indexingStatus.progress.totalUrls} URLs processed
+                      </span>
+                      <span className="text-blue-600 dark:text-blue-400 font-medium">
+                        {Math.round((indexingStatus.progress.processedUrls / indexingStatus.progress.totalUrls) * 100)}%
+                      </span>
+                    </div>
+                    <div className="w-full bg-blue-200 dark:bg-blue-900 rounded-full h-2 overflow-hidden">
+                      <div 
+                        className="bg-blue-600 dark:bg-blue-400 h-full transition-all duration-500 ease-out"
+                        style={{ 
+                          width: `${(indexingStatus.progress.processedUrls / indexingStatus.progress.totalUrls) * 100}%` 
+                        }}
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start gap-2 text-sm text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/50 rounded-lg p-3">
+                    <CheckCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                    <p>
+                      Your chatbot is already created and ready to use! You can continue to the dashboard while indexing completes in the background.
+                    </p>
+                  </div>
+                  
+                  <div className="flex gap-3 pt-2">
+                    <Button
+                      onClick={() => navigate("/")}
+                      variant="outline"
+                      className="flex-1"
+                      data-testid="button-skip-to-dashboard"
+                    >
+                      Go to Dashboard
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        // Force show completion screen even if indexing is ongoing
+                        setIndexingStatus(prev => prev ? { ...prev, status: 'completed' as const } : null);
+                      }}
+                      variant="default"
+                      className="flex-1"
+                      data-testid="button-continue-to-embed"
+                    >
+                      Continue to Embed Code
+                    </Button>
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         )}
+
 
         <Card className="mt-8">
           <CardContent className="p-8">
