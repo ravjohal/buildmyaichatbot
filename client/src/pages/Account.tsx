@@ -67,6 +67,35 @@ export default function Account() {
     },
   });
 
+  const syncSubscriptionMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("POST", "/api/sync-subscription", {});
+      return await response.json();
+    },
+    onSuccess: (data: any) => {
+      if (data.success) {
+        toast({
+          title: "Subscription Synced",
+          description: `Your tier has been updated to ${data.tier.toUpperCase()}.`,
+        });
+        // Refresh account data
+        window.location.reload();
+      } else {
+        toast({
+          title: "Sync Complete",
+          description: data.message || `Subscription status: ${data.status}`,
+        });
+      }
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Sync Failed",
+        description: error.message || "Failed to sync subscription. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const formatDate = (timestamp: number) => {
     return new Date(timestamp * 1000).toLocaleDateString("en-US", {
       year: "numeric",
@@ -304,6 +333,16 @@ export default function Account() {
                   <Separator />
 
                   <div className="flex gap-2">
+                    <Button 
+                      variant="outline" 
+                      className="flex-1 gap-2" 
+                      data-testid="button-sync-subscription"
+                      onClick={() => syncSubscriptionMutation.mutate()}
+                      disabled={syncSubscriptionMutation.isPending}
+                    >
+                      <CheckCircle2 className="w-4 h-4" />
+                      {syncSubscriptionMutation.isPending ? "Syncing..." : "Refresh Status"}
+                    </Button>
                     <Button 
                       variant="outline" 
                       className="flex-1 gap-2" 
