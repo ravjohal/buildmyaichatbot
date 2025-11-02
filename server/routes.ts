@@ -237,6 +237,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get active indexing jobs for the current user
+  app.get("/api/indexing/status", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      
+      // Get all chatbots for the user
+      const userChatbots = await storage.getAllChatbots(userId);
+      const chatbotIds = userChatbots.map(c => c.id);
+      
+      if (chatbotIds.length === 0) {
+        return res.json([]);
+      }
+      
+      // Get active indexing jobs (pending or processing) for these chatbots
+      const activeJobs = await db.query.indexingJobs.findMany({
+        where: (jobs, { inArray, or, eq }) => 
+          and(
+            inArray(jobs.chatbotId, chatbotIds),
+            or(
+              eq(jobs.status, "pending"),
+              eq(jobs.status, "processing")
+            )
+          ),
+        orderBy: (jobs, { desc }) => [desc(jobs.createdAt)],
+      });
+      
+      // Enrich jobs with chatbot info and progress percentage
+      const enrichedJobs = activeJobs.map(job => {
+        const chatbot = userChatbots.find(c => c.id === job.chatbotId);
+        const totalTasks = parseInt(job.totalTasks);
+        const completedTasks = parseInt(job.completedTasks || "0");
+        const failedTasks = parseInt(job.failedTasks || "0");
+        const progressPercentage = totalTasks > 0 
+          ? Math.round((completedTasks / totalTasks) * 100)
+          : 0;
+        
+        return {
+          jobId: job.id,
+          chatbotId: job.chatbotId,
+          chatbotName: chatbot?.name || "Unknown",
+          status: job.status,
+          totalTasks,
+          completedTasks,
+          failedTasks,
+          progressPercentage,
+          startedAt: job.startedAt,
+        };
+      });
+      
+      res.json(enrichedJobs);
+    } catch (error) {
+      console.error("Failed to fetch indexing status:", error);
+      res.status(500).json({ error: "Failed to fetch indexing status" });
+    }
+  });
+
   // Get chatbot configuration for public widget (no auth required)
   app.get("/api/public/chatbots/:id", async (req, res) => {
     try {
