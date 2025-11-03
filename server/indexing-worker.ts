@@ -265,17 +265,16 @@ async function processIndexingTask(taskId: string, jobId: string, chatbotId: str
         throw new Error("No pages could be crawled from the website");
       }
       
-      // Concatenate all page content with separators
-      content = crawlResults
-        .filter((page: any) => page.content && !page.error)
-        .map((page: any) => `=== ${page.title || page.url} ===\n\n${page.content}`)
-        .join('\n\n---\n\n');
+      // Filter valid pages
+      const validPages = crawlResults.filter((page: any) => page.content && !page.error);
       
-      title = crawlResults[0]?.title || sourceUrl;
-      
-      if (!content || content.trim().length === 0) {
+      if (validPages.length === 0) {
         throw new Error("All crawled pages were empty or had errors");
       }
+      
+      // Calculate total content size for storage limit checking
+      const totalContent = validPages.map((page: any) => page.content).join('\n\n');
+      const contentSizeMB = Buffer.byteLength(totalContent, 'utf8') / (1024 * 1024);
       
       // Atomically check and update knowledge base size
       const chatbot = await storage.getChatbotById(chatbotId);
@@ -285,7 +284,6 @@ async function processIndexingTask(taskId: string, jobId: string, chatbotId: str
           const { TIER_LIMITS } = await import("@shared/pricing");
           const tier = user.subscriptionTier;
           const limits = TIER_LIMITS[tier];
-          const contentSizeMB = Buffer.byteLength(content, 'utf8') / (1024 * 1024);
           
           // Use atomic check-and-update to prevent race conditions
           const sizeCheckResult = await storage.atomicCheckAndUpdateKnowledgeBaseSize(
@@ -304,13 +302,13 @@ async function processIndexingTask(taskId: string, jobId: string, chatbotId: str
       
       // Store crawl metadata for future refresh
       const normalizedUrl = normalizeUrl(sourceUrl);
-      const contentHash = calculateContentHash(content);
+      const totalContentHash = calculateContentHash(totalContent);
       
       try {
         await db.insert(urlCrawlMetadata).values({
           chatbotId,
           url: normalizedUrl,
-          contentHash,
+          contentHash: totalContentHash,
           lastCrawledAt: new Date(),
         });
         console.log(`[WORKER] Stored crawl metadata for ${normalizedUrl}`);
@@ -318,6 +316,73 @@ async function processIndexingTask(taskId: string, jobId: string, chatbotId: str
         console.error(`[WORKER] Failed to store crawl metadata:`, metaError);
         // Don't fail the task if metadata storage fails
       }
+      
+      // Process each page individually to preserve specific URLs
+      // We'll collect all chunks first, then store them together
+      const allChunksWithEmbeddings: InsertKnowledgeChunk[] = [];
+      
+      for (const page of validPages) {
+        const pageContent = page.content;
+        const pageUrl = page.url;
+        const pageTitle = page.title || pageUrl;
+        
+        console.log(`[WORKER] Processing page: ${pageUrl} (${pageContent.length} chars)`);
+        
+        // Checkpoint: Check for cancellation per page
+        if (monitor) {
+          await monitor.check();
+        }
+        
+        // Chunk this page's content
+        const pageChunks = chunkContent(pageContent, { title: pageTitle });
+        console.log(`[WORKER] Generated ${pageChunks.length} chunks for ${pageUrl}`);
+        
+        // Generate embeddings for this page's chunks
+        for (const chunk of pageChunks) {
+          // Checkpoint: Check for cancellation during embedding loop (every 5 chunks)
+          if (monitor && chunk.index % 5 === 0) {
+            await monitor.check();
+          }
+          
+          try {
+            const embedding = await embeddingService.generateEmbedding(chunk.text);
+            allChunksWithEmbeddings.push({
+              chatbotId,
+              sourceType: "website",
+              sourceUrl: pageUrl, // Use specific page URL
+              sourceTitle: pageTitle, // Use specific page title
+              chunkText: chunk.text,
+              chunkIndex: chunk.index.toString(),
+              contentHash: chunk.contentHash,
+              embedding,
+              metadata: chunk.metadata,
+            });
+          } catch (embError) {
+            console.error(`[WORKER] Failed to generate embedding for chunk ${chunk.index} of ${pageUrl}:`, embError);
+            // Store chunk without embedding
+            allChunksWithEmbeddings.push({
+              chatbotId,
+              sourceType: "website",
+              sourceUrl: pageUrl, // Use specific page URL
+              sourceTitle: pageTitle, // Use specific page title
+              chunkText: chunk.text,
+              chunkIndex: chunk.index.toString(),
+              contentHash: chunk.contentHash,
+              metadata: chunk.metadata,
+            });
+          }
+        }
+      }
+      
+      // Store all chunks in database
+      if (allChunksWithEmbeddings.length > 0) {
+        await storage.createKnowledgeChunks(allChunksWithEmbeddings);
+        console.log(`[WORKER] ✓ Stored ${allChunksWithEmbeddings.length} chunks from ${validPages.length} pages`);
+      }
+      
+      // Mark task as completed
+      await storage.updateIndexingTaskStatus(taskId, "completed", undefined, allChunksWithEmbeddings.length);
+      return; // Exit early since we've already processed everything
     } else if (sourceType === "document") {
       // Documents are pre-processed during upload - text extraction happens client-side
       // The sourceUrl here is the object storage path for reference only
@@ -326,74 +391,10 @@ async function processIndexingTask(taskId: string, jobId: string, chatbotId: str
       console.log(`[WORKER] Skipping document ${sourceUrl} - documents are pre-processed during upload`);
       await storage.updateIndexingTaskStatus(taskId, "completed", undefined, 0);
       return;
+    } else {
+      // Unknown source type
+      throw new Error(`Unknown source type: ${sourceType}`);
     }
-    
-    if (!content || content.trim().length === 0) {
-      console.log(`[WORKER] No content to index for ${sourceUrl}, skipping chunking`);
-      await storage.updateIndexingTaskStatus(taskId, "completed", undefined, 0);
-      return;
-    }
-    
-    // Chunk the content
-    console.log(`[WORKER] Chunking content (${content.length} chars)...`);
-    const contentChunks = chunkContent(content, { title });
-    console.log(`[WORKER] Generated ${contentChunks.length} chunks`);
-    
-    // Checkpoint: Check for cancellation after chunking
-    if (monitor) {
-      await monitor.check();
-    }
-    
-    if (contentChunks.length === 0) {
-      console.log(`[WORKER] No chunks generated for ${sourceUrl}`);
-      await storage.updateIndexingTaskStatus(taskId, "completed", undefined, 0);
-      return;
-    }
-    
-    // Generate embeddings and create knowledge chunks
-    const chunksWithEmbeddings: InsertKnowledgeChunk[] = [];
-    
-    for (const chunk of contentChunks) {
-      // Checkpoint: Check for cancellation during embedding loop (every 5 chunks)
-      if (monitor && chunk.index % 5 === 0) {
-        await monitor.check();
-      }
-      
-      try {
-        const embedding = await embeddingService.generateEmbedding(chunk.text);
-        chunksWithEmbeddings.push({
-          chatbotId,
-          sourceType: sourceType as "website" | "document",
-          sourceUrl,
-          sourceTitle: title,
-          chunkText: chunk.text,
-          chunkIndex: chunk.index.toString(),
-          contentHash: chunk.contentHash,
-          embedding,
-          metadata: chunk.metadata,
-        });
-      } catch (embError) {
-        console.error(`[WORKER] Failed to generate embedding for chunk ${chunk.index}:`, embError);
-        // Store chunk without embedding
-        chunksWithEmbeddings.push({
-          chatbotId,
-          sourceType: sourceType as "website" | "document",
-          sourceUrl,
-          sourceTitle: title,
-          chunkText: chunk.text,
-          chunkIndex: chunk.index.toString(),
-          contentHash: chunk.contentHash,
-          metadata: chunk.metadata,
-        });
-      }
-    }
-    
-    // Store chunks in database
-    await storage.createKnowledgeChunks(chunksWithEmbeddings);
-    console.log(`[WORKER] ✓ Stored ${chunksWithEmbeddings.length} chunks for ${sourceUrl}`);
-    
-    // Mark task as completed
-    await storage.updateIndexingTaskStatus(taskId, "completed", undefined, chunksWithEmbeddings.length);
     
   } catch (error) {
     // Handle cancellation separately
