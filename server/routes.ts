@@ -1156,29 +1156,38 @@ User Question: ${message}
 
 Please answer based on the knowledge base provided. If you cannot find the answer in the knowledge base, politely let the user know and suggest they contact support${chatbot.supportPhoneNumber ? ` at ${chatbot.supportPhoneNumber}` : ""}.`;
 
-        // Call both Gemini AI requests in parallel for faster response
-        const [mainResult, suggestionsResult] = await Promise.all([
-        // Main response
-        genAI.models.generateContent({
-          model: "gemini-2.5-flash",
-          contents: fullPrompt,
-        }),
-          // Suggested questions (run in parallel)
+        // Call LLM for main response, and optionally for suggested questions in parallel
+        const requests = [
+          // Main response
           genAI.models.generateContent({
             model: "gemini-2.5-flash",
-            contents: `Based on this conversation, suggest 3-5 relevant follow-up questions (each under 60 characters).
+            contents: fullPrompt,
+          })
+        ];
+        
+        // Only generate suggested questions if enabled
+        if (chatbot.enableSuggestedQuestions === "true") {
+          requests.push(
+            genAI.models.generateContent({
+              model: "gemini-2.5-flash",
+              contents: `Based on this conversation, suggest 3 relevant follow-up questions (each under 60 characters).
 
 Knowledge Base Topics:
 ${knowledgeContext ? knowledgeContext.substring(0, 1500) : "General customer support"}
 
 User's Question: ${message}
 
-Generate 3-5 short, natural questions that would help the user learn more. Return only the questions, one per line, without numbering.`,
-          }).catch(err => {
-            console.error("Error generating suggested questions:", err);
-            return null;
-          })
-        ]);
+Generate 3 short, natural questions that would help the user learn more. Return only the questions, one per line, without numbering.`,
+            }).catch(err => {
+              console.error("Error generating suggested questions:", err);
+              return null;
+            })
+          );
+        }
+        
+        const results = await Promise.all(requests);
+        const mainResult = results[0];
+        const suggestionsResult = results[1] || null;
 
         aiMessage = mainResult.text || "I apologize, but I couldn't generate a response.";
         
@@ -1189,7 +1198,7 @@ Generate 3-5 short, natural questions that would help the user learn more. Retur
               .split('\n')
               .map(q => q.trim())
               .filter(q => q.length > 0 && q.length < 100)
-              .slice(0, 5);
+              .slice(0, 3);
           } catch (error) {
             console.error("Error parsing suggested questions:", error);
           }
@@ -1552,28 +1561,30 @@ Example of incorrect reference: "You can view floor plans at [includes chunk con
 
             aiMessage = fullResponse || "I apologize, but I couldn't generate a response.";
             
-            // Generate suggested questions (non-streaming, after main response)
-            try {
-              const suggestionsResult = await genAI.models.generateContent({
-                model: "gemini-2.5-flash",
-                contents: `Based on this conversation, suggest 3-5 relevant follow-up questions (each under 60 characters).
+            // Generate suggested questions only if enabled (non-streaming, after main response)
+            if (chatbot.enableSuggestedQuestions === "true") {
+              try {
+                const suggestionsResult = await genAI.models.generateContent({
+                  model: "gemini-2.5-flash",
+                  contents: `Based on this conversation, suggest 3 relevant follow-up questions (each under 60 characters).
 
 Knowledge Base Topics:
 ${knowledgeContext ? knowledgeContext.substring(0, 1500) : "General customer support"}
 
 User's Question: ${message}
 
-Generate 3-5 short, natural questions that would help the user learn more. Return only the questions, one per line, without numbering.`,
-              });
-              
-              const suggestionsText = suggestionsResult.text || "";
-              suggestedQuestions = suggestionsText
-                .split('\n')
-                .map(q => q.trim())
-                .filter(q => q.length > 0 && q.length < 100)
-                .slice(0, 5);
-            } catch (error) {
-              console.error("Error generating suggested questions:", error);
+Generate 3 short, natural questions that would help the user learn more. Return only the questions, one per line, without numbering.`,
+                });
+                
+                const suggestionsText = suggestionsResult.text || "";
+                suggestedQuestions = suggestionsText
+                  .split('\n')
+                  .map(q => q.trim())
+                  .filter(q => q.length > 0 && q.length < 100)
+                  .slice(0, 3);
+              } catch (error) {
+                console.error("Error generating suggested questions:", error);
+              }
             }
             
             // Send completion event

@@ -82,6 +82,7 @@ export default function EditChatbot() {
         logoUrl: chatbot.logoUrl || undefined,
         welcomeMessage: chatbot.welcomeMessage,
         suggestedQuestions: chatbot.suggestedQuestions || [],
+        enableSuggestedQuestions: chatbot.enableSuggestedQuestions || "false",
         supportPhoneNumber: chatbot.supportPhoneNumber || undefined,
         escalationMessage: chatbot.escalationMessage || undefined,
         leadCaptureEnabled: chatbot.leadCaptureEnabled || "false",

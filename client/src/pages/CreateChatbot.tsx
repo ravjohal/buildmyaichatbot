@@ -66,6 +66,7 @@ export default function CreateChatbot() {
     logoUrl: "",
     welcomeMessage: "Hello! How can I help you today?",
     suggestedQuestions: [],
+    enableSuggestedQuestions: "false",
     supportPhoneNumber: "",
     escalationMessage: "If you need more help, you can reach our team at {phone}.",
     leadCaptureEnabled: "false",
