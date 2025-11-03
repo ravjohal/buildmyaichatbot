@@ -511,7 +511,7 @@ export default function Account() {
               <CardDescription>Manage how you receive alerts about your chatbots</CardDescription>
             </CardHeader>
             <CardContent>
-              <Link href="/notifications">
+              <Link href="/account/notifications">
                 <Button variant="outline" className="w-full gap-2" data-testid="button-manage-notifications">
                   <Bell className="w-4 h-4" />
                   Manage Notification Settings
