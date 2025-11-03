@@ -28,7 +28,6 @@ import PrivacyPolicy from "@/pages/PrivacyPolicy";
 import AcceptableUsePolicy from "@/pages/AcceptableUsePolicy";
 import NotFound from "@/pages/not-found";
 import { useAuth } from "@/hooks/useAuth";
-import { IndexingStatusBanner } from "@/components/IndexingStatusBanner";
 import { CookieConsent } from "@/components/CookieConsent";
 
 function PublicRouter() {
@@ -68,28 +67,25 @@ function ProtectedRouter() {
   }
 
   return (
-    <>
-      <IndexingStatusBanner />
-      <Switch>
-        <Route path="/" component={Dashboard} />
-        <Route path="/dashboard" component={Dashboard} />
-        <Route path="/chatbots" component={Dashboard} />
-        <Route path="/create" component={CreateChatbot} />
-        <Route path="/edit/:id" component={EditChatbot} />
-        <Route path="/view/:id" component={ViewChatbot} />
-        <Route path="/test/:id" component={TestChatbot} />
-        <Route path="/analytics" component={AnalyticsDashboard} />
-        <Route path="/analytics/:id" component={Analytics} />
-        <Route path="/leads" component={Leads} />
-        <Route path="/pricing" component={Pricing} />
-        <Route path="/subscribe" component={Subscribe} />
-        <Route path="/account" component={Account} />
-        <Route path="/notifications" component={NotificationSettings} />
-        <Route path="/admin" component={Admin} />
-        <Route path="/admin/jobs" component={AdminJobs} />
-        <Route component={NotFound} />
-      </Switch>
-    </>
+    <Switch>
+      <Route path="/" component={Dashboard} />
+      <Route path="/dashboard" component={Dashboard} />
+      <Route path="/chatbots" component={Dashboard} />
+      <Route path="/create" component={CreateChatbot} />
+      <Route path="/edit/:id" component={EditChatbot} />
+      <Route path="/view/:id" component={ViewChatbot} />
+      <Route path="/test/:id" component={TestChatbot} />
+      <Route path="/analytics" component={AnalyticsDashboard} />
+      <Route path="/analytics/:id" component={Analytics} />
+      <Route path="/leads" component={Leads} />
+      <Route path="/pricing" component={Pricing} />
+      <Route path="/subscribe" component={Subscribe} />
+      <Route path="/account" component={Account} />
+      <Route path="/notifications" component={NotificationSettings} />
+      <Route path="/admin" component={Admin} />
+      <Route path="/admin/jobs" component={AdminJobs} />
+      <Route component={NotFound} />
+    </Switch>
   );
 }
 
