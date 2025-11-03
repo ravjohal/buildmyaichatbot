@@ -837,26 +837,74 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Extract text from PDF
         try {
           // Import pdf-parse (CommonJS module)
-          // Handle both ESM and CommonJS module exports
+          // Handle both ESM and CommonJS module exports, including class constructors in production builds
           const pdfParseModule: any = await import('pdf-parse');
-          let pdfParse = pdfParseModule.default;
           
-          // If default is not a function, try the module itself
-          if (typeof pdfParse !== 'function') {
-            pdfParse = pdfParseModule;
+          let pdfData;
+          
+          // Strategy 1: Try default export as function
+          if (pdfParseModule.default && typeof pdfParseModule.default === 'function') {
+            try {
+              pdfData = await pdfParseModule.default(file.buffer);
+              console.log('[Document Upload] Used default export');
+            } catch (error: any) {
+              if (error.message && error.message.includes('cannot be invoked without')) {
+                // It's a class constructor, skip to strategy 3
+                console.log('[Document Upload] Default export is a class, trying alternative');
+              } else {
+                throw error;
+              }
+            }
           }
           
-          // If still not a function, check for named export
-          if (typeof pdfParse !== 'function' && typeof pdfParseModule.parse === 'function') {
-            pdfParse = pdfParseModule.parse;
+          // Strategy 2: Try module itself as function
+          if (!pdfData && typeof pdfParseModule === 'function') {
+            try {
+              pdfData = await pdfParseModule(file.buffer);
+              console.log('[Document Upload] Used module itself');
+            } catch (error: any) {
+              if (!error.message || !error.message.includes('cannot be invoked without')) {
+                throw error;
+              }
+              console.log('[Document Upload] Module is a class, trying alternative');
+            }
           }
           
-          if (typeof pdfParse !== 'function') {
-            console.error('[Document Upload] Module structure:', Object.keys(pdfParseModule));
-            throw new Error('pdf-parse module did not export a valid function');
+          // Strategy 3: Try as default function call (most reliable for production)
+          if (!pdfData) {
+            try {
+              // In production builds, sometimes the whole module needs to be called directly
+              const parse = pdfParseModule.default || pdfParseModule;
+              
+              // Check if it's actually callable
+              if (typeof parse !== 'function') {
+                console.error('[Document Upload] Module structure:', Object.keys(pdfParseModule));
+                throw new Error('pdf-parse module did not export a callable function');
+              }
+              
+              // For class constructors that require instantiation, wrap the call
+              try {
+                pdfData = await parse(file.buffer);
+              } catch (classError: any) {
+                // Last resort: some builds export as a class that needs different handling
+                // Try calling it bound to an empty object to avoid 'new' requirement
+                if (classError.message && classError.message.includes('cannot be invoked without')) {
+                  pdfData = await parse.call({}, file.buffer);
+                } else {
+                  throw classError;
+                }
+              }
+              console.log('[Document Upload] Used fallback strategy');
+            } catch (fallbackError) {
+              console.error('[Document Upload] All strategies failed');
+              throw fallbackError;
+            }
           }
           
-          const pdfData = await pdfParse(file.buffer);
+          if (!pdfData) {
+            throw new Error('Failed to parse PDF with any strategy');
+          }
+          
           extractedText = pdfData.text.trim();
           console.log(`[Document Upload] Extracted ${extractedText.length} characters from PDF`);
         } catch (error: any) {

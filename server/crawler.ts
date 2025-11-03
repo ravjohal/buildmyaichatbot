@@ -183,31 +183,73 @@ async function extractPdfText(url: string): Promise<{ content: string; title: st
     console.log(`[PDF Extractor] PDF downloaded, size: ${buffer.length} bytes`);
 
     // Dynamically import pdf-parse (CommonJS module)
-    // Handle both ESM and CommonJS module exports
+    // Handle both ESM and CommonJS module exports, including class constructors in production builds
     const pdfParseModule: any = await import('pdf-parse');
-    let pdfParse = pdfParseModule.default;
     
-    // If default is not a function, try the module itself
-    if (typeof pdfParse !== 'function') {
-      pdfParse = pdfParseModule;
+    let pdfData;
+    
+    // Strategy 1: Try default export as function
+    if (pdfParseModule.default && typeof pdfParseModule.default === 'function') {
+      try {
+        pdfData = await pdfParseModule.default(buffer);
+        console.log('[PDF Extractor] Used default export');
+      } catch (error: any) {
+        if (error.message && error.message.includes('cannot be invoked without')) {
+          // It's a class constructor, skip to strategy 3
+          console.log('[PDF Extractor] Default export is a class, trying alternative');
+        } else {
+          throw error;
+        }
+      }
     }
     
-    // If still not a function, check for PDFParse named export (production build)
-    if (typeof pdfParse !== 'function' && typeof pdfParseModule.PDFParse === 'function') {
-      pdfParse = pdfParseModule.PDFParse;
+    // Strategy 2: Try module itself as function
+    if (!pdfData && typeof pdfParseModule === 'function') {
+      try {
+        pdfData = await pdfParseModule(buffer);
+        console.log('[PDF Extractor] Used module itself');
+      } catch (error: any) {
+        if (!error.message || !error.message.includes('cannot be invoked without')) {
+          throw error;
+        }
+        console.log('[PDF Extractor] Module is a class, trying alternative');
+      }
     }
     
-    // If still not a function, check for parse named export
-    if (typeof pdfParse !== 'function' && typeof pdfParseModule.parse === 'function') {
-      pdfParse = pdfParseModule.parse;
+    // Strategy 3: Try as default function call (most reliable for production)
+    if (!pdfData) {
+      try {
+        // In production builds, sometimes the whole module needs to be called directly
+        const parse = pdfParseModule.default || pdfParseModule;
+        
+        // Check if it's actually callable
+        if (typeof parse !== 'function') {
+          console.error('[PDF Extractor] Module structure:', Object.keys(pdfParseModule));
+          throw new Error('pdf-parse module did not export a callable function');
+        }
+        
+        // For class constructors that require instantiation, wrap the call
+        try {
+          pdfData = await parse(buffer);
+        } catch (classError: any) {
+          // Last resort: some builds export as a class that needs different handling
+          // Try calling it bound to an empty object to avoid 'new' requirement
+          if (classError.message && classError.message.includes('cannot be invoked without')) {
+            pdfData = await parse.call({}, buffer);
+          } else {
+            throw classError;
+          }
+        }
+        console.log('[PDF Extractor] Used fallback strategy');
+      } catch (error) {
+        console.error('[PDF Extractor] All strategies failed');
+        throw error;
+      }
     }
     
-    if (typeof pdfParse !== 'function') {
-      console.error('[PDF Extractor] Module structure:', Object.keys(pdfParseModule));
-      throw new Error('pdf-parse module did not export a function');
+    if (!pdfData) {
+      throw new Error('Failed to parse PDF with any strategy');
     }
-    
-    const pdfData = await pdfParse(buffer);
 
     console.log(`[PDF Extractor] Text extracted: ${pdfData.text.length} characters`);
 
