@@ -87,6 +87,14 @@ export interface IStorage {
   replaceSuggestedQuestions(chatbotId: string, questions: string[]): Promise<void>;
   getRandomSuggestedQuestions(chatbotId: string, count?: number): Promise<string[]>;
   incrementQuestionUsage(chatbotId: string, questionText: string): Promise<void>;
+  
+  // Knowledge Chunks operations
+  getKnowledgeChunksForChatbot(chatbotId: string): Promise<Array<{
+    id: string;
+    chunkText: string;
+    sourceUrl: string | null;
+    sourceDocument: string | null;
+  }>>;
 }
 
 export class DbStorage implements IStorage {
@@ -1066,6 +1074,26 @@ export class DbStorage implements IStorage {
         eq(chatbotSuggestedQuestions.chatbotId, chatbotId),
         eq(chatbotSuggestedQuestions.questionText, questionText)
       ));
+  }
+
+  async getKnowledgeChunksForChatbot(chatbotId: string): Promise<Array<{
+    id: string;
+    chunkText: string;
+    sourceUrl: string | null;
+    sourceDocument: string | null;
+  }>> {
+    const result = await db
+      .select({
+        id: knowledgeChunks.id,
+        chunkText: knowledgeChunks.chunkText,
+        sourceUrl: knowledgeChunks.sourceUrl,
+        sourceDocument: knowledgeChunks.sourceDocument,
+      })
+      .from(knowledgeChunks)
+      .where(eq(knowledgeChunks.chatbotId, chatbotId))
+      .orderBy(knowledgeChunks.sourceUrl, knowledgeChunks.sourceDocument);
+    
+    return result;
   }
 }
 
