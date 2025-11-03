@@ -4,10 +4,12 @@ import session from "express-session";
 import type { Express, RequestHandler } from "express";
 import connectPg from "connect-pg-simple";
 import bcrypt from "bcrypt";
+import crypto from "crypto";
 import { storage } from "./storage";
 import { db } from "./db";
-import { users } from "@shared/schema";
-import { eq } from "drizzle-orm";
+import { users, passwordResetTokens } from "@shared/schema";
+import { eq, and } from "drizzle-orm";
+import { getUncachableResendClient } from "./emails/resend-client";
 
 declare module 'express-session' {
   interface SessionData {
@@ -200,6 +202,202 @@ export async function setupAuth(app: Express) {
       
       res.json({ message: 'Logout successful' });
     });
+  });
+
+  // Forgot password - request reset link
+  app.post('/api/auth/forgot-password', async (req, res) => {
+    try {
+      const { email } = req.body;
+
+      if (!email) {
+        return res.status(400).json({ message: 'Email is required' });
+      }
+
+      // Find user by email
+      const userResult = await db.select().from(users).where(eq(users.email, email)).limit(1);
+      const user = userResult[0];
+
+      // For security, always return success even if user doesn't exist
+      if (!user) {
+        return res.status(200).json({ message: 'If an account exists with that email, a reset link has been sent.' });
+      }
+
+      // Generate secure reset token
+      const token = crypto.randomBytes(32).toString('hex');
+      const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour from now
+
+      // Save token to database
+      await db.insert(passwordResetTokens).values({
+        userId: user.id,
+        token,
+        expiresAt,
+      });
+
+      // Send reset email
+      try {
+        const { client, fromEmail } = await getUncachableResendClient();
+        const resetUrl = `${req.protocol}://${req.get('host')}/reset-password?token=${token}`;
+
+        await client.emails.send({
+          from: fromEmail,
+          to: email,
+          subject: 'Reset Your Password - BuildMyChatbot.Ai',
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+              <h2 style="color: #0EA5E9;">Reset Your Password</h2>
+              <p>You requested to reset your password for your BuildMyChatbot.Ai account.</p>
+              <p>Click the button below to reset your password:</p>
+              <a href="${resetUrl}" style="display: inline-block; padding: 12px 24px; background-color: #0EA5E9; color: white; text-decoration: none; border-radius: 6px; margin: 16px 0;">Reset Password</a>
+              <p>Or copy and paste this link into your browser:</p>
+              <p style="color: #666; word-break: break-all;">${resetUrl}</p>
+              <p style="color: #666; font-size: 14px;">This link will expire in 1 hour.</p>
+              <p style="color: #666; font-size: 14px;">If you didn't request this password reset, please ignore this email.</p>
+            </div>
+          `,
+        });
+      } catch (emailError) {
+        console.error('Failed to send password reset email:', emailError);
+        // Don't reveal to user that email sending failed for security
+      }
+
+      res.status(200).json({ message: 'If an account exists with that email, a reset link has been sent.' });
+    } catch (error) {
+      console.error('Forgot password error:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+
+  // Verify reset token
+  app.post('/api/auth/verify-reset-token', async (req, res) => {
+    try {
+      const { token } = req.body;
+
+      if (!token) {
+        return res.status(400).json({ message: 'Token is required' });
+      }
+
+      // Find valid token
+      const tokenResult = await db.select()
+        .from(passwordResetTokens)
+        .where(and(
+          eq(passwordResetTokens.token, token),
+          eq(passwordResetTokens.used, 'false')
+        ))
+        .limit(1);
+
+      const resetToken = tokenResult[0];
+
+      if (!resetToken) {
+        return res.status(400).json({ message: 'Invalid or expired token' });
+      }
+
+      // Check if token is expired
+      if (new Date() > new Date(resetToken.expiresAt)) {
+        return res.status(400).json({ message: 'Token has expired' });
+      }
+
+      res.status(200).json({ message: 'Token is valid' });
+    } catch (error) {
+      console.error('Verify token error:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+
+  // Reset password with token
+  app.post('/api/auth/reset-password', async (req, res) => {
+    try {
+      const { token, newPassword } = req.body;
+
+      if (!token || !newPassword) {
+        return res.status(400).json({ message: 'Token and new password are required' });
+      }
+
+      if (newPassword.length < 8) {
+        return res.status(400).json({ message: 'Password must be at least 8 characters long' });
+      }
+
+      // Find valid token
+      const tokenResult = await db.select()
+        .from(passwordResetTokens)
+        .where(and(
+          eq(passwordResetTokens.token, token),
+          eq(passwordResetTokens.used, 'false')
+        ))
+        .limit(1);
+
+      const resetToken = tokenResult[0];
+
+      if (!resetToken) {
+        return res.status(400).json({ message: 'Invalid or expired token' });
+      }
+
+      // Check if token is expired
+      if (new Date() > new Date(resetToken.expiresAt)) {
+        return res.status(400).json({ message: 'Token has expired' });
+      }
+
+      // Hash new password
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+      // Update user password
+      await db.update(users)
+        .set({ password: hashedPassword, updatedAt: new Date() })
+        .where(eq(users.id, resetToken.userId));
+
+      // Mark token as used
+      await db.update(passwordResetTokens)
+        .set({ used: 'true' })
+        .where(eq(passwordResetTokens.id, resetToken.id));
+
+      res.status(200).json({ message: 'Password has been reset successfully' });
+    } catch (error) {
+      console.error('Reset password error:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+
+  // Change password (for authenticated users)
+  app.post('/api/auth/change-password', isAuthenticated, async (req, res) => {
+    try {
+      const { currentPassword, newPassword } = req.body;
+      const userId = (req.user as any).id;
+
+      if (!currentPassword || !newPassword) {
+        return res.status(400).json({ message: 'Current password and new password are required' });
+      }
+
+      if (newPassword.length < 8) {
+        return res.status(400).json({ message: 'New password must be at least 8 characters long' });
+      }
+
+      // Get user
+      const userResult = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+      const user = userResult[0];
+
+      if (!user || !user.password) {
+        return res.status(400).json({ message: 'Unable to change password' });
+      }
+
+      // Verify current password
+      const isValid = await bcrypt.compare(currentPassword, user.password);
+
+      if (!isValid) {
+        return res.status(400).json({ message: 'Current password is incorrect' });
+      }
+
+      // Hash new password
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+      // Update password
+      await db.update(users)
+        .set({ password: hashedPassword, updatedAt: new Date() })
+        .where(eq(users.id, userId));
+
+      res.status(200).json({ message: 'Password has been changed successfully' });
+    } catch (error) {
+      console.error('Change password error:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
   });
 }
 

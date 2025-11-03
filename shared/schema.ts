@@ -358,3 +358,16 @@ export const indexingTasks = pgTable("indexing_tasks", {
 
 export type IndexingTask = typeof indexingTasks.$inferSelect;
 export type InsertIndexingTask = typeof indexingTasks.$inferInsert;
+
+// Password Reset Tokens - for forgot password functionality
+export const passwordResetTokens = pgTable("password_reset_tokens", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  token: varchar("token").notNull().unique(),
+  expiresAt: timestamp("expires_at").notNull(),
+  used: text("used").notNull().default("false"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export type PasswordResetToken = typeof passwordResetTokens.$inferSelect;
+export type InsertPasswordResetToken = typeof passwordResetTokens.$inferInsert;

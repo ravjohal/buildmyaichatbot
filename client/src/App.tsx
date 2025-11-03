@@ -21,6 +21,8 @@ import NotificationSettings from "@/pages/NotificationSettings";
 import Landing from "@/pages/Landing";
 import Login from "@/pages/Login";
 import Register from "@/pages/Register";
+import ForgotPassword from "@/pages/ForgotPassword";
+import ResetPassword from "@/pages/ResetPassword";
 import TermsOfService from "@/pages/TermsOfService";
 import PrivacyPolicy from "@/pages/PrivacyPolicy";
 import AcceptableUsePolicy from "@/pages/AcceptableUsePolicy";
@@ -35,6 +37,8 @@ function PublicRouter() {
       <Route path="/" component={Landing} />
       <Route path="/login" component={Login} />
       <Route path="/register" component={Register} />
+      <Route path="/forgot-password" component={ForgotPassword} />
+      <Route path="/reset-password" component={ResetPassword} />
       <Route path="/pricing" component={Pricing} />
       <Route path="/terms-of-service" component={TermsOfService} />
       <Route path="/privacy-policy" component={PrivacyPolicy} />
@@ -98,6 +102,8 @@ function Router() {
                         location === '/pricing' || 
                         location === '/login' || 
                         location === '/register' ||
+                        location === '/forgot-password' ||
+                        location === '/reset-password' ||
                         location === '/terms-of-service' ||
                         location === '/privacy-policy' ||
                         location === '/acceptable-use-policy';
