@@ -21,6 +21,12 @@ BuildMyChatbot.Ai is a SaaS web application that enables non-technical business 
 
 **Database Connection Resilience (Nov 3, 2025)**: Implemented automatic retry logic with exponential backoff for Neon serverless database connections in the indexing worker. Handles "Connection terminated unexpectedly" errors that occur when long-running workers experience database connection timeouts. Worker now automatically retries up to 3 times with exponential backoff (1s, 2s, 4s) before failing.
 
+**PDF Extraction Fix (Nov 3, 2025)**: Resolved production PDF extraction failures caused by esbuild module compilation. Implemented 3-strategy fallback system that handles different pdf-parse export patterns:
+- Strategy 1: Direct function export (development builds)
+- Strategy 2: CommonJS module pattern
+- Strategy 3: Class constructor exports with proper async handling (production builds)
+The fix includes thenable detection to await promises returned by class constructors, ensuring PDF text extraction works in both development and production environments. Applied to both URL-based PDFs (`crawler.ts`) and uploaded documents (`routes.ts`).
+
 **Key Production Indicators:**
 - `[WORKER] ✓ Indexing worker started successfully` - Worker initialized
 - `[WORKER-HEALTH] ✓ Playwright/Chromium is operational` - Browser available
