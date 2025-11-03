@@ -1,0 +1,87 @@
+2025-11-03 01:23:29.36
+a2cc9d81
+User
+[PlaywrightRenderer] ✗ RENDER ERROR for https://www.rurkahomes.com/new-homes/california/san-joaquin-county/mountain-house/lakeshore/2925/214-w-rustica-drive
+2025-11-03 01:23:29.36
+a2cc9d81
+User
+[PlaywrightRenderer] Error type: TimeoutError
+2025-11-03 01:23:29.36
+a2cc9d81
+User
+[PlaywrightRenderer] Error message: page.goto: Timeout 15000ms exceeded.
+2025-11-03 01:23:29.36
+a2cc9d81
+User
+Call log:
+2025-11-03 01:23:29.36
+a2cc9d81
+User
+- navigating to "https://www.rurkahomes.com/new-homes/california/san-joaquin-county/mountain-house/lakeshore/2925/214-w-rustica-drive", waiting until "networkidle"
+2025-11-03 01:23:29.36
+a2cc9d81
+User
+2025-11-03 01:23:29.36
+a2cc9d81
+User
+[PlaywrightRenderer] Error stack: page.goto: Timeout 15000ms exceeded.
+2025-11-03 01:23:29.36
+a2cc9d81
+User
+Call log:
+
+2025-11-03 01:23:29.36
+a2cc9d81
+User
+- navigating to "https://www.rurkahomes.com/new-homes/california/san-joaquin-county/mountain-house/lakeshore/2925/214-w-rustica-drive", waiting until "networkidle"
+2025-11-03 01:23:29.36
+a2cc9d81
+User
+2025-11-03 01:23:29.36
+a2cc9d81
+User
+at PlaywrightRenderer.render (/home/runner/workspace/dist/index.js:1241:22)
+2025-11-03 01:23:29.36
+a2cc9d81
+User
+at async crawlWithRenderer (/home/runner/workspace/dist/index.js:1307:18)
+2025-11-03 01:23:29.36
+a2cc9d81
+User
+at async crawlWebsiteRecursive (/home/runner/workspace/dist/index.js:1537:30)
+2025-11-03 01:23:29.36
+a2cc9d81
+User
+at async crawlMultipleWebsitesRecursive (/home/runner/workspace/dist/index.js:1581:21)
+2025-11-03 01:23:29.36
+a2cc9d81
+User
+at async processIndexingTask (/home/runner/workspace/dist/index.js:2260:28)
+2025-11-03 01:23:29.36
+a2cc9d81
+User
+at async processIndexingJob (/home/runner/workspace/dist/index.js:2396:9)
+2025-11-03 01:23:29.36
+a2cc9d81
+User
+at async workerLoop (/home/runner/workspace/dist/index.js:2436:9)
+2025-11-03 01:23:29.36
+a2cc9d81
+User
+[PlaywrightRenderer] Full error: {
+2025-11-03 01:23:29.36
+a2cc9d81
+User
+"stack": "page.goto: Timeout 15000ms exceeded.\nCall log:\n - navigating to \"https://www.rurkahomes.com/new-homes/california/san-joaquin-county/mountain-house/lakeshore/2925/214-w-rustica-drive\", waiting until \"networkidle\"\n\n at PlaywrightRenderer.render (/home/runner/workspace/dist/index.js:1241:22)\n at async crawlWithRenderer (/home/runner/workspace/dist/index.js:1307:18)\n at async crawlWebsiteRecursive (/home/runner/workspace/dist/index.js:1537:30)\n at async crawlMultipleWebsitesRecursive (/home/runner/workspace/dist/index.js:1581:21)\n at async processIndexingTask (/home/runner/workspace/dist/index.js:2260:28)\n at async processIndexingJob (/home/runner/workspace/dist/index.js:2396:9)\n at async workerLoop (/home/runner/workspace/dist/index.js:2436:9)",
+2025-11-03 01:23:29.36
+a2cc9d81
+User
+"message": "page.goto: Timeout 15000ms exceeded.\nCall log:\n - navigating to \"https://www.rurkahomes.com/new-homes/california/san-joaquin-county/mountain-house/lakeshore/2925/214-w-rustica-drive\", waiting until \"networkidle\"\n",
+2025-11-03 01:23:29.36
+a2cc9d81
+User
+"name": "TimeoutError"
+2025-11-03 01:23:29.36
+a2cc9d81
+User
+}

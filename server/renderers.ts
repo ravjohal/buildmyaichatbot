@@ -140,7 +140,7 @@ export class CheerioRenderer implements PageRenderer {
 export class PlaywrightRenderer implements PageRenderer {
   private browser: Browser | null = null;
   private activePage: Page | null = null;
-  private readonly timeout: number = 15000;
+  private readonly timeout: number = 30000; // Increased from 15s to 30s for slow sites
 
   async render(url: string): Promise<RenderResult> {
     console.log(`[PlaywrightRenderer] Starting render for: ${url}`);
@@ -232,13 +232,15 @@ export class PlaywrightRenderer implements PageRenderer {
         }
       });
 
+      // Use 'domcontentloaded' instead of 'networkidle' to avoid timing out on sites with continuous network activity
       await page.goto(url, {
-        waitUntil: 'networkidle',
+        waitUntil: 'domcontentloaded',
         timeout: this.timeout,
       });
       console.log(`[PlaywrightRenderer] Page loaded, waiting for JavaScript...`);
 
-      await page.waitForTimeout(2000);
+      // Give JS frameworks time to render (increased from 2s to 3s)
+      await page.waitForTimeout(3000);
 
       const html = await page.content();
       const title = await page.title();
