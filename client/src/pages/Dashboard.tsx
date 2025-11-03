@@ -47,18 +47,170 @@ interface IndexingStatus {
   error: string | null;
 }
 
+interface KnowledgeChunk {
+  id: string;
+  chunkText: string;
+  sourceUrl: string | null;
+  sourceDocument: string | null;
+}
+
+interface ChatbotWithChunks extends Chatbot {
+  chunkCount?: number;
+}
+
+function KnowledgeBaseView({ chatbot }: { chatbot: ChatbotWithChunks }) {
+  const { data: chunksData, isLoading, isError, error, refetch } = useQuery<{ chunks: KnowledgeChunk[] }>({
+    queryKey: ["/api/chatbots", chatbot.id, "knowledge-chunks"],
+    queryFn: async () => {
+      const response = await fetch(`/api/chatbots/${chatbot.id}/knowledge-chunks`);
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || "Failed to fetch knowledge chunks");
+      }
+      return response.json();
+    },
+  });
+
+  const chunks = chunksData?.chunks ?? [];
+
+  // Group chunks by source
+  const groupedChunks = chunks.reduce((acc, chunk) => {
+    const source = chunk.sourceUrl || chunk.sourceDocument || "Unknown source";
+    if (!acc[source]) {
+      acc[source] = [];
+    }
+    acc[source].push(chunk);
+    return acc;
+  }, {} as Record<string, KnowledgeChunk[]>);
+
+  return (
+    <div className="space-y-4">
+      <div className="space-y-2">
+        <h4 className="text-sm font-semibold">Sources</h4>
+        <div className="space-y-1">
+          {chatbot.websiteUrls && chatbot.websiteUrls.length > 0 ? (
+            chatbot.websiteUrls.map((url, index) => (
+              <a
+                key={index}
+                href={url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm text-primary hover:underline flex items-center gap-2"
+                data-testid={`link-crawled-url-${index}`}
+              >
+                <ExternalLink className="w-3 h-3" />
+                {url}
+              </a>
+            ))
+          ) : null}
+          {(!chatbot.websiteUrls || chatbot.websiteUrls.length === 0) && (
+            <p className="text-sm text-muted-foreground">No website URLs</p>
+          )}
+          {chatbot.documents && chatbot.documents.length > 0 && (
+            <div className="mt-2">
+              <p className="text-sm font-medium mb-1">Documents:</p>
+              {chatbot.documents.map((doc, index) => (
+                <p key={index} className="text-sm text-muted-foreground">
+                  {doc}
+                </p>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <h4 className="text-sm font-semibold">Indexed Content</h4>
+          {chatbot.chunkCount && chatbot.chunkCount > 0 && (
+            <Badge variant="secondary" className="text-xs">
+              {chatbot.chunkCount} chunks
+            </Badge>
+          )}
+        </div>
+        
+        {isLoading ? (
+          <div className="h-[400px] w-full rounded-md border p-4 flex items-center justify-center">
+            <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : isError ? (
+          <div className="h-[400px] w-full rounded-md border p-4 flex flex-col items-center justify-center gap-4">
+            <div className="text-center space-y-2">
+              <XCircle className="w-12 h-12 text-destructive mx-auto" />
+              <p className="text-sm font-medium text-destructive">Failed to load knowledge base</p>
+              <p className="text-xs text-muted-foreground">
+                {error instanceof Error ? error.message : "An unexpected error occurred"}
+              </p>
+            </div>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => refetch()}
+              data-testid="button-retry-chunks"
+            >
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Retry
+            </Button>
+          </div>
+        ) : chunks.length === 0 ? (
+          <div className="h-[400px] w-full rounded-md border p-4">
+            <p className="text-sm text-muted-foreground italic">No content has been indexed yet</p>
+          </div>
+        ) : (
+          <ScrollArea className="h-[400px] w-full rounded-md border p-4">
+            <div className="space-y-6" data-testid="text-indexed-content">
+              {Object.entries(groupedChunks).map(([source, sourceChunks]) => (
+                <div key={source} className="space-y-2">
+                  <div className="flex items-start gap-2 sticky top-0 bg-background pb-2 border-b">
+                    <Globe className="w-4 h-4 mt-0.5 text-muted-foreground flex-shrink-0" />
+                    <a
+                      href={source.startsWith("http") ? source : "#"}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm font-medium text-primary hover:underline break-all"
+                    >
+                      {source}
+                    </a>
+                    <Badge variant="secondary" className="ml-auto flex-shrink-0">
+                      {sourceChunks.length} chunks
+                    </Badge>
+                  </div>
+                  <div className="space-y-3 pl-6">
+                    {sourceChunks.map((chunk, idx) => (
+                      <div key={chunk.id} className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="text-xs">
+                            Chunk {idx + 1}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                          {chunk.chunkText}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </ScrollArea>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function Dashboard() {
   const { toast } = useToast();
   const [, navigate] = useLocation();
   const [deleteId, setDeleteId] = useState<string | null>(null);
-  const [viewKnowledgeBase, setViewKnowledgeBase] = useState<Chatbot | null>(null);
+  const [viewKnowledgeBase, setViewKnowledgeBase] = useState<ChatbotWithChunks | null>(null);
   const [refreshingId, setRefreshingId] = useState<string | null>(null);
-  const [shareDialogChatbot, setShareDialogChatbot] = useState<Chatbot | null>(null);
+  const [shareDialogChatbot, setShareDialogChatbot] = useState<ChatbotWithChunks | null>(null);
   const [embedDialogOpen, setEmbedDialogOpen] = useState(false);
   const [selectedEmbedCode, setSelectedEmbedCode] = useState("");
   const [indexingStatuses, setIndexingStatuses] = useState<Record<string, IndexingStatus>>({});
 
-  const { data: chatbots, isLoading } = useQuery<Chatbot[]>({
+  const { data: chatbots, isLoading } = useQuery<ChatbotWithChunks[]>({
     queryKey: ["/api/chatbots"],
   });
 
@@ -675,64 +827,7 @@ export default function Dashboard() {
             </DialogDescription>
           </DialogHeader>
           
-          {viewKnowledgeBase && (
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <h4 className="text-sm font-semibold">Sources</h4>
-                <div className="space-y-1">
-                  {viewKnowledgeBase.websiteUrls && viewKnowledgeBase.websiteUrls.length > 0 ? (
-                    viewKnowledgeBase.websiteUrls.map((url, index) => (
-                      <a
-                        key={index}
-                        href={url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-sm text-primary hover:underline flex items-center gap-2"
-                        data-testid={`link-crawled-url-${index}`}
-                      >
-                        <ExternalLink className="w-3 h-3" />
-                        {url}
-                      </a>
-                    ))
-                  ) : null}
-                  {(!viewKnowledgeBase.websiteUrls || viewKnowledgeBase.websiteUrls.length === 0) && (
-                    <p className="text-sm text-muted-foreground">No website URLs</p>
-                  )}
-                  {viewKnowledgeBase.documents && viewKnowledgeBase.documents.length > 0 && (
-                    <div className="mt-2">
-                      <p className="text-sm font-medium mb-1">Documents:</p>
-                      {viewKnowledgeBase.documents.map((doc, index) => (
-                        <p key={index} className="text-sm text-muted-foreground">
-                          {doc}
-                        </p>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-sm font-semibold">Indexed Content</h4>
-                  {viewKnowledgeBase.chunkCount && viewKnowledgeBase.chunkCount > 0 && (
-                    <Badge variant="secondary" className="text-xs">
-                      {viewKnowledgeBase.chunkCount} chunks
-                    </Badge>
-                  )}
-                </div>
-                <ScrollArea className="h-[400px] w-full rounded-md border p-4">
-                  {viewKnowledgeBase.chunkCount && viewKnowledgeBase.chunkCount > 0 ? (
-                    <div className="text-sm text-muted-foreground" data-testid="text-indexed-content">
-                      <p>✓ Your chatbot has been successfully indexed with {viewKnowledgeBase.chunkCount} knowledge chunks.</p>
-                      <p className="mt-2">These chunks are used to provide accurate, context-aware responses to user questions.</p>
-                    </div>
-                  ) : (
-                    <p className="text-sm text-muted-foreground italic">No content has been indexed yet</p>
-                  )}
-                </ScrollArea>
-              </div>
-            </div>
-          )}
+          {viewKnowledgeBase && <KnowledgeBaseView chatbot={viewKnowledgeBase} />}
         </DialogContent>
       </Dialog>
 
