@@ -8,6 +8,15 @@ BuildMyChatbot.Ai is a SaaS web application that enables non-technical business 
 
 **Critical Update (Nov 3, 2025)**: Implemented comprehensive worker health monitoring and diagnostics to resolve production indexing issues. See `PRODUCTION_INDEXING_DIAGNOSTICS.md` for full details.
 
+## Recent Updates (Nov 3, 2025)
+
+**Job Cancellation System**: Implemented fast cancellation for running indexing jobs with dual-layer detection (in-memory flags + 5s throttled DB checks) and strategic checkpoints throughout task processing. Achieves sub-second to 5-second cancellation response time.
+
+**UI Improvements**:
+- Changed refresh button label from "Refresh" to "Reindex" for clarity
+- Fixed chatbot card status to update immediately when reindex is triggered (sets status to "pending" before worker picks up job)
+- Jobs page correctly shows status progression: pending → processing → completed/failed/cancelled
+
 **Chromium Solution:** Uses system Chromium from `replit.nix` instead of Playwright bundled browsers. Removed Playwright browser installation from build process because `--with-deps` flag requires `sudo` (not available in Replit). System Chromium is detected via `which chromium-browser || which chromium` in production.
 
 **Database Connection Resilience (Nov 3, 2025)**: Implemented automatic retry logic with exponential backoff for Neon serverless database connections in the indexing worker. Handles "Connection terminated unexpectedly" errors that occur when long-running workers experience database connection timeouts. Worker now automatically retries up to 3 times with exponential backoff (1s, 2s, 4s) before failing.
