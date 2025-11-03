@@ -639,7 +639,17 @@ export default function Dashboard() {
           </DialogHeader>
           <div className="space-y-4">
             <div className="relative">
-              <pre className="p-4 bg-muted rounded-md overflow-x-auto text-sm">
+              <div className="absolute top-2 right-2 z-10">
+                <Button
+                  size="sm"
+                  onClick={handleCopyEmbedToClipboard}
+                  data-testid="button-copy-embed-inline"
+                >
+                  <Copy className="w-4 h-4 mr-2" />
+                  Copy
+                </Button>
+              </div>
+              <pre className="p-4 pr-24 bg-muted rounded-md text-sm whitespace-pre-wrap break-all">
                 <code data-testid="text-embed-code">{selectedEmbedCode}</code>
               </pre>
             </div>
@@ -650,13 +660,6 @@ export default function Dashboard() {
                 data-testid="button-close-embed-dialog"
               >
                 Close
-              </Button>
-              <Button
-                onClick={handleCopyEmbedToClipboard}
-                data-testid="button-copy-embed-code"
-              >
-                <Copy className="w-4 h-4 mr-2" />
-                Copy to Clipboard
               </Button>
             </div>
           </div>
