@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { User } from "@shared/schema";
 import { Logo } from "@/components/Logo";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export function DashboardHeader() {
   const { data: user } = useQuery<User>({
@@ -13,6 +14,29 @@ export function DashboardHeader() {
 
   const isAdmin = user?.isAdmin === "true";
   const isFreeTier = user?.subscriptionTier === "free" && !isAdmin;
+
+  const getUserDisplay = () => {
+    if (user?.firstName && user?.lastName) {
+      return `${user.firstName} ${user.lastName}`;
+    }
+    if (user?.firstName) {
+      return user.firstName;
+    }
+    return user?.email || "User";
+  };
+
+  const getUserInitials = () => {
+    if (user?.firstName && user?.lastName) {
+      return `${user.firstName[0]}${user.lastName[0]}`.toUpperCase();
+    }
+    if (user?.firstName) {
+      return user.firstName[0].toUpperCase();
+    }
+    if (user?.email) {
+      return user.email[0].toUpperCase();
+    }
+    return "U";
+  };
 
   const handleLogout = async () => {
     await apiRequest("POST", "/api/auth/logout", {});
@@ -29,7 +53,7 @@ export function DashboardHeader() {
               <Logo size="sm" />
             </div>
           </Link>
-          <div className="flex gap-3 flex-wrap">
+          <div className="flex gap-3 flex-wrap items-center">
             <Link href="/">
               <Button 
                 variant="outline" 
@@ -81,6 +105,15 @@ export function DashboardHeader() {
                   </Button>
                 </Link>
               </>
+            )}
+            {user && (
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-muted" data-testid="user-display">
+                <Avatar className="h-7 w-7">
+                  <AvatarImage src={user.profileImageUrl || undefined} alt={getUserDisplay()} />
+                  <AvatarFallback className="text-xs">{getUserInitials()}</AvatarFallback>
+                </Avatar>
+                <span className="text-sm font-medium" data-testid="text-user-name">{getUserDisplay()}</span>
+              </div>
             )}
             <Button 
               variant="outline" 
