@@ -84,7 +84,7 @@ function ProtectedRouter() {
         <Route path="/pricing" component={Pricing} />
         <Route path="/subscribe" component={Subscribe} />
         <Route path="/account" component={Account} />
-        <Route path="/account/notifications" component={NotificationSettings} />
+        <Route path="/notifications" component={NotificationSettings} />
         <Route path="/admin" component={Admin} />
         <Route path="/admin/jobs" component={AdminJobs} />
         <Route component={NotFound} />
