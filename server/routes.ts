@@ -1415,7 +1415,7 @@ Generate 3-5 short, natural questions that would help the user learn more. Retur
       let chunksRetrievedSuccessfully = false;
       if (usingChunks && questionEmbedding) {
         try {
-          const relevantChunks = await storage.getTopKRelevantChunks(chatbotId, questionEmbedding, 8);
+          const relevantChunks = await storage.getTopKRelevantChunks(chatbotId, questionEmbedding, 5);
           
           if (relevantChunks.length > 0) {
             console.log(`[STREAMING] Retrieved ${relevantChunks.length} relevant chunks for question`);
