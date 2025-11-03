@@ -197,7 +197,7 @@ export function StepLeadCapture({ formData, updateFormData }: StepLeadCapturePro
                 min="1"
                 max="10"
                 placeholder="3"
-                value={formData.leadCaptureMessageCount || "1"}
+                value={formData.leadCaptureMessageCount ?? ""}
                 onChange={(e) => updateFormData({ leadCaptureMessageCount: e.target.value })}
                 className="h-11"
                 data-testid="input-message-count"
