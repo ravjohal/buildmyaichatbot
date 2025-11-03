@@ -2,7 +2,17 @@
 
 ## Overview
 
-BuildMyChatbot.Ai is a SaaS web application that enables non-technical business owners to create, customize, and deploy AI-powered customer support chatbots for their websites. It offers a guided creation wizard, extensive customization, and an embeddable widget for seamless website integration. The project aims to provide efficient, AI-driven customer support, reducing operational costs and enhancing customer satisfaction. Key capabilities include streaming LLM responses, chunk-based knowledge retrieval with vector embeddings, AI responses from website content and documents, multi-tier user management, comprehensive analytics, and a freemium pricing model with Stripe integration.
+BuildMyChatbot.Ai is a SaaS web application that enables non-technical business owners to create, customize, and deploy AI-powered customer support chatbots for their websites.
+
+## Production Diagnostics
+
+**Critical Update (Nov 3, 2025)**: Implemented comprehensive worker health monitoring and diagnostics to resolve production indexing issues. See `PRODUCTION_INDEXING_DIAGNOSTICS.md` for full details.
+
+**Key Production Indicators:**
+- `[WORKER] ✓ Indexing worker started successfully` - Worker initialized
+- `[WORKER-HEALTH] ✓ Playwright/Chromium is operational` - Browser available
+- `[WORKER-HEARTBEAT] Worker alive | Jobs processed: N | Uptime: Xs` - Every 30s heartbeat
+- If missing these logs in production, worker is not running or Chromium unavailable It offers a guided creation wizard, extensive customization, and an embeddable widget for seamless website integration. The project aims to provide efficient, AI-driven customer support, reducing operational costs and enhancing customer satisfaction. Key capabilities include streaming LLM responses, chunk-based knowledge retrieval with vector embeddings, AI responses from website content and documents, multi-tier user management, comprehensive analytics, and a freemium pricing model with Stripe integration.
 
 ## User Preferences
 

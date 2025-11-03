@@ -156,6 +156,6 @@ app.use((req, res, next) => {
     
     // Start background indexing worker
     const { startIndexingWorker } = await import('./indexing-worker');
-    startIndexingWorker();
+    await startIndexingWorker();
   });
 })();

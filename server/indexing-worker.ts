@@ -9,7 +9,54 @@ import { eq } from "drizzle-orm";
 
 const POLL_INTERVAL_MS = 3000; // Check for new jobs every 3 seconds
 const MAX_RETRY_COUNT = 3;
+const HEARTBEAT_INTERVAL_MS = 30000; // Log heartbeat every 30 seconds
+const JOB_TIMEOUT_MS = 15 * 60 * 1000; // 15 minutes max per job
 let isWorkerRunning = false;
+let lastHeartbeat = Date.now();
+let heartbeatInterval: NodeJS.Timeout | null = null;
+let totalJobsProcessed = 0;
+
+// Health check for Playwright/Chromium availability
+async function checkPlaywrightHealth(): Promise<{ available: boolean; error?: string }> {
+  try {
+    const { chromium } = await import('playwright');
+    
+    console.log('[WORKER-HEALTH] Testing Playwright/Chromium availability...');
+    console.log('[WORKER-HEALTH] Environment:', process.env.NODE_ENV);
+    console.log('[WORKER-HEALTH] Default Chromium path:', chromium.executablePath());
+    
+    // Try to find system Chromium
+    if (process.env.NODE_ENV === 'production') {
+      try {
+        const { execSync } = await import('child_process');
+        const chromiumPath = execSync('which chromium-browser || which chromium', { encoding: 'utf8' }).trim();
+        console.log('[WORKER-HEALTH] System Chromium found:', chromiumPath);
+      } catch (error) {
+        console.warn('[WORKER-HEALTH] System Chromium not found, will use Playwright browser');
+      }
+    }
+    
+    // Try to launch browser for real health check
+    const browser = await chromium.launch({
+      headless: true,
+      timeout: 10000,
+    });
+    await browser.close();
+    
+    console.log('[WORKER-HEALTH] ✓ Playwright/Chromium is operational');
+    return { available: true };
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    console.error('[WORKER-HEALTH] ✗ Playwright/Chromium FAILED:', errorMsg);
+    return { available: false, error: errorMsg };
+  }
+}
+
+// Worker heartbeat logging
+function logHeartbeat(): void {
+  const uptime = Math.floor((Date.now() - lastHeartbeat) / 1000);
+  console.log(`[WORKER-HEARTBEAT] Worker alive | Jobs processed: ${totalJobsProcessed} | Uptime: ${uptime}s`);
+}
 
 // Process a single indexing task (URL or document)
 async function processIndexingTask(taskId: string, jobId: string, chatbotId: string, sourceType: string, sourceUrl: string): Promise<void> {
@@ -240,10 +287,12 @@ async function processIndexingJob(jobId: string): Promise<void> {
     if (finalJob) {
       await storage.updateChatbotIndexingStatus(job.chatbotId, finalJob.status);
       console.log(`[WORKER] ✓ Job ${jobId} completed with status: ${finalJob.status}`);
+      totalJobsProcessed++;
     }
     
   } catch (error) {
-    console.error(`[WORKER] Error processing job ${jobId}:`, error);
+    console.error(`[WORKER] ✗ Error processing job ${jobId}:`, error);
+    console.error(`[WORKER] Error stack:`, error instanceof Error ? error.stack : 'No stack trace');
     await storage.updateIndexingJobStatus(jobId, "failed", error instanceof Error ? error.message : String(error));
     
     const job = await storage.getIndexingJob(jobId);
@@ -253,9 +302,34 @@ async function processIndexingJob(jobId: string): Promise<void> {
   }
 }
 
+// Process job with timeout protection
+async function processIndexingJobWithTimeout(jobId: string): Promise<void> {
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    setTimeout(() => {
+      reject(new Error(`Job ${jobId} timed out after ${JOB_TIMEOUT_MS / 1000 / 60} minutes`));
+    }, JOB_TIMEOUT_MS);
+  });
+  
+  try {
+    await Promise.race([processIndexingJob(jobId), timeoutPromise]);
+  } catch (error) {
+    if (error instanceof Error && error.message.includes('timed out')) {
+      console.error(`[WORKER] ✗ Job ${jobId} TIMED OUT - marking as failed`);
+      await storage.updateIndexingJobStatus(jobId, "failed", error.message);
+      const job = await storage.getIndexingJob(jobId);
+      if (job) {
+        await storage.updateChatbotIndexingStatus(job.chatbotId, "failed");
+      }
+    } else {
+      throw error;
+    }
+  }
+}
+
 // Main worker loop
 async function workerLoop(): Promise<void> {
   if (!isWorkerRunning) {
+    console.log('[WORKER] Worker stopped, exiting loop');
     return;
   }
   
@@ -267,36 +341,73 @@ async function workerLoop(): Promise<void> {
     });
     
     if (pendingJobs.length > 0) {
-      console.log(`[WORKER] Found ${pendingJobs.length} pending indexing jobs`);
+      console.log(`[WORKER] Found ${pendingJobs.length} pending indexing job(s)`);
       
-      // Process jobs one at a time (could be parallelized if needed)
+      // Process jobs one at a time with timeout protection
       for (const job of pendingJobs) {
-        await processIndexingJob(job.id);
+        if (!isWorkerRunning) {
+          console.log('[WORKER] Worker stopped during job processing');
+          break;
+        }
+        await processIndexingJobWithTimeout(job.id);
       }
     }
   } catch (error) {
-    console.error("[WORKER] Error in worker loop:", error);
+    console.error("[WORKER] ✗ Critical error in worker loop:", error);
+    console.error("[WORKER] Error stack:", error instanceof Error ? error.stack : 'No stack trace');
   }
   
   // Schedule next iteration
-  setTimeout(() => workerLoop(), POLL_INTERVAL_MS);
+  if (isWorkerRunning) {
+    setTimeout(() => workerLoop(), POLL_INTERVAL_MS);
+  }
 }
 
 // Start the background worker
-export function startIndexingWorker(): void {
+export async function startIndexingWorker(): Promise<void> {
   if (isWorkerRunning) {
     console.log("[WORKER] Indexing worker is already running");
     return;
   }
   
+  console.log("[WORKER] ========================================");
   console.log("[WORKER] Starting indexing worker...");
+  console.log("[WORKER] Environment:", process.env.NODE_ENV);
+  console.log("[WORKER] Poll interval:", POLL_INTERVAL_MS, "ms");
+  console.log("[WORKER] Job timeout:", JOB_TIMEOUT_MS / 1000 / 60, "minutes");
+  console.log("[WORKER] ========================================");
+  
+  // Run health check for Playwright/Chromium
+  const healthCheck = await checkPlaywrightHealth();
+  if (!healthCheck.available) {
+    console.error("[WORKER] ✗ CRITICAL: Playwright/Chromium is not available!");
+    console.error("[WORKER] Error:", healthCheck.error);
+    console.error("[WORKER] Indexing jobs requiring website crawling will fail!");
+    console.error("[WORKER] Consider installing Chromium or checking Playwright installation");
+    // Continue anyway - worker can still process document uploads
+  }
+  
   isWorkerRunning = true;
+  lastHeartbeat = Date.now();
+  
+  // Start heartbeat logging
+  heartbeatInterval = setInterval(logHeartbeat, HEARTBEAT_INTERVAL_MS);
+  
+  // Start the worker loop
   workerLoop();
-  console.log("[WORKER] ✓ Indexing worker started");
+  
+  console.log("[WORKER] ✓ Indexing worker started successfully");
 }
 
 // Stop the background worker (for graceful shutdown)
 export function stopIndexingWorker(): void {
   console.log("[WORKER] Stopping indexing worker...");
   isWorkerRunning = false;
+  
+  if (heartbeatInterval) {
+    clearInterval(heartbeatInterval);
+    heartbeatInterval = null;
+  }
+  
+  console.log("[WORKER] ✓ Indexing worker stopped");
 }
