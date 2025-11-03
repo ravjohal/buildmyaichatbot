@@ -670,7 +670,7 @@ export default function Dashboard() {
                         ) : (
                           <RefreshCw className="w-4 h-4 mr-2" />
                         )}
-                        Refresh
+                        Reindex
                       </Button>
                     </TooltipTrigger>
                     {(!chatbot.websiteUrls || chatbot.websiteUrls.length === 0) && (
