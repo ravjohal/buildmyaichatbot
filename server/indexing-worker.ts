@@ -326,6 +326,38 @@ async function processIndexingJobWithTimeout(jobId: string): Promise<void> {
   }
 }
 
+// Retry wrapper for database queries with connection error handling
+async function retryDbQuery<T>(
+  queryFn: () => Promise<T>,
+  maxRetries: number = 3,
+  delayMs: number = 1000
+): Promise<T | null> {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      return await queryFn();
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      const isConnectionError = 
+        errorMsg.includes('Connection terminated unexpectedly') ||
+        errorMsg.includes('Connection closed') ||
+        errorMsg.includes('socket hang up') ||
+        errorMsg.includes('ECONNRESET');
+      
+      if (isConnectionError && attempt < maxRetries) {
+        console.warn(`[WORKER] Database connection error (attempt ${attempt}/${maxRetries}), retrying in ${delayMs}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+        delayMs *= 2; // Exponential backoff
+      } else {
+        if (isConnectionError) {
+          console.error('[WORKER] Database connection failed after all retries');
+        }
+        throw error;
+      }
+    }
+  }
+  return null;
+}
+
 // Main worker loop
 async function workerLoop(): Promise<void> {
   if (!isWorkerRunning) {
@@ -334,13 +366,15 @@ async function workerLoop(): Promise<void> {
   }
   
   try {
-    // Find pending jobs
-    const pendingJobs = await db.query.indexingJobs.findMany({
-      where: (jobs, { eq }) => eq(jobs.status, "pending"),
-      limit: 5,
+    // Find pending jobs with retry logic for connection failures
+    const pendingJobs = await retryDbQuery(async () => {
+      return await db.query.indexingJobs.findMany({
+        where: (jobs, { eq }) => eq(jobs.status, "pending"),
+        limit: 5,
+      });
     });
     
-    if (pendingJobs.length > 0) {
+    if (pendingJobs && pendingJobs.length > 0) {
       console.log(`[WORKER] Found ${pendingJobs.length} pending indexing job(s)`);
       
       // Process jobs one at a time with timeout protection
@@ -355,6 +389,13 @@ async function workerLoop(): Promise<void> {
   } catch (error) {
     console.error("[WORKER] ✗ Critical error in worker loop:", error);
     console.error("[WORKER] Error stack:", error instanceof Error ? error.stack : 'No stack trace');
+    
+    // If it's a connection error, wait longer before retry
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    if (errorMsg.includes('Connection') || errorMsg.includes('ECONNRESET')) {
+      console.log('[WORKER] Connection error detected, waiting 10s before next poll...');
+      await new Promise(resolve => setTimeout(resolve, 10000));
+    }
   }
   
   // Schedule next iteration

@@ -10,11 +10,14 @@ BuildMyChatbot.Ai is a SaaS web application that enables non-technical business 
 
 **Chromium Solution:** Uses system Chromium from `replit.nix` instead of Playwright bundled browsers. Removed Playwright browser installation from build process because `--with-deps` flag requires `sudo` (not available in Replit). System Chromium is detected via `which chromium-browser || which chromium` in production.
 
+**Database Connection Resilience (Nov 3, 2025)**: Implemented automatic retry logic with exponential backoff for Neon serverless database connections in the indexing worker. Handles "Connection terminated unexpectedly" errors that occur when long-running workers experience database connection timeouts. Worker now automatically retries up to 3 times with exponential backoff (1s, 2s, 4s) before failing.
+
 **Key Production Indicators:**
 - `[WORKER] ✓ Indexing worker started successfully` - Worker initialized
 - `[WORKER-HEALTH] ✓ Playwright/Chromium is operational` - Browser available
 - `[WORKER-HEARTBEAT] Worker alive | Jobs processed: N | Uptime: Xs` - Every 30s heartbeat
 - `[PlaywrightRenderer] ✓ Found system Chromium: /path/to/chromium` - System browser detected
+- `[WORKER] Database connection error (attempt X/3), retrying...` - Auto-recovery in progress
 - If missing these logs in production, worker is not running or Chromium unavailable It offers a guided creation wizard, extensive customization, and an embeddable widget for seamless website integration. The project aims to provide efficient, AI-driven customer support, reducing operational costs and enhancing customer satisfaction. Key capabilities include streaming LLM responses, chunk-based knowledge retrieval with vector embeddings, AI responses from website content and documents, multi-tier user management, comprehensive analytics, and a freemium pricing model with Stripe integration.
 
 ## User Preferences
