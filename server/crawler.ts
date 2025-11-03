@@ -216,39 +216,54 @@ async function extractPdfText(url: string): Promise<{ content: string; title: st
       }
     }
     
-    // Strategy 3: Try as default function call (most reliable for production)
+    // Strategy 3: Handle class constructor exports (production builds)
     if (!pdfData) {
+      const parse = pdfParseModule.default || pdfParseModule;
+      
+      if (typeof parse !== 'function') {
+        console.error('[PDF Extractor] Module structure:', Object.keys(pdfParseModule));
+        throw new Error('pdf-parse module did not export a callable function');
+      }
+      
       try {
-        // In production builds, sometimes the whole module needs to be called directly
-        const parse = pdfParseModule.default || pdfParseModule;
-        
-        // Check if it's actually callable
-        if (typeof parse !== 'function') {
-          console.error('[PDF Extractor] Module structure:', Object.keys(pdfParseModule));
-          throw new Error('pdf-parse module did not export a callable function');
-        }
-        
-        // For class constructors that require instantiation, wrap the call
-        try {
-          pdfData = await parse(buffer);
-        } catch (classError: any) {
-          // Last resort: some builds export as a class that needs different handling
-          // Try calling it bound to an empty object to avoid 'new' requirement
-          if (classError.message && classError.message.includes('cannot be invoked without')) {
-            pdfData = await parse.call({}, buffer);
-          } else {
-            throw classError;
+        pdfData = await parse(buffer);
+        console.log('[PDF Extractor] Direct call succeeded');
+      } catch (classError: any) {
+        if (classError.message && classError.message.includes('cannot be invoked without')) {
+          // It's a class constructor - try instantiating it
+          console.log('[PDF Extractor] Detected class constructor, instantiating...');
+          
+          try {
+            // Try creating instance and calling as method
+            const instance = new parse();
+            if (typeof instance.parse === 'function') {
+              pdfData = await instance.parse(buffer);
+              console.log('[PDF Extractor] Used instance.parse() method');
+            } else if (typeof instance === 'function') {
+              pdfData = await instance(buffer);
+              console.log('[PDF Extractor] Used instance as function');
+            } else {
+              // Try passing buffer to constructor (might return promise)
+              const directInstance = new parse(buffer);
+              // Check if it's a promise and await it
+              pdfData = directInstance && typeof directInstance.then === 'function' 
+                ? await directInstance 
+                : directInstance;
+              console.log('[PDF Extractor] Used constructor with buffer');
+            }
+          } catch (instError: any) {
+            console.error('[PDF Extractor] Class instantiation failed:', instError.message);
+            throw instError;
           }
+        } else {
+          throw classError;
         }
-        console.log('[PDF Extractor] Used fallback strategy');
-      } catch (error) {
-        console.error('[PDF Extractor] All strategies failed');
-        throw error;
       }
     }
     
-    if (!pdfData) {
-      throw new Error('Failed to parse PDF with any strategy');
+    if (!pdfData || !pdfData.text) {
+      console.error('[PDF Extractor] PDF data structure:', pdfData ? Object.keys(pdfData) : 'null');
+      throw new Error('Failed to extract text from PDF - no text property found');
     }
 
     console.log(`[PDF Extractor] Text extracted: ${pdfData.text.length} characters`);

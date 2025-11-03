@@ -870,39 +870,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
           }
           
-          // Strategy 3: Try as default function call (most reliable for production)
+          // Strategy 3: Handle class constructor exports (production builds)
           if (!pdfData) {
+            const parse = pdfParseModule.default || pdfParseModule;
+            
+            if (typeof parse !== 'function') {
+              console.error('[Document Upload] Module structure:', Object.keys(pdfParseModule));
+              throw new Error('pdf-parse module did not export a callable function');
+            }
+            
             try {
-              // In production builds, sometimes the whole module needs to be called directly
-              const parse = pdfParseModule.default || pdfParseModule;
-              
-              // Check if it's actually callable
-              if (typeof parse !== 'function') {
-                console.error('[Document Upload] Module structure:', Object.keys(pdfParseModule));
-                throw new Error('pdf-parse module did not export a callable function');
-              }
-              
-              // For class constructors that require instantiation, wrap the call
-              try {
-                pdfData = await parse(file.buffer);
-              } catch (classError: any) {
-                // Last resort: some builds export as a class that needs different handling
-                // Try calling it bound to an empty object to avoid 'new' requirement
-                if (classError.message && classError.message.includes('cannot be invoked without')) {
-                  pdfData = await parse.call({}, file.buffer);
-                } else {
-                  throw classError;
+              pdfData = await parse(file.buffer);
+              console.log('[Document Upload] Direct call succeeded');
+            } catch (classError: any) {
+              if (classError.message && classError.message.includes('cannot be invoked without')) {
+                // It's a class constructor - try instantiating it
+                console.log('[Document Upload] Detected class constructor, instantiating...');
+                
+                try {
+                  // Try creating instance and calling as method
+                  const instance = new parse();
+                  if (typeof instance.parse === 'function') {
+                    pdfData = await instance.parse(file.buffer);
+                    console.log('[Document Upload] Used instance.parse() method');
+                  } else if (typeof instance === 'function') {
+                    pdfData = await instance(file.buffer);
+                    console.log('[Document Upload] Used instance as function');
+                  } else {
+                    // Try passing buffer to constructor (might return promise)
+                    const directInstance = new parse(file.buffer);
+                    // Check if it's a promise and await it
+                    pdfData = directInstance && typeof directInstance.then === 'function' 
+                      ? await directInstance 
+                      : directInstance;
+                    console.log('[Document Upload] Used constructor with buffer');
+                  }
+                } catch (instError: any) {
+                  console.error('[Document Upload] Class instantiation failed:', instError.message);
+                  throw instError;
                 }
+              } else {
+                throw classError;
               }
-              console.log('[Document Upload] Used fallback strategy');
-            } catch (fallbackError) {
-              console.error('[Document Upload] All strategies failed');
-              throw fallbackError;
             }
           }
           
-          if (!pdfData) {
-            throw new Error('Failed to parse PDF with any strategy');
+          if (!pdfData || !pdfData.text) {
+            console.error('[Document Upload] PDF data structure:', pdfData ? Object.keys(pdfData) : 'null');
+            throw new Error('Failed to extract text from PDF - no text property found');
           }
           
           extractedText = pdfData.text.trim();
