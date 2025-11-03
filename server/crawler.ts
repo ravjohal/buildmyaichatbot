@@ -183,10 +183,22 @@ async function extractPdfText(url: string): Promise<{ content: string; title: st
     console.log(`[PDF Extractor] PDF downloaded, size: ${buffer.length} bytes`);
 
     // Dynamically import pdf-parse (CommonJS module)
+    // Handle both ESM and CommonJS module exports
     const pdfParseModule: any = await import('pdf-parse');
-    const pdfParse = pdfParseModule.default || pdfParseModule;
+    let pdfParse = pdfParseModule.default;
+    
+    // If default is not a function, try the module itself
+    if (typeof pdfParse !== 'function') {
+      pdfParse = pdfParseModule;
+    }
+    
+    // If still not a function, check for named export
+    if (typeof pdfParse !== 'function' && typeof pdfParseModule.parse === 'function') {
+      pdfParse = pdfParseModule.parse;
+    }
     
     if (typeof pdfParse !== 'function') {
+      console.error('[PDF Extractor] Module structure:', Object.keys(pdfParseModule));
       throw new Error('pdf-parse module did not export a function');
     }
     

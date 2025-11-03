@@ -821,9 +821,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Extract text from PDF
         try {
           // Import pdf-parse (CommonJS module)
-          const pdfParse = (await import('pdf-parse')).default;
+          // Handle both ESM and CommonJS module exports
+          const pdfParseModule: any = await import('pdf-parse');
+          let pdfParse = pdfParseModule.default;
+          
+          // If default is not a function, try the module itself
+          if (typeof pdfParse !== 'function') {
+            pdfParse = pdfParseModule;
+          }
+          
+          // If still not a function, check for named export
+          if (typeof pdfParse !== 'function' && typeof pdfParseModule.parse === 'function') {
+            pdfParse = pdfParseModule.parse;
+          }
           
           if (typeof pdfParse !== 'function') {
+            console.error('[Document Upload] Module structure:', Object.keys(pdfParseModule));
             throw new Error('pdf-parse module did not export a valid function');
           }
           
