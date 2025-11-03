@@ -679,6 +679,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         await storage.createIndexingTasks(tasks);
         
+        // Update chatbot indexing status to pending
+        await storage.updateChatbotIndexingStatus(chatbotId, "pending", job.id);
+        
         console.log(`[Refresh] Created ${chatbot.websiteUrls.length} indexing tasks`);
         
         res.json({
