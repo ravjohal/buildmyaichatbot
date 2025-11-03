@@ -192,7 +192,12 @@ async function extractPdfText(url: string): Promise<{ content: string; title: st
       pdfParse = pdfParseModule;
     }
     
-    // If still not a function, check for named export
+    // If still not a function, check for PDFParse named export (production build)
+    if (typeof pdfParse !== 'function' && typeof pdfParseModule.PDFParse === 'function') {
+      pdfParse = pdfParseModule.PDFParse;
+    }
+    
+    // If still not a function, check for parse named export
     if (typeof pdfParse !== 'function' && typeof pdfParseModule.parse === 'function') {
       pdfParse = pdfParseModule.parse;
     }
