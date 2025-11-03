@@ -15,8 +15,32 @@ import { StepCustomization } from "@/components/wizard/StepCustomization";
 import { StepEscalation } from "@/components/wizard/StepEscalation";
 import { StepLeadCapture } from "@/components/wizard/StepLeadCapture";
 import { DashboardHeader } from "@/components/DashboardHeader";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { RefreshCw } from "lucide-react";
 
 type WizardStep = "name" | "knowledge" | "personality" | "customization" | "escalation" | "leadcapture";
+
+interface DocumentMetadata {
+  path: string;
+  originalName: string;
+  title: string;
+  text: string;
+  size: number;
+  type: string;
+}
+
+interface ExtendedFormData extends Partial<InsertChatbot> {
+  documentMetadata?: DocumentMetadata[];
+}
 
 const steps: { id: WizardStep; label: string; number: number }[] = [
   { id: "name", label: "Name & Description", number: 1 },
@@ -34,7 +58,9 @@ export default function EditChatbot() {
   const { toast } = useToast();
 
   const [currentStep, setCurrentStep] = useState<WizardStep>("name");
-  const [formData, setFormData] = useState<Partial<InsertChatbot>>({});
+  const [formData, setFormData] = useState<ExtendedFormData>({});
+  const [showReindexDialog, setShowReindexDialog] = useState(false);
+  const [isReindexing, setIsReindexing] = useState(false);
 
   const { data: chatbot, isLoading } = useQuery<Chatbot>({
     queryKey: [`/api/chatbots/${chatbotId}`],
@@ -49,6 +75,7 @@ export default function EditChatbot() {
         websiteUrls: chatbot.websiteUrls || [],
         websiteContent: chatbot.websiteContent || undefined,
         documents: chatbot.documents || [],
+        documentMetadata: (chatbot.documentMetadata as DocumentMetadata[]) || [],
         systemPrompt: chatbot.systemPrompt,
         primaryColor: chatbot.primaryColor,
         accentColor: chatbot.accentColor,
@@ -79,7 +106,12 @@ export default function EditChatbot() {
         title: "Chatbot updated!",
         description: "Your changes have been saved successfully.",
       });
-      navigate("/");
+      // Only show re-index dialog if knowledge sources were actually modified
+      if (hasKnowledgeSourcesChanged()) {
+        setShowReindexDialog(true);
+      } else {
+        navigate("/");
+      }
     },
     onError: () => {
       toast({
@@ -90,8 +122,72 @@ export default function EditChatbot() {
     },
   });
 
-  const handleUpdateData = (data: Partial<InsertChatbot>) => {
-    setFormData((prev) => ({ ...prev, ...data }));
+  const refreshMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("POST", `/api/chatbots/${chatbotId}/refresh-knowledge`, {});
+      return response.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/chatbots"] });
+      queryClient.invalidateQueries({ queryKey: [`/api/chatbots/${chatbotId}`] });
+      toast({
+        title: "Re-indexing started",
+        description: data.message || "Your chatbot's knowledge base is being updated.",
+      });
+      setIsReindexing(false);
+      setShowReindexDialog(false);
+      navigate("/");
+    },
+    onError: () => {
+      toast({
+        title: "Re-index failed",
+        description: "Failed to start re-indexing. Please try again from the dashboard.",
+        variant: "destructive",
+      });
+      setIsReindexing(false);
+      setShowReindexDialog(false);
+      navigate("/");
+    },
+  });
+
+  const handleUpdateData = (data: Partial<InsertChatbot> | ExtendedFormData) => {
+    setFormData((prev) => {
+      const updated = { ...prev, ...data };
+      // Ensure documentMetadata is properly typed
+      if ('documentMetadata' in data && data.documentMetadata !== undefined) {
+        updated.documentMetadata = data.documentMetadata as DocumentMetadata[];
+      }
+      return updated as ExtendedFormData;
+    });
+  };
+
+  // Check if knowledge sources have changed by comparing current form data to original chatbot
+  const hasKnowledgeSourcesChanged = (): boolean => {
+    if (!chatbot) return false;
+    
+    // Normalize array values for comparison (treat null, undefined, and [] as equivalent)
+    const normalizeArray = (val: any[] | null | undefined) => JSON.stringify(val || []);
+    
+    // Normalize string values for comparison (treat null, undefined, and "" as equivalent)
+    const normalizeString = (val: string | null | undefined) => (val || "").trim();
+    
+    // Compare all knowledge-related fields
+    const urlsChanged = normalizeArray(formData.websiteUrls) !== normalizeArray(chatbot.websiteUrls);
+    const docsChanged = normalizeArray(formData.documents) !== normalizeArray(chatbot.documents);
+    const contentChanged = normalizeString(formData.websiteContent) !== normalizeString(chatbot.websiteContent);
+    const metadataChanged = normalizeArray(formData.documentMetadata) !== normalizeArray(chatbot.documentMetadata as DocumentMetadata[]);
+    
+    return urlsChanged || docsChanged || contentChanged || metadataChanged;
+  };
+
+  const handleReindex = () => {
+    setIsReindexing(true);
+    refreshMutation.mutate();
+  };
+
+  const handleSkipReindex = () => {
+    setShowReindexDialog(false);
+    navigate("/");
   };
 
   const currentStepIndex = steps.findIndex((s) => s.id === currentStep);
@@ -229,6 +325,60 @@ export default function EditChatbot() {
           )}
         </div>
       </div>
+
+      {/* Re-index Knowledge Dialog */}
+      <AlertDialog open={showReindexDialog} onOpenChange={setShowReindexDialog}>
+        <AlertDialogContent data-testid="dialog-reindex-prompt">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <RefreshCw className="w-5 h-5" />
+              Re-index Knowledge Base?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-3 text-left">
+              <p>
+                Your chatbot configuration has been updated successfully!
+              </p>
+              <p>
+                Would you like to re-index your knowledge sources now? This will:
+              </p>
+              <ul className="list-disc list-inside space-y-1 ml-2">
+                <li>Re-crawl all website URLs for fresh content</li>
+                <li>Update embeddings with latest information</li>
+                <li>May take a few minutes to complete</li>
+              </ul>
+              <p className="text-sm text-muted-foreground">
+                You can also refresh the knowledge base later from your dashboard.
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              onClick={handleSkipReindex}
+              disabled={isReindexing}
+              data-testid="button-skip-reindex"
+            >
+              Skip for Now
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleReindex}
+              disabled={isReindexing}
+              data-testid="button-confirm-reindex"
+            >
+              {isReindexing ? (
+                <>
+                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                  Starting...
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Re-index Now
+                </>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
