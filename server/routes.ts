@@ -510,10 +510,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let updateData = { ...validatedData };
       if (validatedData.websiteUrls !== undefined) {
         if (validatedData.websiteUrls.length > 0) {
-          console.log(`Recursively re-crawling ${validatedData.websiteUrls.length} website(s) (max depth: 2, max pages: 50 per site)...`);
+          console.log(`Recursively re-crawling ${validatedData.websiteUrls.length} website(s) (max depth: 2, max pages: 200 per site)...`);
           const crawlResults = await crawlMultipleWebsitesRecursive(validatedData.websiteUrls, {
             maxDepth: 2,
-            maxPages: 50,
+            maxPages: 200,
             sameDomainOnly: true,
           });
           

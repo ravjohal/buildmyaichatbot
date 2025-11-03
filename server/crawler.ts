@@ -230,7 +230,7 @@ export async function crawlWebsiteRecursive(
 ): Promise<CrawlResult[]> {
   const {
     maxDepth = 2,
-    maxPages = 50,
+    maxPages = 200,
     sameDomainOnly = true,
     mode = 'auto',
     maxJsPages = 20,

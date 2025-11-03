@@ -69,11 +69,11 @@ async function processIndexingTask(taskId: string, jobId: string, chatbotId: str
     let title = "";
     
     if (sourceType === "website") {
-      // Recursively crawl the website (max 2 levels deep, max 50 pages)
-      console.log(`[WORKER] Recursively crawling website: ${sourceUrl} (max depth: 2, max pages: 50)`);
+      // Recursively crawl the website (max 2 levels deep, max 200 pages)
+      console.log(`[WORKER] Recursively crawling website: ${sourceUrl} (max depth: 2, max pages: 200)`);
       const crawlResults = await crawlMultipleWebsitesRecursive([sourceUrl], {
         maxDepth: 2,
-        maxPages: 50,
+        maxPages: 200,
         sameDomainOnly: true,
       });
       
