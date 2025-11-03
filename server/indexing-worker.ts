@@ -12,10 +12,92 @@ const POLL_INTERVAL_MS = 3000; // Check for new jobs every 3 seconds
 const MAX_RETRY_COUNT = 3;
 const HEARTBEAT_INTERVAL_MS = 30000; // Log heartbeat every 30 seconds
 const JOB_TIMEOUT_MS = 15 * 60 * 1000; // 15 minutes max per job
+const CANCELLATION_CHECK_INTERVAL_MS = 5000; // Check for cancellation every 5 seconds
+
 let isWorkerRunning = false;
 let lastHeartbeat = Date.now();
 let heartbeatInterval: NodeJS.Timeout | null = null;
 let totalJobsProcessed = 0;
+
+// In-memory map of cancelled jobs for immediate notification
+const cancelledJobs = new Map<string, boolean>();
+
+// Custom error for job cancellation
+class CancelledError extends Error {
+  constructor(jobId: string) {
+    super(`Job ${jobId} was cancelled`);
+    this.name = 'CancelledError';
+  }
+}
+
+// Monitors job cancellation status with cached checks to reduce DB load
+class CancellationMonitor {
+  private jobId: string;
+  private lastCheck: number = 0;
+  private isCancelled: boolean = false;
+  private checkInterval: number;
+  
+  constructor(jobId: string, checkInterval: number = CANCELLATION_CHECK_INTERVAL_MS) {
+    this.jobId = jobId;
+    this.checkInterval = checkInterval;
+  }
+  
+  // Check if job has been cancelled (with throttling to reduce DB queries)
+  async check(): Promise<void> {
+    const now = Date.now();
+    
+    // First check in-memory flag for immediate notification
+    if (cancelledJobs.has(this.jobId)) {
+      console.log(`[WORKER] Job ${this.jobId} cancelled (in-memory flag detected)`);
+      this.isCancelled = true;
+      throw new CancelledError(this.jobId);
+    }
+    
+    // Throttle database checks
+    if (now - this.lastCheck < this.checkInterval) {
+      if (this.isCancelled) {
+        throw new CancelledError(this.jobId);
+      }
+      return;
+    }
+    
+    // Check database for cancellation
+    this.lastCheck = now;
+    const job = await storage.getIndexingJob(this.jobId);
+    
+    if (job?.status === "cancelled") {
+      console.log(`[WORKER] Job ${this.jobId} cancelled (database status detected)`);
+      this.isCancelled = true;
+      throw new CancelledError(this.jobId);
+    }
+  }
+  
+  // Get AbortSignal for integration with APIs that support it
+  getAbortSignal(): AbortSignal {
+    const controller = new AbortController();
+    
+    // Check for cancellation and abort if needed
+    const checkCancellation = async () => {
+      try {
+        await this.check();
+      } catch (error) {
+        if (error instanceof CancelledError) {
+          controller.abort(error.message);
+        }
+      }
+    };
+    
+    // Start periodic checking
+    const intervalId = setInterval(checkCancellation, this.checkInterval);
+    
+    // Clean up interval when aborted
+    controller.signal.addEventListener('abort', () => {
+      clearInterval(intervalId);
+    });
+    
+    return controller.signal;
+  }
+}
 
 // Health check for Playwright/Chromium availability
 async function checkPlaywrightHealth(): Promise<{ available: boolean; error?: string }> {
@@ -148,11 +230,16 @@ Return ONLY a valid JSON array of question strings, nothing else. Example format
 }
 
 // Process a single indexing task (URL or document)
-async function processIndexingTask(taskId: string, jobId: string, chatbotId: string, sourceType: string, sourceUrl: string): Promise<void> {
+async function processIndexingTask(taskId: string, jobId: string, chatbotId: string, sourceType: string, sourceUrl: string, monitor?: CancellationMonitor): Promise<void> {
   console.log(`[WORKER] Processing task ${taskId}: ${sourceType} - ${sourceUrl}`);
   
   try {
     await storage.updateIndexingTaskStatus(taskId, "processing");
+    
+    // Checkpoint: Check for cancellation before starting
+    if (monitor) {
+      await monitor.check();
+    }
     
     let content = "";
     let title = "";
@@ -168,6 +255,11 @@ async function processIndexingTask(taskId: string, jobId: string, chatbotId: str
       
       // crawlResults is an array of crawled pages
       console.log(`[WORKER] Crawled ${crawlResults.length} pages from ${sourceUrl}`);
+      
+      // Checkpoint: Check for cancellation after crawling
+      if (monitor) {
+        await monitor.check();
+      }
       
       if (crawlResults.length === 0) {
         throw new Error("No pages could be crawled from the website");
@@ -247,6 +339,11 @@ async function processIndexingTask(taskId: string, jobId: string, chatbotId: str
     const contentChunks = chunkContent(content, { title });
     console.log(`[WORKER] Generated ${contentChunks.length} chunks`);
     
+    // Checkpoint: Check for cancellation after chunking
+    if (monitor) {
+      await monitor.check();
+    }
+    
     if (contentChunks.length === 0) {
       console.log(`[WORKER] No chunks generated for ${sourceUrl}`);
       await storage.updateIndexingTaskStatus(taskId, "completed", undefined, 0);
@@ -257,6 +354,11 @@ async function processIndexingTask(taskId: string, jobId: string, chatbotId: str
     const chunksWithEmbeddings: InsertKnowledgeChunk[] = [];
     
     for (const chunk of contentChunks) {
+      // Checkpoint: Check for cancellation during embedding loop (every 5 chunks)
+      if (monitor && chunk.index % 5 === 0) {
+        await monitor.check();
+      }
+      
       try {
         const embedding = await embeddingService.generateEmbedding(chunk.text);
         chunksWithEmbeddings.push({
@@ -294,6 +396,13 @@ async function processIndexingTask(taskId: string, jobId: string, chatbotId: str
     await storage.updateIndexingTaskStatus(taskId, "completed", undefined, chunksWithEmbeddings.length);
     
   } catch (error) {
+    // Handle cancellation separately
+    if (error instanceof CancelledError) {
+      console.log(`[WORKER] Task ${taskId} cancelled during processing`);
+      await storage.updateIndexingTaskStatus(taskId, "cancelled", "Task cancelled by user");
+      throw error; // Re-throw so job knows it was cancelled
+    }
+    
     const errorMessage = error instanceof Error ? error.message : String(error);
     console.error(`[WORKER] Task ${taskId} failed:`, errorMessage);
     
@@ -317,6 +426,9 @@ async function processIndexingTask(taskId: string, jobId: string, chatbotId: str
 async function processIndexingJob(jobId: string): Promise<void> {
   console.log(`[WORKER] Processing indexing job ${jobId}`);
   
+  // Create cancellation monitor for this job
+  const monitor = new CancellationMonitor(jobId);
+  
   try {
     const job = await storage.getIndexingJob(jobId);
     if (!job) {
@@ -338,15 +450,25 @@ async function processIndexingJob(jobId: string): Promise<void> {
     let cancelledCount = 0;
     
     for (const task of tasks) {
-      // Check if job has been cancelled
-      const currentJob = await storage.getIndexingJob(jobId);
-      if (currentJob?.status === "cancelled") {
-        console.log(`[WORKER] Job ${jobId} has been cancelled, stopping processing`);
-        break;
+      // Check for cancellation using monitor
+      try {
+        await monitor.check();
+      } catch (error) {
+        if (error instanceof CancelledError) {
+          console.log(`[WORKER] Job ${jobId} cancelled, marking remaining tasks as cancelled`);
+          // Mark all remaining pending tasks as cancelled
+          for (const remainingTask of tasks) {
+            if (remainingTask.status === "pending") {
+              await storage.updateIndexingTaskStatus(remainingTask.id, "cancelled", "Job was cancelled by user");
+            }
+          }
+          throw error; // Re-throw to handle in outer catch
+        }
+        throw error;
       }
       
       if (task.status === "pending") {
-        await processIndexingTask(task.id, jobId, task.chatbotId, task.sourceType, task.sourceUrl);
+        await processIndexingTask(task.id, jobId, task.chatbotId, task.sourceType, task.sourceUrl, monitor);
       }
       
       // Refresh task status
@@ -398,14 +520,28 @@ async function processIndexingJob(jobId: string): Promise<void> {
     }
     
   } catch (error) {
-    console.error(`[WORKER] ✗ Error processing job ${jobId}:`, error);
-    console.error(`[WORKER] Error stack:`, error instanceof Error ? error.stack : 'No stack trace');
-    await storage.updateIndexingJobStatus(jobId, "failed", error instanceof Error ? error.message : String(error));
-    
-    const job = await storage.getIndexingJob(jobId);
-    if (job) {
-      await storage.updateChatbotIndexingStatus(job.chatbotId, "failed");
+    // Handle cancellation differently from other errors
+    if (error instanceof CancelledError) {
+      console.log(`[WORKER] ✓ Job ${jobId} cancelled by user`);
+      // Job status is already set to cancelled by the cancellation endpoint
+      // Just update the chatbot status
+      const job = await storage.getIndexingJob(jobId);
+      if (job) {
+        await storage.updateChatbotIndexingStatus(job.chatbotId, "cancelled");
+      }
+    } else {
+      console.error(`[WORKER] ✗ Error processing job ${jobId}:`, error);
+      console.error(`[WORKER] Error stack:`, error instanceof Error ? error.stack : 'No stack trace');
+      await storage.updateIndexingJobStatus(jobId, "failed", error instanceof Error ? error.message : String(error));
+      
+      const job = await storage.getIndexingJob(jobId);
+      if (job) {
+        await storage.updateChatbotIndexingStatus(job.chatbotId, "failed");
+      }
     }
+  } finally {
+    // Clean up in-memory cancellation flag
+    clearCancellationFlag(jobId);
   }
 }
 
@@ -558,4 +694,15 @@ export function stopIndexingWorker(): void {
   }
   
   console.log("[WORKER] ✓ Indexing worker stopped");
+}
+
+// Notify worker of job cancellation for immediate response
+export function notifyJobCancellation(jobId: string): void {
+  cancelledJobs.set(jobId, true);
+  console.log(`[WORKER] In-memory cancellation flag set for job ${jobId}`);
+}
+
+// Clean up cancellation flag after job completes
+function clearCancellationFlag(jobId: string): void {
+  cancelledJobs.delete(jobId);
 }

@@ -15,6 +15,7 @@ import crypto from "crypto";
 import { embeddingService } from "./embedding";
 import { notificationService } from "./emails/notification-service";
 import { TIER_LIMITS, canSendMessage } from "@shared/pricing";
+import { notifyJobCancellation } from "./indexing-worker";
 
 const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
 const upload = multer({ 
@@ -3031,6 +3032,9 @@ Generate 3 short, natural questions that would help the user learn more. Return 
       if (!success) {
         return res.status(400).json({ error: "Job cannot be cancelled (not found or already completed)" });
       }
+
+      // Notify worker immediately for fast cancellation
+      notifyJobCancellation(id);
 
       res.json({ success: true, message: "Job cancelled successfully" });
     } catch (error) {
