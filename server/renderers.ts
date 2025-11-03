@@ -241,20 +241,34 @@ export class PlaywrightRenderer implements PageRenderer {
         }
       });
 
-      // Use 'domcontentloaded' instead of 'networkidle' to avoid timing out on sites with continuous network activity
-      await page.goto(url, {
-        waitUntil: 'domcontentloaded',
-        timeout: this.timeout,
-      });
-      console.log(`[PlaywrightRenderer] Page loaded, waiting for JavaScript...`);
+      // Try to navigate with timeout, but if it times out, extract partial content
+      let navigationSucceeded = false;
+      try {
+        await page.goto(url, {
+          waitUntil: 'domcontentloaded',
+          timeout: this.timeout,
+        });
+        navigationSucceeded = true;
+        console.log(`[PlaywrightRenderer] Page loaded successfully`);
+      } catch (navError) {
+        // If navigation times out, check if we got any content at all
+        const isTimeout = navError instanceof Error && navError.message.includes('Timeout');
+        if (isTimeout) {
+          console.log(`[PlaywrightRenderer] ⚠ Navigation timeout, attempting partial content extraction...`);
+        } else {
+          throw navError; // Re-throw if it's not a timeout error
+        }
+      }
 
-      // Give JS frameworks time to render (increased from 2s to 3s)
-      await page.waitForTimeout(3000);
+      // Wait for JavaScript to render (even if navigation timed out)
+      try {
+        await page.waitForTimeout(3000);
+      } catch {}
 
+      // Extract whatever content we can get
       const html = await page.content();
       const title = await page.title();
-      console.log(`[PlaywrightRenderer] Got title: ${title}`);
-
+      
       const textContent = await page.evaluate(() => {
         const scripts = document.querySelectorAll('script, style, noscript, iframe');
         scripts.forEach(el => el.remove());
@@ -268,16 +282,25 @@ export class PlaywrightRenderer implements PageRenderer {
           .substring(0, 100000);
       });
 
-      console.log(`[PlaywrightRenderer] Extracted ${textContent.length} chars of content`);
-
       await context.close();
       this.activePage = null;
 
-      return {
-        html,
-        textContent: textContent || '',
-        title: title || '',
-      };
+      // If we got meaningful content, consider it a success even if navigation timed out
+      if (textContent.length > 100) {
+        if (!navigationSucceeded) {
+          console.log(`[PlaywrightRenderer] ✓ Partial crawl successful - extracted ${textContent.length} chars despite timeout`);
+        } else {
+          console.log(`[PlaywrightRenderer] ✓ Full crawl successful - extracted ${textContent.length} chars`);
+        }
+        return {
+          html,
+          textContent: textContent || '',
+          title: title || url,
+        };
+      } else {
+        // Not enough content extracted
+        throw new Error(`Insufficient content extracted: ${textContent.length} chars (minimum 100 required)`);
+      }
     } catch (error) {
       console.error(`[PlaywrightRenderer] ✗ RENDER ERROR for ${url}`);
       console.error(`[PlaywrightRenderer] Error type:`, error instanceof Error ? error.constructor.name : typeof error);
