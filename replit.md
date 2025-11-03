@@ -27,6 +27,8 @@ BuildMyChatbot.Ai is a SaaS web application that enables non-technical business 
 - Strategy 3: Class constructor exports with proper async handling (production builds)
 The fix includes thenable detection to await promises returned by class constructors, ensuring PDF text extraction works in both development and production environments. Applied to both URL-based PDFs (`crawler.ts`) and uploaded documents (`routes.ts`).
 
+**Source Attribution Fix (Nov 3, 2025)**: Fixed chatbot source citations to show specific page URLs instead of just the main domain. Modified indexing worker to process each crawled page individually, preserving per-page URLs and titles in knowledge chunks. When LLM generates responses, it now cites specific pages (e.g., "https://example.com/products") instead of always citing the root domain. Maintains cancellation checkpoints, storage limit enforcement, and crawl metadata for refresh detection.
+
 **Key Production Indicators:**
 - `[WORKER] ✓ Indexing worker started successfully` - Worker initialized
 - `[WORKER-HEALTH] ✓ Playwright/Chromium is operational` - Browser available
