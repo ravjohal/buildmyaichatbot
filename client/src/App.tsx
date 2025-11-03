@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import Dashboard from "@/pages/Dashboard";
 import CreateChatbot from "@/pages/CreateChatbot";
 import EditChatbot from "@/pages/EditChatbot";
+import ViewChatbot from "@/pages/ViewChatbot";
 import ChatWidget from "@/pages/ChatWidget";
 import TestChatbot from "@/pages/TestChatbot";
 import Analytics from "@/pages/Analytics";
@@ -71,6 +72,7 @@ function ProtectedRouter() {
         <Route path="/chatbots" component={Dashboard} />
         <Route path="/create" component={CreateChatbot} />
         <Route path="/edit/:id" component={EditChatbot} />
+        <Route path="/view/:id" component={ViewChatbot} />
         <Route path="/test/:id" component={TestChatbot} />
         <Route path="/analytics" component={AnalyticsDashboard} />
         <Route path="/analytics/:id" component={Analytics} />
