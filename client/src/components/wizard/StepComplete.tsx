@@ -60,13 +60,13 @@ export function StepComplete({ chatbotId, indexingStatus }: StepCompleteProps) {
                 <Loader2 className="w-6 h-6 text-blue-600 dark:text-blue-400 animate-spin" />
                 <div className="flex-1">
                   <h3 className="font-semibold text-blue-900 dark:text-blue-100">
-                    Indexing URLs in the background
+                    Currently Being Indexed
                   </h3>
                   <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
                     {indexingStatus.progress.processedUrls} of {indexingStatus.progress.totalUrls} URLs processed
                   </p>
                   <p className="text-sm text-blue-600 dark:text-blue-400 mt-2">
-                    Your chatbot is ready to use now. The knowledge base will expand as URLs are indexed.
+                    Your chatbot is ready to use now. Check the status badge on your dashboard card to monitor indexing progress. The knowledge base will expand as URLs are indexed.
                   </p>
                 </div>
               </div>
