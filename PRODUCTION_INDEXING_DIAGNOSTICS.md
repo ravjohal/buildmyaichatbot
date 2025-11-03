@@ -4,7 +4,20 @@
 
 **Issue:** Playwright browsers were not installed in production, causing all website crawling to fail.
 
-**Solution:** Updated `build.sh` to run `npx playwright install chromium --with-deps` as part of the build process. This ensures Chromium is available for website crawling in production.
+**Initial Attempt:** Tried to install Playwright browsers via `npx playwright install chromium --with-deps` in build.sh, but this failed because:
+- The `--with-deps` flag requires `sudo` access for system dependencies
+- Replit's build environment doesn't allow `sudo` commands
+
+**Final Solution:** Use system Chromium from Nix instead of Playwright's bundled browser:
+1. **Removed Playwright browser installation from `build.sh`** - No longer trying to install browsers during build
+2. **Rely on `replit.nix`** - System already has `pkgs.chromium` and all required dependencies installed via Nix
+3. **Enhanced logging in `renderers.ts`** - Better visibility into Chromium detection and launch process
+4. **Added compatibility flags** - Additional browser args (`--disable-setuid-sandbox`, `--no-zygote`) for better Replit compatibility
+
+This approach works because:
+- Replit's Nix environment provides a system Chromium browser
+- The code already detects and uses system Chromium in production via `which chromium-browser || which chromium`
+- No `sudo` or special permissions required
 
 ---
 

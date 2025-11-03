@@ -8,10 +8,13 @@ BuildMyChatbot.Ai is a SaaS web application that enables non-technical business 
 
 **Critical Update (Nov 3, 2025)**: Implemented comprehensive worker health monitoring and diagnostics to resolve production indexing issues. See `PRODUCTION_INDEXING_DIAGNOSTICS.md` for full details.
 
+**Chromium Solution:** Uses system Chromium from `replit.nix` instead of Playwright bundled browsers. Removed Playwright browser installation from build process because `--with-deps` flag requires `sudo` (not available in Replit). System Chromium is detected via `which chromium-browser || which chromium` in production.
+
 **Key Production Indicators:**
 - `[WORKER] ✓ Indexing worker started successfully` - Worker initialized
 - `[WORKER-HEALTH] ✓ Playwright/Chromium is operational` - Browser available
 - `[WORKER-HEARTBEAT] Worker alive | Jobs processed: N | Uptime: Xs` - Every 30s heartbeat
+- `[PlaywrightRenderer] ✓ Found system Chromium: /path/to/chromium` - System browser detected
 - If missing these logs in production, worker is not running or Chromium unavailable It offers a guided creation wizard, extensive customization, and an embeddable widget for seamless website integration. The project aims to provide efficient, AI-driven customer support, reducing operational costs and enhancing customer satisfaction. Key capabilities include streaming LLM responses, chunk-based knowledge retrieval with vector embeddings, AI responses from website content and documents, multi-tier user management, comprehensive analytics, and a freemium pricing model with Stripe integration.
 
 ## User Preferences

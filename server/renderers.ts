@@ -162,26 +162,33 @@ export class PlaywrightRenderer implements PageRenderer {
 
       if (!this.browser) {
         console.log(`[PlaywrightRenderer] Launching browser...`);
+        console.log(`[PlaywrightRenderer] NODE_ENV:`, process.env.NODE_ENV);
         
-        // In production, use system Chromium from Nix; in dev, use Playwright's downloaded browser
+        // In production on Replit, use system Chromium from Nix
+        // In development, use Playwright's bundled browser
         let executablePath: string | undefined = undefined;
         
         if (process.env.NODE_ENV === 'production') {
-          // Try to find system chromium
+          // Try to find system chromium from Nix
           try {
             const { execSync } = await import('child_process');
+            // Replit's Nix provides chromium at these paths
             const chromiumPath = execSync('which chromium-browser || which chromium', { encoding: 'utf8' }).trim();
             if (chromiumPath) {
               executablePath = chromiumPath;
-              console.log(`[PlaywrightRenderer] Found system Chromium:`, executablePath);
+              console.log(`[PlaywrightRenderer] ✓ Found system Chromium:`, executablePath);
+            } else {
+              console.log(`[PlaywrightRenderer] ⚠ System Chromium not found via 'which'`);
+              console.log(`[PlaywrightRenderer] ⚠ Ensure replit.nix includes: pkgs.chromium`);
             }
           } catch (error) {
-            console.log(`[PlaywrightRenderer] System Chromium not found, will try Playwright browser`);
+            console.log(`[PlaywrightRenderer] ⚠ Error finding system Chromium:`, error);
           }
         }
         
         if (!executablePath) {
-          console.log(`[PlaywrightRenderer] Using Playwright Chromium:`, chromium.executablePath());
+          console.log(`[PlaywrightRenderer] Using Playwright bundled Chromium`);
+          console.log(`[PlaywrightRenderer] Default path:`, chromium.executablePath());
         }
         
         try {
@@ -192,10 +199,12 @@ export class PlaywrightRenderer implements PageRenderer {
               '--no-sandbox',
               '--disable-dev-shm-usage',
               '--disable-gpu',
+              '--disable-setuid-sandbox',
+              '--no-zygote',
             ],
           });
           console.log(`[PlaywrightRenderer] ✓ Browser launched successfully`);
-          console.log(`[PlaywrightRenderer] Browser version:`, await this.browser.version());
+          console.log(`[PlaywrightRenderer] ✓ Browser version:`, await this.browser.version());
         } catch (launchError) {
           console.error(`[PlaywrightRenderer] ✗ FAILED TO LAUNCH BROWSER`);
           console.error(`[PlaywrightRenderer] Error:`, launchError);
