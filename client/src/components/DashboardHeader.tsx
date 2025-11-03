@@ -109,10 +109,10 @@ export function DashboardHeader() {
             {user && (
               <div className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-muted" data-testid="user-display">
                 <Avatar className="h-7 w-7">
-                  <AvatarImage src={user.profileImageUrl || undefined} alt={getUserDisplay()} />
+                  <AvatarImage src={user.profileImageUrl || undefined} alt={user.email} />
                   <AvatarFallback className="text-xs">{getUserInitials()}</AvatarFallback>
                 </Avatar>
-                <span className="text-sm font-medium" data-testid="text-user-name">{getUserDisplay()}</span>
+                <span className="text-sm font-medium" data-testid="text-user-name">{user.email}</span>
               </div>
             )}
             <Button 
