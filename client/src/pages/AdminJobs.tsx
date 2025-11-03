@@ -220,7 +220,7 @@ export default function AdminJobs() {
                 <CardHeader>
                   <CardTitle>Jobs Overview</CardTitle>
                   <CardDescription>
-                    {filteredJobs.length} job{filteredJobs.length !== 1 ? 's' : ''} found
+                    Showing {jobs.length} {selectedStatus === "all" ? "" : selectedStatus} job{jobs.length !== 1 ? 's' : ''} (latest 500 max)
                   </CardDescription>
                 </CardHeader>
                 <CardContent>

@@ -2853,7 +2853,7 @@ Generate 3-5 short, natural questions that would help the user learn more. Retur
       const { status, limit } = req.query;
       const jobs = await storage.listAllIndexingJobs({
         status: status as string | undefined,
-        limit: limit ? parseInt(limit as string) : 100,
+        limit: limit ? parseInt(limit as string) : 500, // Increased from 100 to 500
       });
 
       // Enrich with chatbot and user information
