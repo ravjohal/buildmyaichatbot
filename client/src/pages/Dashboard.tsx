@@ -417,17 +417,17 @@ export default function Dashboard() {
                     size="sm"
                     onClick={(e) => {
                       e.stopPropagation();
-                      chatbot.websiteContent && setViewKnowledgeBase(chatbot);
+                      (chatbot.chunkCount && chatbot.chunkCount > 0) && setViewKnowledgeBase(chatbot);
                     }}
-                    disabled={!chatbot.websiteContent || chatbot.indexingStatus === 'pending' || chatbot.indexingStatus === 'processing'}
+                    disabled={!chatbot.chunkCount || chatbot.chunkCount === 0 || chatbot.indexingStatus === 'pending' || chatbot.indexingStatus === 'processing'}
                     className="w-full justify-start text-sm text-muted-foreground hover:text-foreground"
                     data-testid={`button-view-knowledge-${chatbot.id}`}
                   >
                     <FileText className="w-4 h-4 mr-2" />
                     {chatbot.indexingStatus === 'pending' || chatbot.indexingStatus === 'processing' ? (
                       'Indexing in progress...'
-                    ) : chatbot.websiteContent ? (
-                      `View knowledge base (${Math.round(chatbot.websiteContent.length / 1000)}k characters)`
+                    ) : chatbot.chunkCount && chatbot.chunkCount > 0 ? (
+                      `View knowledge base (${chatbot.chunkCount} chunks indexed)`
                     ) : (
                       'No content indexed yet'
                     )}
@@ -671,44 +671,60 @@ export default function Dashboard() {
           <DialogHeader>
             <DialogTitle>Knowledge Base Content</DialogTitle>
             <DialogDescription>
-              Content indexed from your website URLs
+              Content indexed from your website and documents
             </DialogDescription>
           </DialogHeader>
           
           {viewKnowledgeBase && (
             <div className="space-y-4">
               <div className="space-y-2">
-                <h4 className="text-sm font-semibold">Crawled URLs</h4>
+                <h4 className="text-sm font-semibold">Sources</h4>
                 <div className="space-y-1">
-                  {viewKnowledgeBase.websiteUrls?.map((url, index) => (
-                    <a
-                      key={index}
-                      href={url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-sm text-primary hover:underline flex items-center gap-2"
-                      data-testid={`link-crawled-url-${index}`}
-                    >
-                      <ExternalLink className="w-3 h-3" />
-                      {url}
-                    </a>
-                  )) || <p className="text-sm text-muted-foreground">No URLs indexed</p>}
+                  {viewKnowledgeBase.websiteUrls && viewKnowledgeBase.websiteUrls.length > 0 ? (
+                    viewKnowledgeBase.websiteUrls.map((url, index) => (
+                      <a
+                        key={index}
+                        href={url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm text-primary hover:underline flex items-center gap-2"
+                        data-testid={`link-crawled-url-${index}`}
+                      >
+                        <ExternalLink className="w-3 h-3" />
+                        {url}
+                      </a>
+                    ))
+                  ) : null}
+                  {(!viewKnowledgeBase.websiteUrls || viewKnowledgeBase.websiteUrls.length === 0) && (
+                    <p className="text-sm text-muted-foreground">No website URLs</p>
+                  )}
+                  {viewKnowledgeBase.documents && viewKnowledgeBase.documents.length > 0 && (
+                    <div className="mt-2">
+                      <p className="text-sm font-medium mb-1">Documents:</p>
+                      {viewKnowledgeBase.documents.map((doc, index) => (
+                        <p key={index} className="text-sm text-muted-foreground">
+                          {doc}
+                        </p>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
 
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <h4 className="text-sm font-semibold">Indexed Text Content</h4>
-                  {viewKnowledgeBase.websiteContent && (
+                  <h4 className="text-sm font-semibold">Indexed Content</h4>
+                  {viewKnowledgeBase.chunkCount && viewKnowledgeBase.chunkCount > 0 && (
                     <Badge variant="secondary" className="text-xs">
-                      {viewKnowledgeBase.websiteContent.split(/\s+/).length.toLocaleString()} words
+                      {viewKnowledgeBase.chunkCount} chunks
                     </Badge>
                   )}
                 </div>
                 <ScrollArea className="h-[400px] w-full rounded-md border p-4">
-                  {viewKnowledgeBase.websiteContent ? (
-                    <div className="text-sm whitespace-pre-wrap font-mono text-muted-foreground" data-testid="text-indexed-content">
-                      {viewKnowledgeBase.websiteContent}
+                  {viewKnowledgeBase.chunkCount && viewKnowledgeBase.chunkCount > 0 ? (
+                    <div className="text-sm text-muted-foreground" data-testid="text-indexed-content">
+                      <p>✓ Your chatbot has been successfully indexed with {viewKnowledgeBase.chunkCount} knowledge chunks.</p>
+                      <p className="mt-2">These chunks are used to provide accurate, context-aware responses to user questions.</p>
                     </div>
                   ) : (
                     <p className="text-sm text-muted-foreground italic">No content has been indexed yet</p>

@@ -215,7 +215,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user.id;
       const chatbots = await storage.getAllChatbots(userId);
-      res.json(chatbots);
+      
+      // Enrich chatbots with chunk count for display
+      const chatbotsWithChunks = await Promise.all(
+        chatbots.map(async (chatbot) => {
+          const chunkCount = await storage.countChunksForChatbot(chatbot.id);
+          return {
+            ...chatbot,
+            chunkCount,
+          };
+        })
+      );
+      
+      res.json(chatbotsWithChunks);
     } catch (error) {
       console.error("Error fetching chatbots:", error);
       res.status(500).json({ error: "Failed to fetch chatbots" });
