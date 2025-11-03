@@ -1,0 +1,66 @@
+system: received signal terminated
+2025-11-03 15:41:25.93
+9323c57f
+User
+[PlaywrightRenderer] ✗ RENDER ERROR for https://www.rurkahomes.com/favorites
+2025-11-03 15:41:25.93
+9323c57f
+User
+[PlaywrightRenderer] Error type: TargetClosedError
+2025-11-03 15:41:25.93
+9323c57f
+User
+[PlaywrightRenderer] Error message: browserContext.newPage: Target page, context or browser has been closed
+2025-11-03 15:41:25.93
+9323c57f
+User
+[PlaywrightRenderer] Error stack: browserContext.newPage: Target page, context or browser has been closed
+2025-11-03 15:41:25.93
+9323c57f
+User
+at PlaywrightRenderer.render (/home/runner/workspace/dist/index.js:1281:38)
+2025-11-03 15:41:25.93
+9323c57f
+User
+at async crawlWithRenderer (/home/runner/workspace/dist/index.js:1385:18)
+2025-11-03 15:41:25.93
+9323c57f
+User
+at async crawlWebsiteRecursive (/home/runner/workspace/dist/index.js:1625:30)
+2025-11-03 15:41:25.93
+9323c57f
+User
+at async crawlMultipleWebsitesRecursive (/home/runner/workspace/dist/index.js:1669:21)
+2025-11-03 15:41:25.93
+9323c57f
+User
+at async processIndexingTask (/home/runner/workspace/dist/index.js:2179:28)
+2025-11-03 15:41:25.93
+9323c57f
+User
+at async processIndexingJob (/home/runner/workspace/dist/index.js:2339:9)
+2025-11-03 15:41:25.93
+9323c57f
+User
+at async processIndexingJobWithTimeout (/home/runner/workspace/dist/index.js:2400:5)
+2025-11-03 15:41:25.93
+9323c57f
+User
+at async workerLoop (/home/runner/workspace/dist/index.js:2454:9)
+2025-11-03 15:41:25.93
+9323c57f
+User
+[PlaywrightRenderer] Full error: {
+2025-11-03 15:41:25.93
+9323c57f
+User
+"stack": "browserContext.newPage: Target page, context or browser has been closed\n at PlaywrightRenderer.render (/home/runner/workspace/dist/index.js:1281:38)\n at async crawlWithRenderer (/home/runner/workspace/dist/index.js:1385:18)\n at async crawlWebsiteRecursive (/home/runner/workspace/dist/index.js:1625:30)\n at async crawlMultipleWebsitesRecursive (/home/runner/workspace/dist/index.js:1669:21)\n at async processIndexingTask (/home/runner/workspace/dist/index.js:2179:28)\n at async processIndexingJob (/home/runner/workspace/dist/index.js:2339:9)\n at async processIndexingJobWithTimeout (/home/runner/workspace/dist/index.js:2400:5)\n at async workerLoop (/home/runner/workspace/dist/index.js:2454:9)",
+
+2025-11-03 15:41:25.93
+9323c57f
+User
+"message": "browserContext.newPage: Target page, context or browser has been closed"
+2025-11-03 15:41:25.93
+9323c57f
+User
+}
