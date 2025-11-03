@@ -1939,6 +1939,28 @@ Generate 3 short, natural questions that would help the user learn more. Return 
     }
   });
 
+  // Get knowledge chunks for a chatbot (requires authentication)
+  app.get("/api/chatbots/:id/knowledge-chunks", isAuthenticated, async (req: any, res) => {
+    try {
+      const chatbotId = req.params.id;
+      const userId = req.user.id;
+      
+      // Verify chatbot exists and belongs to user
+      const chatbot = await storage.getChatbot(chatbotId, userId);
+      if (!chatbot) {
+        return res.status(404).json({ error: "Chatbot not found" });
+      }
+      
+      // Get knowledge chunks
+      const chunks = await storage.getKnowledgeChunksForChatbot(chatbotId);
+      
+      res.json({ chunks });
+    } catch (error) {
+      console.error("Error fetching knowledge chunks:", error);
+      res.status(500).json({ error: "Failed to fetch knowledge chunks" });
+    }
+  });
+
   // Get all conversations for a chatbot (with pagination) - Pro plan only
   app.get("/api/chatbots/:id/conversations", isAuthenticated, async (req: any, res) => {
     try {
