@@ -1,4 +1,4 @@
-import { type Chatbot, type InsertChatbot, chatbots, users, type User, type UpsertUser, type QaCache, type InsertQaCache, qaCache, type ManualQaOverride, type InsertManualQaOverride, manualQaOverrides, type ConversationRating, type InsertConversationRating, conversationRatings, type EmailNotificationSettings, type InsertEmailNotificationSettings, emailNotificationSettings, type ConversationFlow, type InsertConversationFlow, conversationFlows, type KnowledgeChunk, type InsertKnowledgeChunk, knowledgeChunks, type IndexingJob, type InsertIndexingJob, indexingJobs, type IndexingTask, type InsertIndexingTask, indexingTasks } from "@shared/schema";
+import { type Chatbot, type InsertChatbot, chatbots, users, type User, type UpsertUser, type QaCache, type InsertQaCache, qaCache, type ManualQaOverride, type InsertManualQaOverride, manualQaOverrides, type ConversationRating, type InsertConversationRating, conversationRatings, type EmailNotificationSettings, type InsertEmailNotificationSettings, emailNotificationSettings, type ConversationFlow, type InsertConversationFlow, conversationFlows, type KnowledgeChunk, type InsertKnowledgeChunk, knowledgeChunks, type IndexingJob, type InsertIndexingJob, indexingJobs, type IndexingTask, type InsertIndexingTask, indexingTasks, chatbotSuggestedQuestions } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sql } from "drizzle-orm";
 
@@ -82,6 +82,11 @@ export interface IStorage {
   
   // Chatbot indexing status operations
   updateChatbotIndexingStatus(chatbotId: string, status: string, jobId?: string): Promise<void>;
+  
+  // Chatbot Suggested Questions operations
+  replaceSuggestedQuestions(chatbotId: string, questions: string[]): Promise<void>;
+  getRandomSuggestedQuestions(chatbotId: string, count?: number): Promise<string[]>;
+  incrementQuestionUsage(chatbotId: string, questionText: string): Promise<void>;
 }
 
 export class DbStorage implements IStorage {
@@ -1010,6 +1015,57 @@ export class DbStorage implements IStorage {
     await this.updateChatbotIndexingStatus(job.chatbotId, "pending", newJob.id);
     
     return { success: true, newJobId: newJob.id };
+  }
+
+  // Chatbot Suggested Questions operations
+  async replaceSuggestedQuestions(chatbotId: string, questions: string[]): Promise<void> {
+    // Use transaction to ensure delete and insert happen atomically
+    await db.transaction(async (tx) => {
+      // Delete all existing questions for this chatbot
+      await tx
+        .delete(chatbotSuggestedQuestions)
+        .where(eq(chatbotSuggestedQuestions.chatbotId, chatbotId));
+      
+      // Insert new questions
+      if (questions.length > 0) {
+        await tx
+          .insert(chatbotSuggestedQuestions)
+          .values(
+            questions.map(questionText => ({
+              chatbotId,
+              questionText,
+              usageCount: "0",
+              isActive: "true",
+            }))
+          );
+      }
+    });
+  }
+
+  async getRandomSuggestedQuestions(chatbotId: string, count: number = 3): Promise<string[]> {
+    const result = await db
+      .select({ questionText: chatbotSuggestedQuestions.questionText })
+      .from(chatbotSuggestedQuestions)
+      .where(and(
+        eq(chatbotSuggestedQuestions.chatbotId, chatbotId),
+        eq(chatbotSuggestedQuestions.isActive, "true")
+      ))
+      .orderBy(sql`RANDOM()`)
+      .limit(count);
+    
+    return result.map(r => r.questionText);
+  }
+
+  async incrementQuestionUsage(chatbotId: string, questionText: string): Promise<void> {
+    await db
+      .update(chatbotSuggestedQuestions)
+      .set({ 
+        usageCount: sql`(CAST(${chatbotSuggestedQuestions.usageCount} AS INTEGER) + 1)::TEXT`
+      })
+      .where(and(
+        eq(chatbotSuggestedQuestions.chatbotId, chatbotId),
+        eq(chatbotSuggestedQuestions.questionText, questionText)
+      ));
   }
 }
 

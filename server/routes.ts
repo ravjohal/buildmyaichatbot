@@ -1895,6 +1895,50 @@ Generate 3 short, natural questions that would help the user learn more. Return 
     }
   });
 
+  // Get suggested questions for a chatbot (public - for widget use)
+  app.get("/api/chatbots/:id/suggested-questions", async (req, res) => {
+    try {
+      const chatbotId = req.params.id;
+      const count = parseInt(req.query.count as string) || 3;
+      
+      // Verify chatbot exists (no auth required - this is public for widget use)
+      const chatbot = await storage.getChatbotById(chatbotId);
+      if (!chatbot) {
+        return res.status(404).json({ error: "Chatbot not found" });
+      }
+      
+      // Get random suggested questions
+      const questions = await storage.getRandomSuggestedQuestions(chatbotId, Math.min(count, 10));
+      
+      res.json({ questions });
+    } catch (error) {
+      console.error("Error fetching suggested questions:", error);
+      res.status(500).json({ error: "Failed to fetch suggested questions" });
+    }
+  });
+
+  // Track suggested question usage (public - for widget use)
+  app.post("/api/chatbots/:id/suggested-questions/track", async (req, res) => {
+    try {
+      const chatbotId = req.params.id;
+      const { questionText } = req.body;
+      
+      if (!questionText) {
+        return res.status(400).json({ error: "Question text is required" });
+      }
+      
+      // Increment usage count (fire and forget - don't wait for completion)
+      storage.incrementQuestionUsage(chatbotId, questionText).catch(err => {
+        console.error("Failed to increment question usage:", err);
+      });
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error tracking question usage:", error);
+      res.status(500).json({ error: "Failed to track question usage" });
+    }
+  });
+
   // Get all conversations for a chatbot (with pagination) - Pro plan only
   app.get("/api/chatbots/:id/conversations", isAuthenticated, async (req: any, res) => {
     try {

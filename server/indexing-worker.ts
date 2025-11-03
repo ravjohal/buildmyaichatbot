@@ -4,8 +4,9 @@ import { chunkContent } from "./chunker";
 import { embeddingService } from "./embedding";
 import type { InsertKnowledgeChunk } from "@shared/schema";
 import { db } from "./db";
-import { urlCrawlMetadata, indexingJobs, indexingTasks } from "@shared/schema";
+import { urlCrawlMetadata, indexingJobs, indexingTasks, knowledgeChunks } from "@shared/schema";
 import { eq } from "drizzle-orm";
+import { GoogleGenAI } from "@google/genai";
 
 const POLL_INTERVAL_MS = 3000; // Check for new jobs every 3 seconds
 const MAX_RETRY_COUNT = 3;
@@ -56,6 +57,94 @@ async function checkPlaywrightHealth(): Promise<{ available: boolean; error?: st
 function logHeartbeat(): void {
   const uptime = Math.floor((Date.now() - lastHeartbeat) / 1000);
   console.log(`[WORKER-HEARTBEAT] Worker alive | Jobs processed: ${totalJobsProcessed} | Uptime: ${uptime}s`);
+}
+
+// Generate suggested questions using Gemini
+async function generateSuggestedQuestions(chatbotId: string): Promise<string[]> {
+  try {
+    console.log(`[WORKER] Generating suggested questions for chatbot ${chatbotId}...`);
+    
+    // Get a sample of knowledge chunks directly from database (no embedding lookup needed)
+    const chunks = await db
+      .select()
+      .from(knowledgeChunks)
+      .where(eq(knowledgeChunks.chatbotId, chatbotId))
+      .limit(10);
+    
+    if (chunks.length === 0) {
+      console.log(`[WORKER] No knowledge chunks available for chatbot ${chatbotId}, skipping question generation`);
+      return [];
+    }
+    
+    // Build a summary of the content
+    const contentSummary = chunks
+      .map(chunk => chunk.chunkText)
+      .join('\n\n')
+      .substring(0, 3000); // Limit to 3000 chars to keep prompt manageable
+    
+    // Get source titles for context
+    const sourceTitles = Array.from(new Set(chunks.map(chunk => chunk.sourceTitle).filter(Boolean)));
+    
+    const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
+    
+    const prompt = `You are helping create suggested questions for a customer support chatbot based on website content.
+
+Website Content Overview:
+Sources: ${sourceTitles.length > 0 ? sourceTitles.join(', ') : 'Various pages'}
+
+Content Sample:
+${contentSummary}
+
+Generate 8-12 frequently asked questions (FAQ-style) that visitors to this website might ask about the content, products, or services described above.
+
+Requirements:
+- Each question should be under 90 characters
+- Questions should be diverse, covering different topics and intents from the content
+- Use natural, conversational language
+- Avoid duplicates or very similar questions
+- Do NOT generate follow-up questions - these should be standalone FAQs
+- Focus on what customers would actually want to know
+
+Return ONLY a valid JSON array of question strings, nothing else. Example format:
+["Question 1?", "Question 2?", "Question 3?"]`;
+
+    const result = await genAI.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: prompt,
+    });
+    
+    const responseText = result.text?.trim() || "";
+    console.log(`[WORKER] Gemini response for suggested questions:`, responseText.substring(0, 200));
+    
+    // Parse JSON response
+    let questions: string[] = [];
+    try {
+      // Try to extract JSON array from response (in case it's wrapped in markdown)
+      const jsonMatch = responseText.match(/\[[\s\S]*\]/);
+      if (jsonMatch) {
+        questions = JSON.parse(jsonMatch[0]);
+      } else {
+        questions = JSON.parse(responseText);
+      }
+      
+      // Validate and filter questions
+      questions = questions
+        .filter(q => typeof q === 'string' && q.length > 0 && q.length <= 90)
+        .slice(0, 12); // Limit to max 12 questions
+        
+      console.log(`[WORKER] Generated ${questions.length} suggested questions for chatbot ${chatbotId}`);
+      return questions;
+      
+    } catch (parseError) {
+      console.error(`[WORKER] Failed to parse Gemini response as JSON:`, parseError);
+      console.error(`[WORKER] Raw response:`, responseText);
+      return [];
+    }
+    
+  } catch (error) {
+    console.error(`[WORKER] Error generating suggested questions for chatbot ${chatbotId}:`, error);
+    return [];
+  }
 }
 
 // Process a single indexing task (URL or document)
@@ -282,8 +371,26 @@ async function processIndexingJob(jobId: string): Promise<void> {
     // Complete the job
     await storage.completeIndexingJob(jobId);
     
-    // Update chatbot indexing status based on final job status
+    // Generate and store suggested questions if job completed successfully
     const finalJob = await storage.getIndexingJob(jobId);
+    if (finalJob && (finalJob.status === "completed" || finalJob.status === "partial")) {
+      try {
+        console.log(`[WORKER] Generating suggested questions for chatbot ${job.chatbotId}...`);
+        const suggestedQuestions = await generateSuggestedQuestions(job.chatbotId);
+        
+        if (suggestedQuestions.length > 0) {
+          await storage.replaceSuggestedQuestions(job.chatbotId, suggestedQuestions);
+          console.log(`[WORKER] ✓ Stored ${suggestedQuestions.length} suggested questions for chatbot ${job.chatbotId}`);
+        } else {
+          console.log(`[WORKER] No suggested questions generated for chatbot ${job.chatbotId}`);
+        }
+      } catch (questionError) {
+        // Don't fail the job if question generation fails - it's a nice-to-have feature
+        console.error(`[WORKER] Failed to generate suggested questions (non-critical):`, questionError);
+      }
+    }
+    
+    // Update chatbot indexing status based on final job status
     if (finalJob) {
       await storage.updateChatbotIndexingStatus(job.chatbotId, finalJob.status);
       console.log(`[WORKER] ✓ Job ${jobId} completed with status: ${finalJob.status}`);

@@ -56,10 +56,17 @@ export default function ChatWidget() {
     enabled: !!chatbotId,
   });
   
+  // Fetch suggested questions from stored database
+  const { data: suggestedQuestionsData } = useQuery<{ questions: string[] }>({
+    queryKey: [`/api/chatbots/${chatbotId}/suggested-questions`],
+    enabled: !!chatbotId && chatbot?.enableSuggestedQuestions === "true",
+  });
+  
   console.log('[ChatWidget] isLoading:', isLoading);
   console.log('[ChatWidget] chatbot:', chatbot);
   console.log('[ChatWidget] error:', error);
   console.log('[ChatWidget] isStandalone:', isStandalone);
+  console.log('[ChatWidget] suggestedQuestions:', suggestedQuestionsData?.questions);
 
   // State for streaming responses
   const [isStreaming, setIsStreaming] = useState(false);
@@ -348,7 +355,16 @@ export default function ChatWidget() {
     setInputValue("");
   };
 
-  const handleSuggestedQuestion = (question: string) => {
+  const handleSuggestedQuestion = async (question: string) => {
+    // Track question usage (fire and forget - don't wait for response)
+    if (chatbot?.enableSuggestedQuestions === "true") {
+      fetch(`/api/chatbots/${chatbotId}/suggested-questions/track`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ questionText: question }),
+      }).catch(err => console.error("Failed to track question usage:", err));
+    }
+    
     const userMessage: ChatMessage = {
       id: Date.now().toString(),
       role: "user",
@@ -520,14 +536,11 @@ export default function ChatWidget() {
     return null;
   }
 
-  // Show static suggested questions after welcome message, or AI-generated ones after any assistant message
+  // Show stored suggested questions from database
   const getDisplayedSuggestions = () => {
-    if (messages.length === 1 && chatbot.suggestedQuestions && chatbot.suggestedQuestions.length > 0) {
-      return chatbot.suggestedQuestions;
-    }
-    const lastMessage = messages[messages.length - 1];
-    if (lastMessage?.role === "assistant" && lastMessage.suggestedQuestions && lastMessage.suggestedQuestions.length > 0) {
-      return lastMessage.suggestedQuestions;
+    // Only show if enabled and we have questions from the database
+    if (chatbot?.enableSuggestedQuestions === "true" && suggestedQuestionsData?.questions && suggestedQuestionsData.questions.length > 0) {
+      return suggestedQuestionsData.questions;
     }
     return null;
   };

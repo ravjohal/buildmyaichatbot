@@ -320,6 +320,19 @@ export const insertKnowledgeChunkSchema = createInsertSchema(knowledgeChunks).om
 export type KnowledgeChunk = typeof knowledgeChunks.$inferSelect;
 export type InsertKnowledgeChunk = z.infer<typeof insertKnowledgeChunkSchema>;
 
+// Chatbot Suggested Questions - AI-generated questions about website content
+export const chatbotSuggestedQuestions = pgTable("chatbot_suggested_questions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  chatbotId: varchar("chatbot_id").notNull().references(() => chatbots.id, { onDelete: "cascade" }),
+  questionText: text("question_text").notNull(),
+  usageCount: text("usage_count").notNull().default("0"),
+  isActive: text("is_active").notNull().default("true"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export type ChatbotSuggestedQuestion = typeof chatbotSuggestedQuestions.$inferSelect;
+export type InsertChatbotSuggestedQuestion = typeof chatbotSuggestedQuestions.$inferInsert;
+
 // Indexing Jobs - tracks async background indexing processes
 export const indexingJobs = pgTable("indexing_jobs", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
