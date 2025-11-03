@@ -1,5 +1,13 @@
 # Production Indexing Diagnostics & Fixes
 
+## ✅ **FIXED** - Playwright Browser Installation (Nov 3, 2025)
+
+**Issue:** Playwright browsers were not installed in production, causing all website crawling to fail.
+
+**Solution:** Updated `build.sh` to run `npx playwright install chromium --with-deps` as part of the build process. This ensures Chromium is available for website crawling in production.
+
+---
+
 ## 🔍 Problem Summary
 
 Indexing was not working in production, with jobs appearing to run indefinitely with no console output.
