@@ -122,14 +122,6 @@ export default function ChatWidget() {
     }
   }, [suggestedQuestionsData]);
   
-  // Track mutation pending state changes
-  useEffect(() => {
-    console.log(`[PERF-WIDGET] chatMutation.isPending: ${chatMutation.isPending}`);
-    if (!chatMutation.isPending) {
-      console.log(`[PERF-WIDGET] Mutation complete - suggested questions should now be visible`);
-    }
-  }, [chatMutation.isPending]);
-  
   console.log('[ChatWidget] isLoading:', isLoading);
   console.log('[ChatWidget] chatbot:', chatbot);
   console.log('[ChatWidget] error:', error);
@@ -319,6 +311,14 @@ export default function ChatWidget() {
       setShowRating(false);
     },
   });
+
+  // Track mutation pending state changes (must be after chatMutation declaration)
+  useEffect(() => {
+    console.log(`[PERF-WIDGET] chatMutation.isPending: ${chatMutation.isPending}`);
+    if (!chatMutation.isPending) {
+      console.log(`[PERF-WIDGET] Mutation complete - suggested questions should now be visible`);
+    }
+  }, [chatMutation.isPending]);
 
   useEffect(() => {
     if (scrollRef.current) {
