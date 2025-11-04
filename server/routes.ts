@@ -980,27 +980,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
               console.log('[Document Upload] Direct call succeeded');
             } catch (classError: any) {
               if (classError.message && classError.message.includes('cannot be invoked without')) {
-                // It's a class constructor - try instantiating it
-                console.log('[Document Upload] Detected class constructor, instantiating...');
+                // It's a class constructor - try instantiating it with buffer and options
+                console.log('[Document Upload] Detected class constructor, instantiating with arguments...');
                 
                 try {
-                  // Try creating instance and calling as method
-                  const instance = new parse();
-                  if (typeof instance.parse === 'function') {
-                    pdfData = await instance.parse(file.buffer, pdfOptions);
-                    console.log('[Document Upload] Used instance.parse() method');
-                  } else if (typeof instance === 'function') {
-                    pdfData = await instance(file.buffer, pdfOptions);
-                    console.log('[Document Upload] Used instance as function');
-                  } else {
-                    // Try passing buffer to constructor (might return promise)
-                    const directInstance = new parse(file.buffer, pdfOptions);
-                    // Check if it's a promise and await it
-                    pdfData = directInstance && typeof directInstance.then === 'function' 
-                      ? await directInstance 
-                      : directInstance;
-                    console.log('[Document Upload] Used constructor with buffer');
-                  }
+                  // Try passing buffer and options to constructor (most common pattern)
+                  const directInstance = new parse(file.buffer, pdfOptions);
+                  // Check if it's a promise and await it
+                  pdfData = directInstance && typeof directInstance.then === 'function' 
+                    ? await directInstance 
+                    : directInstance;
+                  console.log('[Document Upload] Used constructor with buffer and options');
                 } catch (instError: any) {
                   console.error('[Document Upload] Class instantiation failed:', instError.message);
                   throw instError;

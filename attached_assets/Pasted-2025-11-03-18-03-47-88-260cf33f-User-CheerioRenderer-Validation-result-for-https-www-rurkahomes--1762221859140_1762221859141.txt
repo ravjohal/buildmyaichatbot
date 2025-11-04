@@ -1,0 +1,73 @@
+2025-11-03 18:03:47.88
+260cf33f
+User
+[CheerioRenderer] Validation result for https://www.rurkahomes.com/our-team/sheena-singh: {"valid":true}
+
+2025-11-03 18:03:50.78
+260cf33f
+User
+[Auto-detect] Static result for https://www.rurkahomes.com/our-team/sheena-singh: content=1095 chars, jsPageCount=0/20
+2025-11-03 18:03:50.78
+260cf33f
+User
+[Auto-detect] contentTooShort=false, noContentExtracted=false, shouldTryJs=false
+2025-11-03 18:03:50.98
+260cf33f
+User
+[Crawler] Detected PDF: https://www.rurkahomes.com/images/RurkaCaliforniaWarranty.pdf
+2025-11-03 18:03:51.28
+260cf33f
+User
+[PDF Extractor] Fetching PDF from: https://www.rurkahomes.com/images/RurkaCaliforniaWarranty.pdf
+2025-11-03 18:03:51.48
+260cf33f
+User
+[PDF Extractor] PDF downloaded, size: 240891 bytes
+2025-11-03 18:03:51.76
+260cf33f
+User
+[PDF Extractor] Class instantiation failed: Cannot read properties of undefined (reading 'verbosity')
+2025-11-03 18:03:51.76
+260cf33f
+User
+[PDF Extractor] Named export PDFParse failed, trying fallback
+2025-11-03 18:03:51.76
+260cf33f
+User
+[PDF Extractor] Detected class constructor, instantiating...
+2025-11-03 18:03:51.76
+260cf33f
+User
+[PDF Extractor] Error extracting PDF: TypeError: Cannot read properties of undefined (reading 'verbosity')
+2025-11-03 18:03:51.76
+260cf33f
+User
+at new PDFParse (file:///home/runner/workspace/node_modules/pdf-parse/dist/pdf-parse/esm/PDFParse.js:25:21)
+2025-11-03 18:03:51.76
+260cf33f
+User
+at extractPdfText (file:///home/runner/workspace/dist/index.js:1578:30)
+2025-11-03 18:03:51.76
+260cf33f
+User
+at async crawlWebsiteRecursive (file:///home/runner/workspace/dist/index.js:1647:27)
+2025-11-03 18:03:51.76
+260cf33f
+User
+at async crawlMultipleWebsitesRecursive (file:///home/runner/workspace/dist/index.js:1725:21)
+2025-11-03 18:03:51.76
+260cf33f
+User
+at async processIndexingTask (file:///home/runner/workspace/dist/index.js:2235:28)
+2025-11-03 18:03:51.76
+260cf33f
+User
+at async processIndexingJob (file:///home/runner/workspace/dist/index.js:2397:9)
+2025-11-03 18:03:51.76
+260cf33f
+User
+at async processIndexingJobWithTimeout (file:///home/runner/workspace/dist/index.js:2458:5)
+2025-11-03 18:03:51.76
+260cf33f
+User
+at async workerLoop (file:///home/runner/workspace/dist/index.js:2512:9)

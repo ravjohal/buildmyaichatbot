@@ -243,27 +243,17 @@ async function extractPdfText(url: string): Promise<{ content: string; title: st
         console.log('[PDF Extractor] Direct call succeeded');
       } catch (classError: any) {
         if (classError.message && classError.message.includes('cannot be invoked without')) {
-          // It's a class constructor - try instantiating it
-          console.log('[PDF Extractor] Detected class constructor, instantiating...');
+          // It's a class constructor - try instantiating it with buffer and options
+          console.log('[PDF Extractor] Detected class constructor, instantiating with arguments...');
           
           try {
-            // Try creating instance and calling as method
-            const instance = new parse();
-            if (typeof instance.parse === 'function') {
-              pdfData = await instance.parse(buffer, pdfOptions);
-              console.log('[PDF Extractor] Used instance.parse() method');
-            } else if (typeof instance === 'function') {
-              pdfData = await instance(buffer, pdfOptions);
-              console.log('[PDF Extractor] Used instance as function');
-            } else {
-              // Try passing buffer to constructor (might return promise)
-              const directInstance = new parse(buffer, pdfOptions);
-              // Check if it's a promise and await it
-              pdfData = directInstance && typeof directInstance.then === 'function' 
-                ? await directInstance 
-                : directInstance;
-              console.log('[PDF Extractor] Used constructor with buffer');
-            }
+            // Try passing buffer and options to constructor (most common pattern)
+            const directInstance = new parse(buffer, pdfOptions);
+            // Check if it's a promise and await it
+            pdfData = directInstance && typeof directInstance.then === 'function' 
+              ? await directInstance 
+              : directInstance;
+            console.log('[PDF Extractor] Used constructor with buffer and options');
           } catch (instError: any) {
             console.error('[PDF Extractor] Class instantiation failed:', instError.message);
             throw instError;
