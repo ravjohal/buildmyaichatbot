@@ -1440,6 +1440,12 @@ User Question: ${message}
 Please answer based on the knowledge base provided. If you cannot find the answer in the knowledge base, politely let the user know and suggest they contact support${chatbot.supportPhoneNumber ? ` at ${chatbot.supportPhoneNumber}` : ""}.`;
 
         // Call LLM for main response, and optionally for suggested questions in parallel
+        console.log(`[LLM] ========== REGULAR CHAT REQUEST ==========`);
+        console.log(`[LLM] Model: gemini-2.5-flash`);
+        console.log(`[LLM] Main prompt length: ${fullPrompt.length} chars`);
+        console.log(`[LLM] Main prompt preview: ${fullPrompt.substring(0, 500)}...`);
+        
+        const llmStart = Date.now();
         const requests = [
           // Main response
           genAI.models.generateContent({
@@ -1450,19 +1456,22 @@ Please answer based on the knowledge base provided. If you cannot find the answe
         
         // Only generate suggested questions if enabled
         if (chatbot.enableSuggestedQuestions === "true") {
-          requests.push(
-            genAI.models.generateContent({
-              model: "gemini-2.5-flash",
-              contents: `Based on this conversation, suggest 3 relevant follow-up questions (each under 60 characters).
+          const suggestionsPrompt = `Based on this conversation, suggest 3 relevant follow-up questions (each under 60 characters).
 
 Knowledge Base Topics:
 ${knowledgeContext ? knowledgeContext.substring(0, 1500) : "General customer support"}
 
 User's Question: ${message}
 
-Generate 3 short, natural questions that would help the user learn more. Return only the questions, one per line, without numbering.`,
+Generate 3 short, natural questions that would help the user learn more. Return only the questions, one per line, without numbering.`;
+          
+          console.log(`[LLM] Suggestions prompt length: ${suggestionsPrompt.length} chars`);
+          requests.push(
+            genAI.models.generateContent({
+              model: "gemini-2.5-flash",
+              contents: suggestionsPrompt,
             }).catch(err => {
-              console.error("Error generating suggested questions:", err);
+              console.error("[LLM] Error generating suggested questions:", err);
               return null;
             })
           );
@@ -1471,8 +1480,13 @@ Generate 3 short, natural questions that would help the user learn more. Return 
         const results = await Promise.all(requests);
         const mainResult = results[0];
         const suggestionsResult = results[1] || null;
+        
+        const llmTime = Date.now() - llmStart;
+        console.log(`[LLM] Requests complete in ${llmTime}ms`);
 
         aiMessage = mainResult.text || "I apologize, but I couldn't generate a response.";
+        console.log(`[LLM] Main response length: ${aiMessage.length} chars`);
+        console.log(`[LLM] Main response preview: ${aiMessage.substring(0, 300)}...`);
         
         if (suggestionsResult) {
           try {
@@ -1855,14 +1869,22 @@ INCORRECT citation examples (NEVER do this):
           const llmStart = performance.now();
           let fullResponse = "";
           try {
+            console.log(`[LLM] ========== STREAMING REQUEST ==========`);
+            console.log(`[LLM] Model: gemini-2.5-flash`);
+            console.log(`[LLM] Prompt length: ${fullPrompt.length} chars`);
+            console.log(`[LLM] Prompt preview: ${fullPrompt.substring(0, 500)}...`);
+            console.log(`[LLM] Starting streaming...`);
+            
             const stream = await genAI.models.generateContentStream({
               model: "gemini-2.5-flash",
               contents: fullPrompt,
             });
 
+            let chunkCount = 0;
             for await (const chunk of stream) {
               const chunkText = chunk.text || "";
               if (chunkText) {
+                chunkCount++;
                 fullResponse += chunkText;
                 // Send chunk to client
                 res.write(`data: ${JSON.stringify({ 
@@ -1872,6 +1894,11 @@ INCORRECT citation examples (NEVER do this):
               }
             }
             perfTimings.llmStreaming = performance.now() - llmStart;
+
+            console.log(`[LLM] Streaming complete: ${chunkCount} chunks, ${perfTimings.llmStreaming.toFixed(2)}ms`);
+            console.log(`[LLM] Response length: ${fullResponse.length} chars`);
+            console.log(`[LLM] Response preview: ${fullResponse.substring(0, 300)}...`);
+            console.log(`[LLM] ========================================`);
 
             aiMessage = fullResponse || "I apologize, but I couldn't generate a response.";
             

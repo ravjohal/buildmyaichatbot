@@ -202,13 +202,24 @@ Requirements:
 Return ONLY a valid JSON array of EXACTLY 20 question strings, nothing else. Example format:
 ["Question 1?", "Question 2?", ..., "Question 20?"]`;
 
+    console.log(`[LLM] ========== SUGGESTED QUESTIONS GENERATION (INDEXING) ==========`);
+    console.log(`[LLM] Model: gemini-2.5-flash`);
+    console.log(`[LLM] Chatbot ID: ${chatbotId}`);
+    console.log(`[LLM] Prompt length: ${prompt.length} chars`);
+    console.log(`[LLM] Prompt preview: ${prompt.substring(0, 500)}...`);
+    
+    const llmStart = Date.now();
     const result = await genAI.models.generateContent({
       model: "gemini-2.5-flash",
       contents: prompt,
     });
+    const llmTime = Date.now() - llmStart;
     
     const responseText = result.text?.trim() || "";
-    console.log(`[WORKER] Gemini response for suggested questions:`, responseText.substring(0, 200));
+    console.log(`[LLM] Generation complete in ${llmTime}ms`);
+    console.log(`[LLM] Response length: ${responseText.length} chars`);
+    console.log(`[LLM] Response preview: ${responseText.substring(0, 300)}...`);
+    console.log(`[LLM] ========================================`);
     
     // Parse JSON response
     let questions: string[] = [];
