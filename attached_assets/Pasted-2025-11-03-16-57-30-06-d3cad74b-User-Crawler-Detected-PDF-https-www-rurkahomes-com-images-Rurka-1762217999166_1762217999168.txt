@@ -1,0 +1,144 @@
+2025-11-03 16:57:30.06
+d3cad74b
+User
+[Crawler] Detected PDF: https://www.rurkahomes.com/images/RurkaCaliforniaWarranty.pdf
+2025-11-03 16:57:30.11
+d3cad74b
+User
+[PDF Extractor] Fetching PDF from: https://www.rurkahomes.com/images/RurkaCaliforniaWarranty.pdf
+2025-11-03 16:57:30.25
+d3cad74b
+User
+12:57:30 AM [express] GET /api/admin/indexing-jobs 304 in 131ms :: [{"id":"872fa204-6063-4ee4-9008-c8…
+2025-11-03 16:57:30.39
+d3cad74b
+User
+[PDF Extractor] PDF downloaded, size: 240891 bytes
+2025-11-03 16:57:30.55
+d3cad74b
+User
+[PDF Extractor] Module structure: [
+2025-11-03 16:57:30.55
+d3cad74b
+User
+'AbortException',
+2025-11-03 16:57:30.55
+d3cad74b
+User
+'FormatError',
+2025-11-03 16:57:30.55
+d3cad74b
+User
+'InvalidPDFException',
+2025-11-03 16:57:30.55
+d3cad74b
+User
+'Line',
+2025-11-03 16:57:30.55
+d3cad74b
+User
+'LineDirection',
+2025-11-03 16:57:30.55
+d3cad74b
+User
+'LineStore',
+2025-11-03 16:57:30.55
+d3cad74b
+User
+'PDFParse',
+2025-11-03 16:57:30.55
+d3cad74b
+User
+'PasswordException',
+2025-11-03 16:57:30.55
+d3cad74b
+User
+'Point',
+2025-11-03 16:57:30.55
+d3cad74b
+User
+'Rectangle',
+2025-11-03 16:57:30.55
+d3cad74b
+User
+'ResponseException',
+2025-11-03 16:57:30.55
+d3cad74b
+User
+'Shape',
+2025-11-03 16:57:30.55
+d3cad74b
+User
+'Table',
+2025-11-03 16:57:30.55
+d3cad74b
+User
+'UnknownErrorException',
+2025-11-03 16:57:30.55
+d3cad74b
+User
+'VerbosityLevel',
+2025-11-03 16:57:30.55
+d3cad74b
+User
+'getException'
+2025-11-03 16:57:30.55
+d3cad74b
+User
+]
+2025-11-03 16:57:30.55
+d3cad74b
+User
+[PDF Extractor] Error extracting PDF: Error: pdf-parse module did not export a callable function
+2025-11-03 16:57:30.55
+d3cad74b
+User
+at extractPdfText (file:///home/runner/workspace/dist/index.js:1560:15)
+2025-11-03 16:57:30.55
+d3cad74b
+User
+at async crawlWebsiteRecursive (file:///home/runner/workspace/dist/index.js:1638:27)
+2025-11-03 16:57:30.55
+d3cad74b
+User
+at async crawlMultipleWebsitesRecursive (file:///home/runner/workspace/dist/index.js:1716:21)
+2025-11-03 16:57:30.55
+d3cad74b
+User
+at async processIndexingTask (file:///home/runner/workspace/dist/index.js:2226:28)
+2025-11-03 16:57:30.55
+d3cad74b
+User
+at async processIndexingJob (file:///home/runner/workspace/dist/index.js:2388:9)
+2025-11-03 16:57:30.55
+d3cad74b
+User
+at async processIndexingJobWithTimeout (file:///home/runner/workspace/dist/index.js:2449:5)
+2025-11-03 16:57:30.55
+d3cad74b
+User
+at async workerLoop (file:///home/runner/workspace/dist/index.js:2503:9)
+2025-11-03 16:57:30.66
+d3cad74b
+User
+[CheerioRenderer] Attempting to render: https://www.rurkahomes.com/news/common-mistakes-to-avoid-when-buying-a-new-construction-home
+2025-11-03 16:57:30.66
+d3cad74b
+User
+[CheerioRenderer] Validation result for https://www.rurkahomes.com/news/common-mistakes-to-avoid-when-buying-a-new-construction-home: {"valid":true}
+2025-11-03 16:57:33.56
+d3cad74b
+User
+[Auto-detect] Static result for https://www.rurkahomes.com/news/common-mistakes-to-avoid-when-buying-a-new-construction-home: content=4738 chars, jsPageCount=0/20
+2025-11-03 16:57:33.56
+d3cad74b
+User
+[Auto-detect] contentTooShort=false, noContentExtracted=false, shouldTryJs=false
+2025-11-03 16:57:33.66
+d3cad74b
+User
+[CheerioRenderer] Attempting to render: https://www.rurkahomes.com/news/benefits-of-buying-a-new-construction-home-why-a-new-build-may-be-your-best-choice
+2025-11-03 16:57:33.66
+d3cad74b
+User
+[CheerioRenderer] Validation result for https://www.rurkahomes.com/news/benefits-of-buying-a-new-construction-home-why-a-new-build-may-be-your-best-choice: {"valid":true}
