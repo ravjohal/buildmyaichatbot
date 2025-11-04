@@ -2,42 +2,7 @@
 
 ## Overview
 
-BuildMyChatbot.Ai is a SaaS web application that enables non-technical business owners to create, customize, and deploy AI-powered customer support chatbots for their websites.
-
-## Production Diagnostics
-
-**Critical Update (Nov 3, 2025)**: Implemented comprehensive worker health monitoring and diagnostics to resolve production indexing issues. See `PRODUCTION_INDEXING_DIAGNOSTICS.md` for full details.
-
-## Recent Updates (Nov 3, 2025)
-
-**Job Cancellation System**: Implemented fast cancellation for running indexing jobs with dual-layer detection (in-memory flags + 5s throttled DB checks) and strategic checkpoints throughout task processing. Achieves sub-second to 5-second cancellation response time.
-
-**UI Improvements**:
-- Changed refresh button label from "Refresh" to "Reindex" for clarity
-- Fixed chatbot card status to update immediately when reindex is triggered (sets status to "pending" before worker picks up job)
-- Jobs page correctly shows status progression: pending → processing → completed/failed/cancelled
-
-**Chromium Solution:** Uses system Chromium from `replit.nix` instead of Playwright bundled browsers. Removed Playwright browser installation from build process because `--with-deps` flag requires `sudo` (not available in Replit). System Chromium is detected via `which chromium-browser || which chromium` in production.
-
-**Database Connection Resilience (Nov 3, 2025)**: Implemented automatic retry logic with exponential backoff for Neon serverless database connections in the indexing worker. Handles "Connection terminated unexpectedly" errors that occur when long-running workers experience database connection timeouts. Worker now automatically retries up to 3 times with exponential backoff (1s, 2s, 4s) before failing.
-
-**PDF Extraction Fix (Nov 4, 2025)**: Fixed "Cannot read properties of undefined (reading 'verbosity')" error, "no text property found" error, and "invalid message format" error in production PDF extraction. Root cause: pdf-parse library's class constructor pattern in production builds returns an instance with undefined `doc` property, failing to parse PDFs. Implemented 5-strategy fallback system with basic text extraction and sanitization:
-- Strategy 1: Default export as function (development builds) ✓
-- Strategy 2: Module itself as function (CommonJS pattern)
-- Strategy 3: Named export `PDFParse` (common in some builds)
-- Strategy 4: Class constructor exports - attempts instantiation but doc property remains undefined in production
-- **Strategy 5 (NEW)**: Basic regex-based text extraction with sanitization - scans PDF buffer for text patterns between parentheses, filters out binary junk, removes non-printable characters/control chars/null bytes to prevent embedding errors, and normalizes whitespace. Successfully extracts and processes 18KB+ from production PDFs when pdf-parse fails.
-All strategies include `pdfOptions = { max: 0 }` parameter. Applied to both URL-based PDFs (`crawler.ts`) and uploaded documents (`routes.ts`). Sanitization prevents "invalid message format" errors during embedding generation by ensuring text contains only ASCII 32-126 plus newlines/tabs.
-
-**Source Attribution Fix (Nov 3, 2025)**: Fixed chatbot source citations to show specific page URLs instead of just the main domain. Modified indexing worker to process each crawled page individually, preserving per-page URLs and titles in knowledge chunks. When LLM generates responses, it now cites specific pages (e.g., "https://example.com/products") instead of always citing the root domain. Maintains cancellation checkpoints, storage limit enforcement, and crawl metadata for refresh detection.
-
-**Key Production Indicators:**
-- `[WORKER] ✓ Indexing worker started successfully` - Worker initialized
-- `[WORKER-HEALTH] ✓ Playwright/Chromium is operational` - Browser available
-- `[WORKER-HEARTBEAT] Worker alive | Jobs processed: N | Uptime: Xs` - Every 30s heartbeat
-- `[PlaywrightRenderer] ✓ Found system Chromium: /path/to/chromium` - System browser detected
-- `[WORKER] Database connection error (attempt X/3), retrying...` - Auto-recovery in progress
-- If missing these logs in production, worker is not running or Chromium unavailable It offers a guided creation wizard, extensive customization, and an embeddable widget for seamless website integration. The project aims to provide efficient, AI-driven customer support, reducing operational costs and enhancing customer satisfaction. Key capabilities include streaming LLM responses, chunk-based knowledge retrieval with vector embeddings, AI responses from website content and documents, multi-tier user management, comprehensive analytics, and a freemium pricing model with Stripe integration.
+BuildMyChatbot.Ai is a SaaS web application enabling non-technical business owners to create, customize, and deploy AI-powered customer support chatbots for their websites. It offers a guided creation wizard, extensive customization, and an embeddable widget for seamless website integration. The project aims to provide efficient, AI-driven customer support, reducing operational costs and enhancing customer satisfaction. Key capabilities include streaming LLM responses, chunk-based knowledge retrieval with vector embeddings, AI responses from website content and documents, multi-tier user management, comprehensive analytics, and a freemium pricing model with Stripe integration.
 
 ## User Preferences
 
@@ -47,44 +12,42 @@ Preferred communication style: Simple, everyday language.
 
 ### UI/UX Decisions
 
-The frontend uses React and TypeScript, with Vite for development and Wouter for routing. TanStack Query manages server state. Tailwind CSS with shadcn/ui (New York variant) provides a professional SaaS aesthetic, featuring a multi-step chatbot creation wizard, real-time customization previews, and a responsive layout.
-
-**Global Navigation Pattern:** All authenticated pages use a unified `DashboardHeader` component (located at `client/src/components/DashboardHeader.tsx`) providing consistent global navigation with Logo, Dashboard, Account, Admin (admin-only), Upgrade to Pro (free tier only), and Logout buttons. Page content areas contain page-specific actions and controls. This pattern ensures consistent UX and reduces navigation confusion across: Dashboard, Admin, Leads, Analytics Dashboard, Analytics, Create Chatbot, Edit Chatbot, Test Chatbot, Notification Settings, and Account pages.
+The frontend uses React and TypeScript, with Vite for development and Wouter for routing. TanStack Query manages server state. Tailwind CSS with shadcn/ui (New York variant) provides a professional SaaS aesthetic, featuring a multi-step chatbot creation wizard, real-time customization previews, and a responsive layout. All authenticated pages utilize a `DashboardHeader` for consistent global navigation, ensuring a unified user experience.
 
 ### Technical Implementations
 
-The backend, built with Express.js, Node.js, and TypeScript, follows a RESTful API design. Zod is used for data validation. PostgreSQL with Drizzle ORM handles data persistence. The embeddable chat widget is delivered via an iframe for isolation.
+The backend is built with Express.js, Node.js, and TypeScript, following a RESTful API design. Zod is used for data validation. PostgreSQL with Drizzle ORM handles data persistence. The embeddable chat widget is delivered via an iframe for isolation. The system uses system Chromium from `replit.nix` for Playwright operations. Database connection resilience is achieved through automatic retry logic with exponential backoff for Neon serverless database connections. PDF extraction employs a 6-strategy fallback system, prioritizing the `unpdf` library for robust text extraction and including a regex-based last resort. Source attribution in chatbot responses links to specific page URLs.
 
 ### Feature Specifications
 
-*   **Chatbot Creation Wizard:** A guided multi-step process for configuring chatbot name, knowledge base (website URLs, document uploads), personality, visual customization, optional AI-generated suggested questions, support escalation options, and lead capture settings.
-*   **Chat Widget:** An embeddable, customizable, and mobile-responsive AI chat interface with real-time streaming responses, optional stored suggested questions (3 displayed), conversation history, escalation detection, and configurable lead capture forms.
-*   **Smart Suggested Questions:** AI generates 8-12 FAQ-style questions about website content during indexing using Gemini. Questions are stored in database and randomly displayed (3 at a time) in the chat widget. Tracks usage analytics when visitors click suggestions. Questions are about the website content, not follow-up questions from recent chats.
-*   **Streaming LLM Responses:** Implements Server-Sent Events (SSE) for word-by-word real-time response display, reducing perceived latency and improving user experience.
-*   **Chunk-Based Knowledge Retrieval:** Content is split into semantic chunks (200-1000 characters with 100-char overlap) with 384-dimensional vector embeddings. Top-k similarity search retrieves the 5 most relevant chunks (optimized from 8 for 30-40% faster response times), balancing context quality with speed. Includes automatic fallback to truncated full content when chunks are unavailable.
-*   **Q&A Caching System:** Reduces LLM API costs by caching question-answer pairs with hybrid exact and semantic matching. Uses MD5-based question normalization and pgvector embeddings for semantic similarity. Automatically matches paraphrased questions and features cache invalidation on knowledge base updates.
-*   **Manual Answer Training:** Enables chatbot owners to improve accuracy by manually correcting AI responses through the Analytics interface. Corrected answers are prioritized in the response pipeline and support both exact and semantic matching.
-*   **Lead Capture System:** Collects visitor contact information via configurable forms with source tracking. Features a management dashboard with CSV export and source visualization.
-*   **On-Demand Knowledge Base Refresh:** Intelligently updates chatbot knowledge from website URLs by detecting content changes via MD5 hashing, only re-crawling modified content.
-*   **Analytics Dashboard:** Offers comprehensive chatbot analytics including key metrics, detailed conversation transcripts, message-level tracking, and performance breakdowns.
-*   **3-Tier Pricing System:** Implements Free, Pro ($29.99/mo or $300/year), and Scale ($99.99/mo or $999/year) tiers with server-side enforcement. Free tier: 1 chatbot, 3 total questions, 100MB storage. Pro tier: 5 chatbots, 5K conversations/month, 1GB storage. Scale tier: Unlimited chatbots, 50K conversations/month, 5GB storage, exclusive Analytics access. Monthly conversation limits auto-reset based on billing period. Admins (ravneetjohal@gmail.com) bypass all limits.
+*   **Chatbot Creation Wizard:** A guided multi-step process for configuring chatbot name, knowledge base (website URLs, document uploads), personality, visual customization, suggested questions, support escalation, and lead capture.
+*   **Chat Widget:** An embeddable, customizable, and mobile-responsive AI chat interface with real-time streaming responses, suggested questions, conversation history, escalation detection, and configurable lead capture forms.
+*   **Smart Suggested Questions:** AI (Gemini) generates FAQ-style questions from website content during indexing, stored and randomly displayed in the chat widget.
+*   **Streaming LLM Responses:** Implements Server-Sent Events (SSE) for real-time, word-by-word response display.
+*   **Chunk-Based Knowledge Retrieval:** Content is split into semantic chunks with vector embeddings, and top-k similarity search retrieves the 5 most relevant chunks.
+*   **Q&A Caching System:** Reduces LLM API costs by caching question-answer pairs with hybrid exact and semantic matching using pgvector embeddings.
+*   **Manual Answer Training:** Enables chatbot owners to improve accuracy by manually correcting AI responses via the Analytics interface.
+*   **Lead Capture System:** Collects visitor contact information via configurable forms, with a management dashboard and CSV export.
+*   **On-Demand Knowledge Base Refresh:** Intelligently updates chatbot knowledge from website URLs by detecting content changes via MD5 hashing.
+*   **Analytics Dashboard:** Offers comprehensive chatbot analytics, including key metrics, detailed conversation transcripts, and performance breakdowns.
+*   **3-Tier Pricing System:** Implements Free, Pro, and Scale tiers with server-side enforcement and varying limits on chatbots, conversations, and storage.
 *   **Admin System:** Provides full user management, system-wide statistics, and access to all chatbots for administrators.
 *   **Account Management:** Users can manage profile, subscription status, and billing via an integrated Stripe portal.
 *   **Shareable Links & QR Codes:** Enables easy distribution of chatbots via direct links and QR codes with a full-page chat interface.
 *   **Intelligent SPA Crawler:** A dual-mode website crawler that automatically detects and renders JavaScript-heavy Single Page Applications using Playwright, with SSRF protection.
-*   **Satisfaction Ratings:** Allows visitors to rate their chat experience (1-5 stars) after engaging in a conversation, stored for analytics.
-*   **Proactive Chat Popup:** Automatically displays a customizable popup notification to website visitors after a configurable delay to encourage interaction.
-*   **Email Notifications:** Sends automated email alerts via Resend for new lead submissions, unanswered questions, and weekly performance reports. Users can manage preferences and custom email addresses. On-demand report generation available via Analytics dashboard. Emails sent from verified domain: `onboarding@resend.dev`.
-*   **Async Indexing Pipeline:** Non-blocking chatbot creation with background processing for website crawling. Documents process synchronously (text pre-extracted), while URLs queue for async processing. Frontend displays real-time indexing status with polling. Dashboard shows status badges (pending/processing/completed/failed). Worker processes jobs sequentially with automatic error recovery and progress tracking. Crawling limits: max depth 2, max 200 pages per site.
+*   **Satisfaction Ratings:** Allows visitors to rate their chat experience (1-5 stars) for analytics.
+*   **Proactive Chat Popup:** Automatically displays a customizable popup notification to website visitors after a configurable delay.
+*   **Email Notifications:** Sends automated email alerts via Resend for new lead submissions, unanswered questions, and weekly performance reports.
+*   **Async Indexing Pipeline:** Non-blocking chatbot creation with background processing for website crawling. Frontend displays real-time indexing status with polling. Worker processes jobs sequentially with automatic error recovery and progress tracking.
 
 ### System Design Choices
 
-*   **Data Storage:** PostgreSQL with Drizzle ORM is used for all persistent data, including users, chatbots, conversations, leads, Q&A cache, manual overrides, and knowledge chunks. User records track monthly conversation counts with automatic reset on billing period boundaries, and total knowledge base size in MB with atomic limit enforcement to prevent race conditions.
-*   **AI Integration:** Google Gemini AI (gemini-2.5-flash) via the `@google/genai` SDK is used for NLP, utilizing a streaming API for real-time responses. System prompt engineering constrains AI responses, and chunk-based retrieval optimizes prompt size. Response priority is Manual Override → Exact Cache → Semantic Cache → LLM with Chunks, with automatic fallback. Question embeddings are cached for faster lookups.
+*   **Data Storage:** PostgreSQL with Drizzle ORM stores all persistent data, including users, chatbots, conversations, leads, Q&A cache, manual overrides, and knowledge chunks.
+*   **AI Integration:** Google Gemini AI (gemini-2.5-flash) via the `@google/genai` SDK is used for NLP, with a streaming API. System prompt engineering and chunk-based retrieval optimize responses. Response priority is Manual Override → Exact Cache → Semantic Cache → LLM with Chunks.
 *   **File Storage:** Google Cloud Storage (via Replit Object Storage) stores user-uploaded files, with Uppy.js for client-side uploads using signed URLs.
-*   **Authentication & Security:** Custom email/password authentication (`passport-local`, bcrypt, session-based) with robust security features like `sanitizeUser()`, backend self-modification protection, CSRF protection, and Zod input validation. Multi-tenant architecture scopes chatbots.
-*   **Payment Processing:** Stripe integration with automatic subscription tier management via webhooks. Express middleware configured to provide raw request body to `/api/stripe-webhook` endpoint for proper signature verification, while all other routes receive JSON-parsed bodies.
-*   **Deployment Architecture:** Frontend assets are built with Vite, server code with esbuild. Configured for development and production, with dynamic environment-based configurations. SPA crawler uses Playwright with system Chromium from Nix for production.
+*   **Authentication & Security:** Custom email/password authentication (`passport-local`, bcrypt, session-based) with robust security features, CSRF protection, and Zod input validation. Multi-tenant architecture scopes chatbots.
+*   **Payment Processing:** Stripe integration with automatic subscription tier management via webhooks.
+*   **Deployment Architecture:** Frontend assets built with Vite, server code with esbuild. Configured for development and production, with dynamic environment-based configurations.
 
 ## External Dependencies
 
@@ -92,7 +55,7 @@ The backend, built with Express.js, Node.js, and TypeScript, follows a RESTful A
 
 *   **Google Cloud Platform:** Gemini AI API (NLP), Google Cloud Storage (user file storage).
 *   **Stripe:** Payment gateway for subscription management and billing.
-*   **Resend:** Transactional email service for notifications and weekly analytics reports. Uses verified sender domain `onboarding@resend.dev` with 3,000 emails/month on free tier.
+*   **Resend:** Transactional email service for notifications and reports.
 *   **Replit Infrastructure:** Replit Object Storage (managed object storage built on Google Cloud Storage).
 
 ### Key NPM Packages
