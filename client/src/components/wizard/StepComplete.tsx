@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
-import { Check, Copy, Code, ExternalLink, Home, Loader2, CheckCircle, XCircle } from "lucide-react";
+import { Check, Copy, Code, ExternalLink, Home, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
@@ -39,33 +39,23 @@ export function StepComplete({ chatbotId, indexingStatus }: StepCompleteProps) {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // Determine if background indexing is happening
-  const isIndexing = indexingStatus && (indexingStatus.status === 'pending' || indexingStatus.status === 'processing');
-
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-6">
       <div className="max-w-4xl w-full space-y-8">
         <div className="text-center space-y-4">
           <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
-            {isIndexing ? (
-              <Loader2 className="w-10 h-10 text-primary animate-spin" />
-            ) : (
-              <Check className="w-10 h-10 text-primary" />
-            )}
+            <Loader2 className="w-10 h-10 text-primary animate-spin" />
           </div>
           <h1 className="text-4xl font-bold">
-            {isIndexing ? "Chatbot Created - Indexing in Progress!" : "Chatbot Created Successfully!"}
+            Chatbot Created - Preparing Your Knowledge Base!
           </h1>
           <p className="text-xl text-muted-foreground">
-            {isIndexing 
-              ? "Your chatbot is being prepared. Knowledge base crawling is happening in the background and may take 15-30 minutes to complete."
-              : "Your AI assistant is ready to deploy on your website"
-            }
+            Your chatbot is being prepared. Knowledge base crawling is happening in the background and may take 15-30 minutes to complete.
           </p>
         </div>
 
         {/* Indexing Status Banner */}
-        {indexingStatus && (indexingStatus.status === 'pending' || indexingStatus.status === 'processing') && (
+        {indexingStatus && (
           <Card className="bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
             <CardContent className="p-6">
               <div className="flex items-center gap-4">
@@ -79,45 +69,6 @@ export function StepComplete({ chatbotId, indexingStatus }: StepCompleteProps) {
                   </p>
                   <p className="text-sm text-blue-600 dark:text-blue-400 mt-2">
                     You can deploy your chatbot now. Monitor progress via the status badge on your dashboard. The knowledge base will expand as indexing completes.
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {indexingStatus && indexingStatus.status === 'completed' && (
-          <Card className="bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800">
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <CheckCircle className="w-6 h-6 text-green-600 dark:text-green-400" />
-                <div className="flex-1">
-                  <h3 className="font-semibold text-green-900 dark:text-green-100">
-                    All URLs indexed successfully!
-                  </h3>
-                  <p className="text-sm text-green-700 dark:text-green-300 mt-1">
-                    Your chatbot's knowledge base is fully ready
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {indexingStatus && indexingStatus.status === 'failed' && (
-          <Card className="bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800">
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <XCircle className="w-6 h-6 text-red-600 dark:text-red-400" />
-                <div className="flex-1">
-                  <h3 className="font-semibold text-red-900 dark:text-red-100">
-                    Some URLs failed to index
-                  </h3>
-                  <p className="text-sm text-red-700 dark:text-red-300 mt-1">
-                    {indexingStatus.error || "Some URLs couldn't be indexed. Your chatbot will still work with available content."}
-                  </p>
-                  <p className="text-sm text-red-600 dark:text-red-400 mt-2">
-                    You can update your chatbot's knowledge base later from the dashboard.
                   </p>
                 </div>
               </div>

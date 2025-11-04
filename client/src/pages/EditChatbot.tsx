@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRoute, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Check } from "lucide-react";
@@ -14,6 +14,7 @@ import { StepPersonality } from "@/components/wizard/StepPersonality";
 import { StepCustomization } from "@/components/wizard/StepCustomization";
 import { StepEscalation } from "@/components/wizard/StepEscalation";
 import { StepLeadCapture } from "@/components/wizard/StepLeadCapture";
+import { StepComplete } from "@/components/wizard/StepComplete";
 import { DashboardHeader } from "@/components/DashboardHeader";
 import {
   AlertDialog,
@@ -61,6 +62,13 @@ export default function EditChatbot() {
   const [formData, setFormData] = useState<ExtendedFormData>({});
   const [showReindexDialog, setShowReindexDialog] = useState(false);
   const [isReindexing, setIsReindexing] = useState(false);
+  const [showComplete, setShowComplete] = useState(false);
+  const [indexingStatus, setIndexingStatus] = useState<{
+    jobId: string;
+    status: 'pending' | 'processing' | 'completed' | 'failed';
+    progress: { totalUrls: number; processedUrls: number; };
+  } | null>(null);
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const { data: chatbot, isLoading } = useQuery<Chatbot>({
     queryKey: [`/api/chatbots/${chatbotId}`],
@@ -95,22 +103,110 @@ export default function EditChatbot() {
     }
   }, [chatbot]);
 
+  // Poll for indexing status when re-indexing after knowledge source changes
+  useEffect(() => {
+    if (showComplete && indexingStatus && indexingStatus.status !== 'completed' && indexingStatus.status !== 'failed') {
+      const pollStatus = async () => {
+        try {
+          const res = await fetch(`/api/chatbots/${chatbotId}/indexing-status`, {
+            credentials: 'include',
+          });
+          
+          if (res.ok) {
+            const data = await res.json();
+            
+            setIndexingStatus({
+              jobId: data.jobId,
+              status: data.status,
+              progress: {
+                totalUrls: data.totalTasks || 0,
+                processedUrls: data.completedTasks || 0,
+              },
+            });
+            
+            if (data.status === 'completed') {
+              toast({
+                title: "Re-indexing complete",
+                description: "Your chatbot's knowledge base has been updated successfully.",
+              });
+              
+              // Stop polling
+              if (pollingIntervalRef.current) {
+                clearInterval(pollingIntervalRef.current);
+                pollingIntervalRef.current = null;
+              }
+            } else if (data.status === 'failed') {
+              toast({
+                title: "Re-indexing failed",
+                description: "Some content failed to re-index. Your chatbot will still work with available content.",
+                variant: "destructive",
+              });
+              
+              // Stop polling
+              if (pollingIntervalRef.current) {
+                clearInterval(pollingIntervalRef.current);
+                pollingIntervalRef.current = null;
+              }
+            }
+          }
+        } catch (error) {
+          console.error("Error polling indexing status:", error);
+        }
+      };
+      
+      // Poll every 3 seconds
+      pollingIntervalRef.current = setInterval(pollStatus, 3000);
+      
+      return () => {
+        if (pollingIntervalRef.current) {
+          clearInterval(pollingIntervalRef.current);
+        }
+      };
+    }
+  }, [showComplete, indexingStatus?.status, chatbotId, toast]);
+
   const updateMutation = useMutation({
     mutationFn: async (data: Partial<InsertChatbot>) => {
       const response = await apiRequest("PUT", `/api/chatbots/${chatbotId}`, data);
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       queryClient.invalidateQueries({ queryKey: ["/api/chatbots"] });
       queryClient.invalidateQueries({ queryKey: [`/api/chatbots/${chatbotId}`] });
-      toast({
-        title: "Chatbot updated!",
-        description: "Your changes have been saved successfully.",
-      });
-      // Only show re-index dialog if knowledge sources were actually modified
+      
+      // Check if knowledge sources were actually modified
       if (hasKnowledgeSourcesChanged()) {
-        setShowReindexDialog(true);
+        // Auto-trigger re-indexing and show StepComplete
+        try {
+          const response = await apiRequest("POST", `/api/chatbots/${chatbotId}/refresh-knowledge`, {});
+          const data = await response.json();
+          
+          // Set up indexing status for StepComplete
+          setIndexingStatus({
+            jobId: data.jobId || '',
+            status: 'pending',
+            progress: {
+              totalUrls: formData.websiteUrls?.length || 0,
+              processedUrls: 0,
+            },
+          });
+          
+          // Show StepComplete component
+          setShowComplete(true);
+        } catch (error) {
+          toast({
+            title: "Re-indexing failed",
+            description: "Failed to start re-indexing. Your changes were saved.",
+            variant: "destructive",
+          });
+          navigate("/");
+        }
       } else {
+        // No knowledge changes - just show success toast and go to dashboard
+        toast({
+          title: "Chatbot updated!",
+          description: "Your changes have been saved successfully.",
+        });
         navigate("/");
       }
     },
@@ -166,17 +262,45 @@ export default function EditChatbot() {
   const hasKnowledgeSourcesChanged = (): boolean => {
     if (!chatbot) return false;
     
-    // Normalize array values for comparison (treat null, undefined, and [] as equivalent)
-    const normalizeArray = (val: any[] | null | undefined) => JSON.stringify(val || []);
-    
     // Normalize string values for comparison (treat null, undefined, and "" as equivalent)
     const normalizeString = (val: string | null | undefined) => (val || "").trim();
     
-    // Compare all knowledge-related fields
-    const urlsChanged = normalizeArray(formData.websiteUrls) !== normalizeArray(chatbot.websiteUrls);
-    const docsChanged = normalizeArray(formData.documents) !== normalizeArray(chatbot.documents);
+    // Compare website URLs
+    const currentUrls = (formData.websiteUrls || []).filter(url => url.trim());
+    const originalUrls = (chatbot.websiteUrls || []).filter(url => url.trim());
+    const urlsChanged = JSON.stringify([...currentUrls].sort()) !== JSON.stringify([...originalUrls].sort());
+    
+    // Compare documents by checking array lengths and paths/names
+    const currentDocs = formData.documents || [];
+    const originalDocs = chatbot.documents || [];
+    let docsChanged = currentDocs.length !== originalDocs.length;
+    
+    // If lengths are the same, compare paths (for stored docs) or check for File objects (new uploads)
+    if (!docsChanged && currentDocs.length > 0) {
+      // Check if there are any File objects (new uploads)
+      const hasNewFiles = currentDocs.some((doc: any) => doc instanceof File);
+      if (hasNewFiles) {
+        docsChanged = true;
+      } else {
+        // Compare document paths (clone arrays before sorting to avoid mutation)
+        docsChanged = JSON.stringify([...currentDocs].sort()) !== JSON.stringify([...originalDocs].sort());
+      }
+    }
+    
+    // Compare document metadata
+    const currentMetadata = formData.documentMetadata || [];
+    const originalMetadata = (chatbot.documentMetadata as DocumentMetadata[]) || [];
+    let metadataChanged = currentMetadata.length !== originalMetadata.length;
+    
+    // If lengths are the same, compare metadata paths (map already creates new array, but sort in-place)
+    if (!metadataChanged && currentMetadata.length > 0) {
+      const currentPaths = [...currentMetadata.map(m => m.path)].sort();
+      const originalPaths = [...originalMetadata.map(m => m.path)].sort();
+      metadataChanged = JSON.stringify(currentPaths) !== JSON.stringify(originalPaths);
+    }
+    
+    // Compare website content
     const contentChanged = normalizeString(formData.websiteContent) !== normalizeString(chatbot.websiteContent);
-    const metadataChanged = normalizeArray(formData.documentMetadata) !== normalizeArray(chatbot.documentMetadata as DocumentMetadata[]);
     
     return urlsChanged || docsChanged || contentChanged || metadataChanged;
   };
@@ -241,6 +365,11 @@ export default function EditChatbot() {
         </div>
       </div>
     );
+  }
+
+  // Show StepComplete when re-indexing after knowledge source changes
+  if (showComplete) {
+    return <StepComplete chatbotId={chatbotId} indexingStatus={indexingStatus} />;
   }
 
   const isLastStep = currentStep === "escalation";
