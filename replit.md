@@ -16,7 +16,7 @@ The frontend uses React and TypeScript, with Vite for development and Wouter for
 
 ### Technical Implementations
 
-The backend is built with Express.js, Node.js, and TypeScript, following a RESTful API design. Zod is used for data validation. PostgreSQL with Drizzle ORM handles data persistence. The embeddable chat widget is delivered via an iframe for isolation. The system uses system Chromium from `replit.nix` for Playwright operations. Database connection resilience is achieved through automatic retry logic with exponential backoff for Neon serverless database connections. PDF extraction employs a 6-strategy fallback system, prioritizing the `unpdf` library for robust text extraction and including a regex-based last resort. Source attribution in chatbot responses links to specific page URLs.
+The backend is built with Express.js, Node.js, and TypeScript, following a RESTful API design. Zod is used for data validation. PostgreSQL with Drizzle ORM handles data persistence. The embeddable chat widget is delivered via an iframe for isolation. The system uses system Chromium from `replit.nix` for Playwright operations. Database connection resilience is achieved through automatic retry logic with exponential backoff for Neon serverless database connections. PDF extraction employs a 6-strategy fallback system: Strategies 1-4 attempt various pdf-parse library patterns, Strategy 5 uses the modern `unpdf` library (built on Mozilla's PDF.js) for production-quality extraction, and Strategy 6 employs regex-based extraction with comprehensive text sanitization as a last resort. The chunker intelligently handles large paragraphs without proper formatting by splitting them into sentences or fixed-size blocks with overlap, ensuring PDF text without paragraph breaks generates proper chunks. Source attribution in chatbot responses links to specific page URLs.
 
 ### Feature Specifications
 
@@ -61,7 +61,7 @@ The backend is built with Express.js, Node.js, and TypeScript, following a RESTf
 ### Key NPM Packages
 
 *   **Frontend:** `@tanstack/react-query`, `@radix-ui/*`, `tailwindcss`, `wouter`, `@uppy/*`, `class-variance-authority`, `react-hook-form`, `zod`.
-*   **Backend:** `express`, `@google/genai`, `@google-cloud/storage`, `drizzle-orm`, `@neondatabase/serverless`, `multer`, `passport`, `bcrypt`, `@xenova/transformers`, `resend`.
+*   **Backend:** `express`, `@google/genai`, `@google-cloud/storage`, `drizzle-orm`, `@neondatabase/serverless`, `multer`, `passport`, `bcrypt`, `@xenova/transformers`, `resend`, `unpdf`.
 *   **Build Tools:** `vite`, `esbuild`, `tsx`, `drizzle-kit`, `playwright`.
 
 ### Environment Requirements
