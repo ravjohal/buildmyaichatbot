@@ -328,6 +328,41 @@ async function extractPdfText(url: string): Promise<{ content: string; title: st
     
     if (!pdfData || !pdfData.text) {
       console.error('[PDF Extractor] PDF data structure:', pdfData ? Object.keys(pdfData) : 'null');
+      
+      // LAST RESORT: Extract basic text using simple buffer scanning
+      // This is a very basic fallback for when pdf-parse class pattern fails
+      console.log('[PDF Extractor] All strategies failed, attempting basic text extraction...');
+      
+      try {
+        // Convert buffer to string and extract visible text
+        const bufferStr = buffer.toString('utf-8', 0, Math.min(buffer.length, 1000000));
+        
+        // Very basic PDF text extraction - find text between stream markers
+        // This won't be perfect but better than nothing
+        const textMatches = bufferStr.match(/\((.*?)\)/g);
+        
+        if (textMatches && textMatches.length > 0) {
+          const extractedText = textMatches
+            .map(m => m.slice(1, -1)) // Remove parentheses
+            .filter(t => t.length > 2 && /[a-zA-Z]/.test(t)) // Filter out junk
+            .join(' ')
+            .replace(/\\[nrt]/g, ' ') // Remove escape sequences
+            .replace(/\s+/g, ' ') // Normalize whitespace
+            .trim();
+          
+          if (extractedText.length > 50) {
+            console.log(`[PDF Extractor] Basic extraction found ${extractedText.length} chars`);
+            const filename = new URL(url).pathname.split('/').pop() || 'PDF Document';
+            return {
+              content: extractedText,
+              title: filename.replace('.pdf', ''),
+            };
+          }
+        }
+      } catch (basicError) {
+        console.error('[PDF Extractor] Basic extraction also failed:', basicError);
+      }
+      
       throw new Error('Failed to extract text from PDF - no text property found');
     }
 

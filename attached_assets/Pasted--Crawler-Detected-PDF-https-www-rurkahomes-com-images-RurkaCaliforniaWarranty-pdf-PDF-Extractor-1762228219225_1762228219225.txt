@@ -1,0 +1,36 @@
+[Crawler] Detected PDF: https://www.rurkahomes.com/images/RurkaCaliforniaWarranty.pdf
+[PDF Extractor] Fetching PDF from: https://www.rurkahomes.com/images/RurkaCaliforniaWarranty.pdf
+[AUTH] isAuthenticated check: {
+  isAuthenticated: true,
+  hasUser: true,
+  hasSession: true,
+  sessionID: 'ZhUXkL3Qq_apT209JzRBvvo0XQ1ojblF'
+}
+[AUTH] ✓ Authenticated
+3:49:57 AM [express] GET /api/chatbots/1923059e-6c06-4f38-acbb-1a2d6442e81e/indexing-status 200 in 3…
+[PDF Extractor] PDF downloaded, size: 240891 bytes
+[PDF Extractor] Named export PDFParse failed, trying fallback
+[PDF Extractor] Detected class constructor, instantiating with arguments...
+[PDF Extractor] Instance created, checking for methods...
+[PDF Extractor] Instance keys: [ 'options', 'doc', 'progress' ]
+[PDF Extractor] Instance has parse method? false
+[PDF Extractor] Instance.options: <Buffer 25 50 44 46 2d 31 2e 33 0a 25 c4 e5 f2 e5 eb a7 f3 a0 d0 c4 c6 0a 33 20 30 20 6f 62 6a 0a 3c 3c 20 2f 46 69 6c 74 65 72 20 2f 46 6c 61 74 65 44 65 63 ... 240841 more bytes, verbosity: 0>
+[PDF Extractor] Instance.progress: { loaded: -1, total: 0 }
+[PDF Extractor] Progress is: object
+[PDF Extractor] Progress keys: [ 'loaded', 'total' ]
+[PDF Extractor] Used constructor with buffer and options
+[PDF Extractor] pdfData.text exists? false pdfData.doc exists? false
+[PDF Extractor] pdfData.text value: undefined
+[PDF Extractor] pdfData.doc type: undefined
+[PDF Extractor] pdfData.doc value: undefined
+[PDF Extractor] PDF data structure: [ 'options', 'doc', 'progress' ]
+[PDF Extractor] Error extracting PDF: Error: Failed to extract text from PDF - no text property found
+    at extractPdfText (/home/runner/workspace/server/crawler.ts:331:13)
+    at async crawlWebsiteRecursive (/home/runner/workspace/server/crawler.ts:395:27)
+    at async crawlMultipleWebsitesRecursive (/home/runner/workspace/server/crawler.ts:489:21)
+    at async processIndexingTask (/home/runner/workspace/server/indexing-worker.ts:250:28)
+    at async processIndexingJob (/home/runner/workspace/server/indexing-worker.ts:472:9)
+    at async processIndexingJobWithTimeout (/home/runner/workspace/server/indexing-worker.ts:558:5)
+    at async workerLoop (/home/runner/workspace/server/indexing-worker.ts:630:9)
+[WORKER] Crawled 1 pages from https://www.rurkahomes.com/images/RurkaCaliforniaWarranty.pdf
+[WORKER] Task a7371688-94b8-4b88-bb6d-072932309237 failed: All crawled pages were empty or had errors
