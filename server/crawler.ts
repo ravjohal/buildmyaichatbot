@@ -186,12 +186,15 @@ async function extractPdfText(url: string): Promise<{ content: string; title: st
     // Handle both ESM and CommonJS module exports, including class constructors in production builds
     const pdfParseModule: any = await import('pdf-parse');
     
+    // Default options for pdf-parse to prevent "Cannot read properties of undefined" errors
+    const pdfOptions = { max: 0 }; // max: 0 means no page limit
+    
     let pdfData;
     
     // Strategy 1: Try default export as function
     if (pdfParseModule.default && typeof pdfParseModule.default === 'function') {
       try {
-        pdfData = await pdfParseModule.default(buffer);
+        pdfData = await pdfParseModule.default(buffer, pdfOptions);
         console.log('[PDF Extractor] Used default export');
       } catch (error: any) {
         if (error.message && error.message.includes('cannot be invoked without')) {
@@ -206,7 +209,7 @@ async function extractPdfText(url: string): Promise<{ content: string; title: st
     // Strategy 2: Try module itself as function
     if (!pdfData && typeof pdfParseModule === 'function') {
       try {
-        pdfData = await pdfParseModule(buffer);
+        pdfData = await pdfParseModule(buffer, pdfOptions);
         console.log('[PDF Extractor] Used module itself');
       } catch (error: any) {
         if (!error.message || !error.message.includes('cannot be invoked without')) {
@@ -219,7 +222,7 @@ async function extractPdfText(url: string): Promise<{ content: string; title: st
     // Strategy 3: Try named export PDFParse (common in some builds)
     if (!pdfData && pdfParseModule.PDFParse && typeof pdfParseModule.PDFParse === 'function') {
       try {
-        pdfData = await pdfParseModule.PDFParse(buffer);
+        pdfData = await pdfParseModule.PDFParse(buffer, pdfOptions);
         console.log('[PDF Extractor] Used named export PDFParse');
       } catch (error: any) {
         console.log('[PDF Extractor] Named export PDFParse failed, trying fallback');
@@ -236,7 +239,7 @@ async function extractPdfText(url: string): Promise<{ content: string; title: st
       }
       
       try {
-        pdfData = await parse(buffer);
+        pdfData = await parse(buffer, pdfOptions);
         console.log('[PDF Extractor] Direct call succeeded');
       } catch (classError: any) {
         if (classError.message && classError.message.includes('cannot be invoked without')) {
@@ -247,14 +250,14 @@ async function extractPdfText(url: string): Promise<{ content: string; title: st
             // Try creating instance and calling as method
             const instance = new parse();
             if (typeof instance.parse === 'function') {
-              pdfData = await instance.parse(buffer);
+              pdfData = await instance.parse(buffer, pdfOptions);
               console.log('[PDF Extractor] Used instance.parse() method');
             } else if (typeof instance === 'function') {
-              pdfData = await instance(buffer);
+              pdfData = await instance(buffer, pdfOptions);
               console.log('[PDF Extractor] Used instance as function');
             } else {
               // Try passing buffer to constructor (might return promise)
-              const directInstance = new parse(buffer);
+              const directInstance = new parse(buffer, pdfOptions);
               // Check if it's a promise and await it
               pdfData = directInstance && typeof directInstance.then === 'function' 
                 ? await directInstance 

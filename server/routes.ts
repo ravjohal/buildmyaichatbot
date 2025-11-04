@@ -923,12 +923,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Handle both ESM and CommonJS module exports, including class constructors in production builds
           const pdfParseModule: any = await import('pdf-parse');
           
+          // Default options for pdf-parse to prevent "Cannot read properties of undefined" errors
+          const pdfOptions = { max: 0 }; // max: 0 means no page limit
+          
           let pdfData;
           
           // Strategy 1: Try default export as function
           if (pdfParseModule.default && typeof pdfParseModule.default === 'function') {
             try {
-              pdfData = await pdfParseModule.default(file.buffer);
+              pdfData = await pdfParseModule.default(file.buffer, pdfOptions);
               console.log('[Document Upload] Used default export');
             } catch (error: any) {
               if (error.message && error.message.includes('cannot be invoked without')) {
@@ -943,7 +946,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Strategy 2: Try module itself as function
           if (!pdfData && typeof pdfParseModule === 'function') {
             try {
-              pdfData = await pdfParseModule(file.buffer);
+              pdfData = await pdfParseModule(file.buffer, pdfOptions);
               console.log('[Document Upload] Used module itself');
             } catch (error: any) {
               if (!error.message || !error.message.includes('cannot be invoked without')) {
@@ -956,7 +959,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Strategy 3: Try named export PDFParse (common in some builds)
           if (!pdfData && pdfParseModule.PDFParse && typeof pdfParseModule.PDFParse === 'function') {
             try {
-              pdfData = await pdfParseModule.PDFParse(file.buffer);
+              pdfData = await pdfParseModule.PDFParse(file.buffer, pdfOptions);
               console.log('[Document Upload] Used named export PDFParse');
             } catch (error: any) {
               console.log('[Document Upload] Named export PDFParse failed, trying fallback');
@@ -973,7 +976,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
             
             try {
-              pdfData = await parse(file.buffer);
+              pdfData = await parse(file.buffer, pdfOptions);
               console.log('[Document Upload] Direct call succeeded');
             } catch (classError: any) {
               if (classError.message && classError.message.includes('cannot be invoked without')) {
@@ -984,14 +987,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   // Try creating instance and calling as method
                   const instance = new parse();
                   if (typeof instance.parse === 'function') {
-                    pdfData = await instance.parse(file.buffer);
+                    pdfData = await instance.parse(file.buffer, pdfOptions);
                     console.log('[Document Upload] Used instance.parse() method');
                   } else if (typeof instance === 'function') {
-                    pdfData = await instance(file.buffer);
+                    pdfData = await instance(file.buffer, pdfOptions);
                     console.log('[Document Upload] Used instance as function');
                   } else {
                     // Try passing buffer to constructor (might return promise)
-                    const directInstance = new parse(file.buffer);
+                    const directInstance = new parse(file.buffer, pdfOptions);
                     // Check if it's a promise and await it
                     pdfData = directInstance && typeof directInstance.then === 'function' 
                       ? await directInstance 
