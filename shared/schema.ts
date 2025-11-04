@@ -115,6 +115,11 @@ export const insertChatbotSchema = createInsertSchema(chatbots).omit({
 export type InsertChatbot = z.infer<typeof insertChatbotSchema>;
 export type Chatbot = typeof chatbots.$inferSelect;
 
+// Public chatbot type with runtime-computed AI questions (not stored in DB)
+export type PublicChatbot = Chatbot & {
+  aiGeneratedQuestions?: string[];
+};
+
 // Conversations table - tracks conversation sessions
 export const conversations = pgTable("conversations", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),

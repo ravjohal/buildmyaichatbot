@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import type { Chatbot, ChatMessage } from "@shared/schema";
+import type { PublicChatbot, ChatMessage } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 
 export default function ChatWidget() {
@@ -54,21 +54,14 @@ export default function ChatWidget() {
   // Question rotation state - track current index for cycling through all 20 questions
   const [questionRotationIndex, setQuestionRotationIndex] = useState(0);
 
-  const { data: chatbot, isLoading, error } = useQuery<Chatbot>({
+  // Fetch chatbot config which now includes AI-generated questions
+  const { data: chatbot, isLoading, error } = useQuery<PublicChatbot>({
     queryKey: [`/api/public/chatbots/${chatbotId}`],
     enabled: !!chatbotId,
   });
   
-  // Fetch ALL suggested questions from database for rotation (up to 20)
-  // Use aggressive caching to prevent refetches during streaming
-  const { data: suggestedQuestionsData } = useQuery<{ questions: string[] }>({
-    queryKey: [`/api/chatbots/${chatbotId}/suggested-questions?count=20`],
-    enabled: !!chatbotId && chatbot?.enableSuggestedQuestions === "true",
-    staleTime: 5 * 60 * 1000, // Cache for 5 minutes (already set globally but being explicit)
-    gcTime: 10 * 60 * 1000, // Keep in cache for 10 minutes even when unmounted
-    refetchOnMount: false, // Don't refetch when component remounts
-    refetchOnReconnect: false, // Don't refetch on network reconnect
-  });
+  // Extract AI-generated questions from chatbot response (no separate API call needed!)
+  const aiGeneratedQuestions = chatbot?.aiGeneratedQuestions || [];
 
   // Determine which suggested questions to display with rotation
   // Memoized to prevent recalculating on every render (especially during streaming)
@@ -84,15 +77,15 @@ export default function ChatWidget() {
 
     // After user has interacted: show AI-generated questions if toggle is enabled
     if (hasUserInteracted) {
-      if (chatbot?.enableSuggestedQuestions === "true" && suggestedQuestionsData?.questions && suggestedQuestionsData.questions.length > 0) {
-        const totalQuestions = suggestedQuestionsData.questions.length;
+      if (chatbot?.enableSuggestedQuestions === "true" && aiGeneratedQuestions.length > 0) {
+        const totalQuestions = aiGeneratedQuestions.length;
         
         // Rotate through all questions, showing 2 at a time
         // Use modulo to wrap around when we reach the end
         const questions = [];
         for (let i = 0; i < 2; i++) {
           const index = (questionRotationIndex + i) % totalQuestions;
-          questions.push(suggestedQuestionsData.questions[index]);
+          questions.push(aiGeneratedQuestions[index]);
         }
         
         const calcTime = performance.now() - calcStart;
@@ -113,20 +106,20 @@ export default function ChatWidget() {
 
     // If no welcome questions, just show the hardcoded question
     return [HARDCODED_QUESTION];
-  }, [messages, chatbot, suggestedQuestionsData, questionRotationIndex]);
+  }, [messages, chatbot, aiGeneratedQuestions, questionRotationIndex]);
   
-  // Track suggested questions loading performance
+  // Track when AI questions are loaded (now from initial chatbot fetch)
   useEffect(() => {
-    if (suggestedQuestionsData?.questions) {
-      console.log(`[PERF-WIDGET] Suggested questions loaded: ${suggestedQuestionsData.questions.length} questions`);
+    if (aiGeneratedQuestions.length > 0) {
+      console.log(`[PERF-WIDGET] AI questions available: ${aiGeneratedQuestions.length} questions (from chatbot fetch - no separate API call!)`);
     }
-  }, [suggestedQuestionsData]);
+  }, [aiGeneratedQuestions]);
   
   console.log('[ChatWidget] isLoading:', isLoading);
   console.log('[ChatWidget] chatbot:', chatbot);
   console.log('[ChatWidget] error:', error);
   console.log('[ChatWidget] isStandalone:', isStandalone);
-  console.log('[ChatWidget] suggestedQuestions:', suggestedQuestionsData?.questions);
+  console.log('[ChatWidget] aiGeneratedQuestions:', aiGeneratedQuestions.length);
 
   // State for streaming responses
   const [isStreaming, setIsStreaming] = useState(false);
@@ -430,8 +423,8 @@ export default function ChatWidget() {
     setInputValue("");
     
     // Rotate questions for next display (advance by 2 since we show 2 at a time)
-    if (suggestedQuestionsData?.questions && suggestedQuestionsData.questions.length > 0) {
-      setQuestionRotationIndex((prev) => (prev + 2) % suggestedQuestionsData.questions.length);
+    if (aiGeneratedQuestions.length > 0) {
+      setQuestionRotationIndex((prev) => (prev + 2) % aiGeneratedQuestions.length);
     }
   };
 
@@ -456,8 +449,8 @@ export default function ChatWidget() {
     chatMutation.mutate(question);
     
     // Rotate questions for next display (advance by 2 since we show 2 at a time)
-    if (suggestedQuestionsData?.questions && suggestedQuestionsData.questions.length > 0) {
-      setQuestionRotationIndex((prev) => (prev + 2) % suggestedQuestionsData.questions.length);
+    if (aiGeneratedQuestions.length > 0) {
+      setQuestionRotationIndex((prev) => (prev + 2) % aiGeneratedQuestions.length);
     }
   };
 

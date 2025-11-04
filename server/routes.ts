@@ -321,6 +321,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get chatbot configuration for public widget (no auth required)
   app.get("/api/public/chatbots/:id", async (req, res) => {
     try {
+      const perfStart = Date.now();
+      
       // Get chatbot without userId check - this is for public widget embedding
       const chatbotResult = await db.select().from(chatbots).where(eq(chatbots.id, req.params.id)).limit(1);
       const chatbot = chatbotResult[0];
@@ -328,6 +330,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!chatbot) {
         return res.status(404).json({ error: "Chatbot not found" });
       }
+      
+      // Fetch AI-generated suggested questions if enabled (to avoid separate API call from widget)
+      let aiGeneratedQuestions: string[] = [];
+      if (chatbot.enableSuggestedQuestions === "true") {
+        const questionsStart = Date.now();
+        aiGeneratedQuestions = await storage.getRandomSuggestedQuestions(chatbot.id, 20);
+        const questionsTime = Date.now() - questionsStart;
+        console.log(`[PERF] Public chatbot API - suggested questions fetch: ${questionsTime}ms`);
+      }
+      
+      const totalTime = Date.now() - perfStart;
+      console.log(`[PERF] Public chatbot API: total=${totalTime}ms (includes questions if enabled)`);
       
       // Return only public-facing configuration (exclude sensitive data like userId, websiteContent, documents)
       const publicConfig = {
@@ -338,6 +352,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         accentColor: chatbot.accentColor,
         logoUrl: chatbot.logoUrl,
         suggestedQuestions: chatbot.suggestedQuestions,
+        aiGeneratedQuestions: aiGeneratedQuestions, // Include AI questions in initial response
         enableSuggestedQuestions: chatbot.enableSuggestedQuestions,
         supportPhoneNumber: chatbot.supportPhoneNumber,
         escalationMessage: chatbot.escalationMessage,
