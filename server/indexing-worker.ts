@@ -148,8 +148,12 @@ async function generateSuggestedQuestions(chatbotId: string): Promise<string[]> 
     
     // Get a larger sample of knowledge chunks to ensure comprehensive coverage
     // Sample up to 100 chunks from all indexed data for better diversity
+    // Only select needed columns to avoid fetching massive embedding vectors
     const chunks = await db
-      .select()
+      .select({
+        chunkText: knowledgeChunks.chunkText,
+        sourceTitle: knowledgeChunks.sourceTitle
+      })
       .from(knowledgeChunks)
       .where(eq(knowledgeChunks.chatbotId, chatbotId))
       .limit(100);
