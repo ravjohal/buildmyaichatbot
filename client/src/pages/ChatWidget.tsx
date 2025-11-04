@@ -24,15 +24,52 @@ export default function ChatWidget() {
   const isStandalone = window.self === window.top;
   
   const [isOpen, setIsOpen] = useState(isStandalone); // Auto-open for standalone
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  
+  // Generate or retrieve sessionId with localStorage key
+  const [sessionId] = useState(() => {
+    const storageKey = `chatbot-session-${chatbotId}`;
+    const stored = localStorage.getItem(storageKey);
+    if (stored) {
+      return stored;
+    }
+    const newSessionId = `widget-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    localStorage.setItem(storageKey, newSessionId);
+    return newSessionId;
+  });
+  
+  // Load persisted state from localStorage
+  const getStorageKey = (key: string) => `chatbot-${chatbotId}-${key}`;
+  
+  const [messages, setMessages] = useState<ChatMessage[]>(() => {
+    try {
+      const stored = localStorage.getItem(getStorageKey('messages'));
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
+  
   const [inputValue, setInputValue] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
-  const [sessionId] = useState(() => `widget-${Date.now()}-${Math.random().toString(36).slice(2)}`);
   
   // Lead capture state
   const [showLeadForm, setShowLeadForm] = useState(false);
-  const [leadCaptured, setLeadCaptured] = useState(false);
-  const [leadFormSkipped, setLeadFormSkipped] = useState(false);
+  const [leadCaptured, setLeadCaptured] = useState(() => {
+    try {
+      const stored = localStorage.getItem(getStorageKey('leadCaptured'));
+      return stored === 'true';
+    } catch {
+      return false;
+    }
+  });
+  const [leadFormSkipped, setLeadFormSkipped] = useState(() => {
+    try {
+      const stored = localStorage.getItem(getStorageKey('leadFormSkipped'));
+      return stored === 'true';
+    } catch {
+      return false;
+    }
+  });
   const [leadFormData, setLeadFormData] = useState({
     name: "",
     email: "",
@@ -44,15 +81,36 @@ export default function ChatWidget() {
   // Rating state
   const [showRating, setShowRating] = useState(false);
   const [rating, setRating] = useState(0);
-  const [hasRated, setHasRated] = useState(false);
-  const [conversationId, setConversationId] = useState<string | null>(null);
+  const [hasRated, setHasRated] = useState(() => {
+    try {
+      const stored = localStorage.getItem(getStorageKey('hasRated'));
+      return stored === 'true';
+    } catch {
+      return false;
+    }
+  });
+  const [conversationId, setConversationId] = useState<string | null>(() => {
+    try {
+      const stored = localStorage.getItem(getStorageKey('conversationId'));
+      return stored || null;
+    } catch {
+      return null;
+    }
+  });
   
   // Proactive popup state
   const [showProactivePopup, setShowProactivePopup] = useState(false);
   const proactiveTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Question rotation state - track current index for cycling through all 20 questions
-  const [questionRotationIndex, setQuestionRotationIndex] = useState(0);
+  const [questionRotationIndex, setQuestionRotationIndex] = useState(() => {
+    try {
+      const stored = localStorage.getItem(getStorageKey('questionRotationIndex'));
+      return stored ? parseInt(stored, 10) : 0;
+    } catch {
+      return 0;
+    }
+  });
 
   // Fetch chatbot config which now includes AI-generated questions
   const { data: chatbot, isLoading, error } = useQuery<PublicChatbot>({
@@ -312,6 +370,58 @@ export default function ChatWidget() {
       console.log(`[PERF-WIDGET] Mutation complete - suggested questions should now be visible`);
     }
   }, [chatMutation.isPending]);
+
+  // Persist messages to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem(getStorageKey('messages'), JSON.stringify(messages));
+    } catch (error) {
+      console.error('Failed to save messages to localStorage:', error);
+    }
+  }, [messages, chatbotId]);
+
+  // Persist other state to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem(getStorageKey('leadCaptured'), leadCaptured.toString());
+    } catch (error) {
+      console.error('Failed to save leadCaptured to localStorage:', error);
+    }
+  }, [leadCaptured, chatbotId]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(getStorageKey('leadFormSkipped'), leadFormSkipped.toString());
+    } catch (error) {
+      console.error('Failed to save leadFormSkipped to localStorage:', error);
+    }
+  }, [leadFormSkipped, chatbotId]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(getStorageKey('hasRated'), hasRated.toString());
+    } catch (error) {
+      console.error('Failed to save hasRated to localStorage:', error);
+    }
+  }, [hasRated, chatbotId]);
+
+  useEffect(() => {
+    try {
+      if (conversationId) {
+        localStorage.setItem(getStorageKey('conversationId'), conversationId);
+      }
+    } catch (error) {
+      console.error('Failed to save conversationId to localStorage:', error);
+    }
+  }, [conversationId, chatbotId]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(getStorageKey('questionRotationIndex'), questionRotationIndex.toString());
+    } catch (error) {
+      console.error('Failed to save questionRotationIndex to localStorage:', error);
+    }
+  }, [questionRotationIndex, chatbotId]);
 
   useEffect(() => {
     if (scrollRef.current) {
