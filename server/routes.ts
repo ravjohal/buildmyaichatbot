@@ -1654,7 +1654,7 @@ Generate 3 short, natural questions that would help the user learn more. Return 
               .map((chunk, idx) => {
                 const sourceUrl = chunk.sourceUrl || '';
                 const sourceTitle = chunk.sourceTitle || 'Website';
-                return `[Source ${idx + 1}: ${sourceUrl}]\nTitle: ${sourceTitle}\nContent: ${chunk.chunkText}`;
+                return `[Content from ${sourceUrl}]\nPage Title: ${sourceTitle}\n\n${chunk.chunkText}`;
               })
               .join('\n\n---\n\n');
             
@@ -1747,12 +1747,19 @@ User Question: ${message}
 
 IMPORTANT INSTRUCTIONS:
 1. Answer based on the knowledge base provided above
-2. When referencing where users can find information (e.g., "where to view floor plans", "where can I see X"), ONLY mention the source URLs - do NOT include the chunk content text in your response
+2. When citing sources or directing users to more information, ALWAYS use the complete URL (e.g., https://example.com/page), NEVER say "Source" or "Source 1" or reference numbered sources
 3. Keep responses concise and natural
 4. If you cannot find the answer in the knowledge base, politely let the user know and suggest they contact support${chatbot.supportPhoneNumber ? ` at ${chatbot.supportPhoneNumber}` : ""}
 
-Example of correct URL reference: "You can view floor plans at https://example.com/floor-plans"
-Example of incorrect reference: "You can view floor plans at [includes chunk content here]"`;
+CORRECT citation examples:
+✓ "You can learn more at https://example.com/about-us"
+✓ "Visit https://example.com/pricing for pricing details"
+✓ "See the floor plans at https://example.com/floor-plans"
+
+INCORRECT citation examples (NEVER do this):
+✗ "You can find this in Source"
+✗ "According to Source 1..."
+✗ "See Source for more details"`;
 
           // Stream the main response
           let fullResponse = "";
