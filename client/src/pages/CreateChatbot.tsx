@@ -227,8 +227,9 @@ export default function CreateChatbot() {
     }
   };
 
-  // Show completion screen only when done or if user chooses to skip waiting
-  if (createdChatbotId && (!indexingStatus || indexingStatus.status === 'completed' || indexingStatus.status === 'failed')) {
+  // Show completion screen immediately when chatbot is created
+  // The completion screen will display appropriate messaging based on indexing status
+  if (createdChatbotId) {
     return <StepComplete chatbotId={createdChatbotId} indexingStatus={indexingStatus} />;
   }
 
