@@ -132,13 +132,26 @@ export default function TestChatbot() {
 
   // Show static suggested questions after welcome message, or AI-generated ones after any assistant message
   const getDisplayedSuggestions = () => {
+    const HARDCODED_QUESTION = "How do I connect with a human?";
+    
+    // After welcome message: show welcome questions + hardcoded
     if (messages.length === 1 && chatbot.suggestedQuestions && chatbot.suggestedQuestions.length > 0) {
-      return chatbot.suggestedQuestions;
+      const welcomeQuestions = chatbot.suggestedQuestions.slice(0, 2);
+      return [...welcomeQuestions, HARDCODED_QUESTION];
     }
+    
+    // After AI response: show AI-generated questions + hardcoded
     const lastMessage = messages[messages.length - 1];
     if (lastMessage?.role === "assistant" && lastMessage.suggestedQuestions && lastMessage.suggestedQuestions.length > 0) {
-      return lastMessage.suggestedQuestions;
+      const aiQuestions = lastMessage.suggestedQuestions.slice(0, 2);
+      return [...aiQuestions, HARDCODED_QUESTION];
     }
+    
+    // If nothing else, show only the hardcoded question
+    if (messages.length > 0) {
+      return [HARDCODED_QUESTION];
+    }
+    
     return null;
   };
 

@@ -540,6 +540,7 @@ export default function ChatWidget() {
   const getDisplayedSuggestions = () => {
     const userMessages = messages.filter(m => m.role === "user");
     const hasUserInteracted = userMessages.length > 0;
+    const HARDCODED_QUESTION = "How do I connect with a human?";
 
     console.log('[ChatWidget] getDisplayedSuggestions called:', {
       hasUserInteracted,
@@ -553,21 +554,26 @@ export default function ChatWidget() {
     if (hasUserInteracted) {
       console.log('[ChatWidget] User has interacted, checking AI questions...');
       if (chatbot?.enableSuggestedQuestions === "true" && suggestedQuestionsData?.questions && suggestedQuestionsData.questions.length > 0) {
-        console.log('[ChatWidget] ✓ Returning AI-generated questions:', suggestedQuestionsData.questions.slice(0, 3));
-        return suggestedQuestionsData.questions.slice(0, 3);
+        const aiQuestions = suggestedQuestionsData.questions.slice(0, 2);
+        const questionsWithHardcoded = [...aiQuestions, HARDCODED_QUESTION];
+        console.log('[ChatWidget] ✓ Returning AI-generated questions + hardcoded:', questionsWithHardcoded);
+        return questionsWithHardcoded;
       }
-      console.log('[ChatWidget] ✗ No AI questions to show (toggle or data missing)');
-      // After interaction, don't show welcome questions anymore
-      return null;
+      console.log('[ChatWidget] ✗ No AI questions to show, returning only hardcoded question');
+      // After interaction, still show the hardcoded question even if no AI questions
+      return [HARDCODED_QUESTION];
     }
 
     // Initially (before user interaction): ALWAYS show welcome questions if available
     if (chatbot.suggestedQuestions && chatbot.suggestedQuestions.length > 0) {
-      console.log('[ChatWidget] Showing welcome questions:', chatbot.suggestedQuestions.slice(0, 3));
-      return chatbot.suggestedQuestions.slice(0, 3);
+      const welcomeQuestions = chatbot.suggestedQuestions.slice(0, 2);
+      const questionsWithHardcoded = [...welcomeQuestions, HARDCODED_QUESTION];
+      console.log('[ChatWidget] Showing welcome questions + hardcoded:', questionsWithHardcoded);
+      return questionsWithHardcoded;
     }
 
-    return null;
+    // If no welcome questions, just show the hardcoded question
+    return [HARDCODED_QUESTION];
   };
 
   const displayedSuggestions = getDisplayedSuggestions();
