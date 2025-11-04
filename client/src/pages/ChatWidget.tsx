@@ -536,12 +536,30 @@ export default function ChatWidget() {
     return null;
   }
 
-  // Show stored suggested questions from database
+  // Determine which suggested questions to display
   const getDisplayedSuggestions = () => {
-    // Only show if enabled and we have questions from the database
-    if (chatbot?.enableSuggestedQuestions === "true" && suggestedQuestionsData?.questions && suggestedQuestionsData.questions.length > 0) {
-      return suggestedQuestionsData.questions;
+    if (chatbot?.enableSuggestedQuestions !== "true") {
+      return null;
     }
+
+    const userMessages = messages.filter(m => m.role === "user");
+    const hasUserInteracted = userMessages.length > 0;
+
+    // After user has interacted AND we have AI-generated questions, show those
+    if (hasUserInteracted && suggestedQuestionsData?.questions && suggestedQuestionsData.questions.length > 0) {
+      return suggestedQuestionsData.questions.slice(0, 3);
+    }
+
+    // Initially (before user interaction), show user-defined questions
+    if (!hasUserInteracted && chatbot.suggestedQuestions && chatbot.suggestedQuestions.length > 0) {
+      return chatbot.suggestedQuestions.slice(0, 3);
+    }
+
+    // Fallback: if no user-defined questions, show AI-generated if available
+    if (suggestedQuestionsData?.questions && suggestedQuestionsData.questions.length > 0) {
+      return suggestedQuestionsData.questions.slice(0, 3);
+    }
+
     return null;
   };
 
