@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertChatbotSchema, insertLeadSchema, type ChatRequest, type ChatResponse, chatbots, conversations, conversationMessages, users, leads, urlCrawlMetadata, manualQaOverrides, conversationRatings } from "@shared/schema";
+import { insertChatbotSchema, insertLeadSchema, type ChatRequest, type ChatResponse, chatbots, conversations, conversationMessages, users, leads, urlCrawlMetadata, manualQaOverrides, conversationRatings, knowledgeChunks } from "@shared/schema";
 import { ZodError } from "zod";
 import { GoogleGenAI } from "@google/genai";
 import multer from "multer";
@@ -514,15 +514,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put("/api/chatbots/:id", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id;
+      const chatbotId = req.params.id;
       const validatedData = insertChatbotSchema.partial().parse(req.body);
       
       // Note: Custom colors and logo are available for all tiers per pricing structure
       // No tier restrictions needed here
       
-      // If websiteUrls are being updated, re-crawl them or clear content
+      // Get existing chatbot to compare knowledge sources
+      const existingChatbot = await storage.getChatbot(chatbotId, userId);
+      if (!existingChatbot) {
+        return res.status(404).json({ error: "Chatbot not found" });
+      }
+      
+      // Check if knowledge sources have actually changed
+      const urlsChanged = validatedData.websiteUrls !== undefined && 
+        JSON.stringify(validatedData.websiteUrls?.sort()) !== JSON.stringify((existingChatbot.websiteUrls || []).sort());
+      
+      const documentsChanged = validatedData.documentContent !== undefined &&
+        validatedData.documentContent !== existingChatbot.documentContent;
+      
+      // If websiteUrls have actually changed, re-crawl them or clear content
       let updateData = { ...validatedData };
-      if (validatedData.websiteUrls !== undefined) {
-        if (validatedData.websiteUrls.length > 0) {
+      if (urlsChanged) {
+        console.log(`[UPDATE] Knowledge sources changed - URLs modified`);
+        if (validatedData.websiteUrls && validatedData.websiteUrls.length > 0) {
           console.log(`Recursively re-crawling ${validatedData.websiteUrls.length} website(s) (max depth: 2, max pages: 200 per site)...`);
           const crawlResults = await crawlMultipleWebsitesRecursive(validatedData.websiteUrls, {
             maxDepth: 2,
@@ -575,7 +590,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                     return {
                       chatbotId,
                       sourceType: 'website' as const,
-                      sourceUrl: validatedData.websiteUrls[0] || 'Multiple URLs',
+                      sourceUrl: validatedData.websiteUrls?.[0] || 'Multiple URLs',
                       sourceTitle: existingChatbot?.name || 'Chatbot',
                       chunkText: chunk.text,
                       chunkIndex: chunk.index.toString(),
@@ -588,7 +603,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                     return {
                       chatbotId,
                       sourceType: 'website' as const,
-                      sourceUrl: validatedData.websiteUrls[0] || 'Multiple URLs',
+                      sourceUrl: validatedData.websiteUrls?.[0] || 'Multiple URLs',
                       sourceTitle: existingChatbot?.name || 'Chatbot',
                       chunkText: chunk.text,
                       chunkIndex: chunk.index.toString(),
@@ -620,6 +635,74 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const deletedCount = await storage.deleteChunksForChatbot(chatbotId);
           console.log(`[CHUNKS] Deleted ${deletedCount} chunks (URLs removed)`);
         }
+      }
+      
+      // Handle document content changes
+      if (documentsChanged) {
+        console.log(`[UPDATE] Knowledge sources changed - Documents modified`);
+        
+        // Delete old document chunks first
+        await db.delete(knowledgeChunks)
+          .where(and(
+            eq(knowledgeChunks.chatbotId, chatbotId),
+            eq(knowledgeChunks.sourceType, 'document')
+          ));
+        console.log(`[UPDATE] Deleted old document chunks`);
+        
+        // Create new chunks if document content exists
+        if (validatedData.documentContent && validatedData.documentContent.trim()) {
+          const { chunkContent } = await import('./chunker');
+          const { embeddingService } = await import('./embedding');
+          
+          const contentChunks = chunkContent(validatedData.documentContent, {
+            title: existingChatbot.name,
+          });
+          
+          console.log(`[UPDATE] Generated ${contentChunks.length} document chunks`);
+          
+          const chunksWithEmbeddings = await Promise.all(
+            contentChunks.map(async (chunk) => {
+              try {
+                const embedding = await embeddingService.generateEmbedding(chunk.text);
+                return {
+                  chatbotId,
+                  sourceType: 'document' as const,
+                  sourceUrl: 'Uploaded Document',
+                  sourceTitle: existingChatbot.name,
+                  chunkText: chunk.text,
+                  chunkIndex: chunk.index.toString(),
+                  contentHash: chunk.contentHash,
+                  embedding,
+                  metadata: chunk.metadata,
+                };
+              } catch (err) {
+                console.error(`[UPDATE] Failed to generate embedding for document chunk ${chunk.index}:`, err);
+                return {
+                  chatbotId,
+                  sourceType: 'document' as const,
+                  sourceUrl: 'Uploaded Document',
+                  sourceTitle: existingChatbot.name,
+                  chunkText: chunk.text,
+                  chunkIndex: chunk.index.toString(),
+                  contentHash: chunk.contentHash,
+                  metadata: chunk.metadata,
+                };
+              }
+            })
+          );
+          
+          await storage.createKnowledgeChunks(chunksWithEmbeddings);
+          console.log(`[UPDATE] ✓ Stored ${chunksWithEmbeddings.length} document chunks`);
+        }
+        
+        // Clear Q&A cache when documents change
+        const clearedCache = await storage.clearChatbotCache(chatbotId);
+        console.log(`[UPDATE] Cleared ${clearedCache} cached Q&A entries`);
+      }
+      
+      // Only log if knowledge sources haven't changed
+      if (!urlsChanged && !documentsChanged) {
+        console.log(`[UPDATE] No knowledge source changes detected - skipping reindex`);
       }
       
       const chatbot = await storage.updateChatbot(req.params.id, userId, updateData);
