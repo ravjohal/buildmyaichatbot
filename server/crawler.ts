@@ -348,10 +348,12 @@ async function extractPdfText(url: string): Promise<{ content: string; title: st
             .join(' ')
             .replace(/\\[nrt]/g, ' ') // Remove escape sequences
             .replace(/\s+/g, ' ') // Normalize whitespace
+            .replace(/[^\x20-\x7E\n\r\t]/g, '') // Remove non-printable/control chars (keep only ASCII 32-126 + newlines/tabs)
+            .replace(/\0/g, '') // Remove null bytes
             .trim();
           
           if (extractedText.length > 50) {
-            console.log(`[PDF Extractor] Basic extraction found ${extractedText.length} chars`);
+            console.log(`[PDF Extractor] Basic extraction found ${extractedText.length} chars (sanitized)`);
             const filename = new URL(url).pathname.split('/').pop() || 'PDF Document';
             return {
               content: extractedText,

@@ -1053,15 +1053,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
               
               if (textMatches && textMatches.length > 0) {
                 extractedText = textMatches
-                  .map(m => m.slice(1, -1)) // Remove parentheses
-                  .filter(t => t.length > 2 && /[a-zA-Z]/.test(t)) // Filter out junk
+                  .map((m: string) => m.slice(1, -1)) // Remove parentheses
+                  .filter((t: string) => t.length > 2 && /[a-zA-Z]/.test(t)) // Filter out junk
                   .join(' ')
                   .replace(/\\[nrt]/g, ' ') // Remove escape sequences
                   .replace(/\s+/g, ' ') // Normalize whitespace
+                  .replace(/[^\x20-\x7E\n\r\t]/g, '') // Remove non-printable/control chars (keep only ASCII 32-126 + newlines/tabs)
+                  .replace(/\0/g, '') // Remove null bytes
                   .trim();
                 
                 if (extractedText.length > 50) {
-                  console.log(`[Document Upload] Basic extraction found ${extractedText.length} chars`);
+                  console.log(`[Document Upload] Basic extraction found ${extractedText.length} chars (sanitized)`);
                 } else {
                   throw new Error('Basic extraction yielded insufficient text');
                 }
