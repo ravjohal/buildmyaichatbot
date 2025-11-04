@@ -996,12 +996,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   // Handle case where instance has 'doc' property instead of 'text'
                   if (pdfData && !pdfData.text && pdfData.doc) {
                     console.log('[Document Upload] Instance has doc property, extracting text from doc');
+                    console.log('[Document Upload] Doc structure:', typeof pdfData.doc === 'object' ? Object.keys(pdfData.doc) : typeof pdfData.doc);
+                    
                     // The doc property might contain the parsed PDF structure
                     // Try to extract text from common locations
                     if (pdfData.doc.text) {
+                      // Standard case: doc.text exists
                       pdfData = { text: pdfData.doc.text, numpages: pdfData.doc.numpages };
                     } else if (typeof pdfData.doc === 'string') {
+                      // Edge case: doc itself is the text
                       pdfData = { text: pdfData.doc };
+                    } else if (pdfData.doc && typeof pdfData.doc === 'object') {
+                      // Deep inspection: look for text in nested properties
+                      const textContent = pdfData.doc.Pages?.Text || 
+                                         pdfData.doc.pages?.text || 
+                                         pdfData.doc.content?.text ||
+                                         pdfData.doc.data?.text ||
+                                         pdfData.doc.result?.text;
+                      
+                      if (textContent) {
+                        pdfData = { text: textContent };
+                        console.log('[Document Upload] Found text in nested doc property');
+                      } else {
+                        // Last resort: try to stringify and search for text content
+                        console.log('[Document Upload] Unable to locate text in doc, attempting deep search...');
+                        const docStr = JSON.stringify(pdfData.doc);
+                        console.log('[Document Upload] Doc preview:', docStr.substring(0, 200));
+                        
+                        // If doc contains any text-like content, it might be unusable
+                        // Leave pdfData as-is and let the error handler below catch it
+                      }
                     }
                   }
                 } catch (instError: any) {
