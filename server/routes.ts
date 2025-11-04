@@ -991,6 +991,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
                     ? await directInstance 
                     : directInstance;
                   console.log('[Document Upload] Used constructor with buffer and options');
+                  
+                  // Handle case where instance has 'doc' property instead of 'text'
+                  if (pdfData && !pdfData.text && pdfData.doc) {
+                    console.log('[Document Upload] Instance has doc property, extracting text from doc');
+                    // The doc property might contain the parsed PDF structure
+                    // Try to extract text from common locations
+                    if (pdfData.doc.text) {
+                      pdfData = { text: pdfData.doc.text, numpages: pdfData.doc.numpages };
+                    } else if (typeof pdfData.doc === 'string') {
+                      pdfData = { text: pdfData.doc };
+                    }
+                  }
                 } catch (instError: any) {
                   console.error('[Document Upload] Class instantiation failed:', instError.message);
                   throw instError;

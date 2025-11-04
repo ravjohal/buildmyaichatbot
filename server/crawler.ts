@@ -254,6 +254,18 @@ async function extractPdfText(url: string): Promise<{ content: string; title: st
               ? await directInstance 
               : directInstance;
             console.log('[PDF Extractor] Used constructor with buffer and options');
+            
+            // Handle case where instance has 'doc' property instead of 'text'
+            if (pdfData && !pdfData.text && pdfData.doc) {
+              console.log('[PDF Extractor] Instance has doc property, extracting text from doc');
+              // The doc property might contain the parsed PDF structure
+              // Try to extract text from common locations
+              if (pdfData.doc.text) {
+                pdfData = { text: pdfData.doc.text, numpages: pdfData.doc.numpages };
+              } else if (typeof pdfData.doc === 'string') {
+                pdfData = { text: pdfData.doc };
+              }
+            }
           } catch (instError: any) {
             console.error('[PDF Extractor] Class instantiation failed:', instError.message);
             throw instError;
