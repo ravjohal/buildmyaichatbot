@@ -64,6 +64,45 @@ export default function ChatWidget() {
     queryKey: [`/api/chatbots/${chatbotId}/suggested-questions?count=20`],
     enabled: !!chatbotId && chatbot?.enableSuggestedQuestions === "true",
   });
+
+  // Determine which suggested questions to display with rotation
+  // Memoized to prevent recalculating on every render (especially during streaming)
+  // MUST be declared before any conditional returns (React hooks rule)
+  const displayedSuggestions = useMemo(() => {
+    if (!chatbot) return ["How do I connect with a human?"];
+    
+    const userMessages = messages.filter(m => m.role === "user");
+    const hasUserInteracted = userMessages.length > 0;
+    const HARDCODED_QUESTION = "How do I connect with a human?";
+
+    // After user has interacted: show AI-generated questions if toggle is enabled
+    if (hasUserInteracted) {
+      if (chatbot?.enableSuggestedQuestions === "true" && suggestedQuestionsData?.questions && suggestedQuestionsData.questions.length > 0) {
+        const totalQuestions = suggestedQuestionsData.questions.length;
+        
+        // Rotate through all questions, showing 2 at a time
+        // Use modulo to wrap around when we reach the end
+        const questions = [];
+        for (let i = 0; i < 2; i++) {
+          const index = (questionRotationIndex + i) % totalQuestions;
+          questions.push(suggestedQuestionsData.questions[index]);
+        }
+        
+        return [...questions, HARDCODED_QUESTION];
+      }
+      // After interaction, still show the hardcoded question even if no AI questions
+      return [HARDCODED_QUESTION];
+    }
+
+    // Initially (before user interaction): ALWAYS show welcome questions if available
+    if (chatbot.suggestedQuestions && chatbot.suggestedQuestions.length > 0) {
+      const welcomeQuestions = chatbot.suggestedQuestions.slice(0, 2);
+      return [...welcomeQuestions, HARDCODED_QUESTION];
+    }
+
+    // If no welcome questions, just show the hardcoded question
+    return [HARDCODED_QUESTION];
+  }, [messages, chatbot, suggestedQuestionsData, questionRotationIndex]);
   
   console.log('[ChatWidget] isLoading:', isLoading);
   console.log('[ChatWidget] chatbot:', chatbot);
@@ -548,42 +587,6 @@ export default function ChatWidget() {
   if (isLoading || !chatbot) {
     return null;
   }
-
-  // Determine which suggested questions to display with rotation
-  // Memoized to prevent recalculating on every render (especially during streaming)
-  const displayedSuggestions = useMemo(() => {
-    const userMessages = messages.filter(m => m.role === "user");
-    const hasUserInteracted = userMessages.length > 0;
-    const HARDCODED_QUESTION = "How do I connect with a human?";
-
-    // After user has interacted: show AI-generated questions if toggle is enabled
-    if (hasUserInteracted) {
-      if (chatbot?.enableSuggestedQuestions === "true" && suggestedQuestionsData?.questions && suggestedQuestionsData.questions.length > 0) {
-        const totalQuestions = suggestedQuestionsData.questions.length;
-        
-        // Rotate through all questions, showing 2 at a time
-        // Use modulo to wrap around when we reach the end
-        const questions = [];
-        for (let i = 0; i < 2; i++) {
-          const index = (questionRotationIndex + i) % totalQuestions;
-          questions.push(suggestedQuestionsData.questions[index]);
-        }
-        
-        return [...questions, HARDCODED_QUESTION];
-      }
-      // After interaction, still show the hardcoded question even if no AI questions
-      return [HARDCODED_QUESTION];
-    }
-
-    // Initially (before user interaction): ALWAYS show welcome questions if available
-    if (chatbot.suggestedQuestions && chatbot.suggestedQuestions.length > 0) {
-      const welcomeQuestions = chatbot.suggestedQuestions.slice(0, 2);
-      return [...welcomeQuestions, HARDCODED_QUESTION];
-    }
-
-    // If no welcome questions, just show the hardcoded question
-    return [HARDCODED_QUESTION];
-  }, [messages, chatbot, suggestedQuestionsData, questionRotationIndex]);
 
   // Render full-page chat for standalone mode
   if (isStandalone) {
