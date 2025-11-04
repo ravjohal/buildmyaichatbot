@@ -249,10 +249,21 @@ async function extractPdfText(url: string): Promise<{ content: string; title: st
           try {
             // Try passing buffer and options to constructor (most common pattern)
             const directInstance = new parse(buffer, pdfOptions);
+            console.log('[PDF Extractor] Instance created, checking for methods...');
+            console.log('[PDF Extractor] Instance keys:', Object.keys(directInstance));
+            console.log('[PDF Extractor] Instance has parse method?', typeof directInstance.parse === 'function');
+            
             // Check if it's a promise and await it
             pdfData = directInstance && typeof directInstance.then === 'function' 
               ? await directInstance 
               : directInstance;
+            
+            // Try calling .parse() method if it exists
+            if (!pdfData.text && typeof directInstance.parse === 'function') {
+              console.log('[PDF Extractor] Trying to call instance.parse() method...');
+              pdfData = await directInstance.parse();
+            }
+            
             console.log('[PDF Extractor] Used constructor with buffer and options');
             console.log('[PDF Extractor] pdfData.text exists?', !!pdfData?.text, 'pdfData.doc exists?', !!pdfData?.doc);
             console.log('[PDF Extractor] pdfData.text value:', pdfData?.text);
@@ -260,8 +271,8 @@ async function extractPdfText(url: string): Promise<{ content: string; title: st
             console.log('[PDF Extractor] pdfData.doc value:', pdfData?.doc);
             
             // Handle case where instance has 'doc' property instead of 'text'
-            // Changed condition to check if doc property exists (even if falsy)
-            if (pdfData && !pdfData.text && 'doc' in pdfData) {
+            // Check if doc property exists AND is defined (not null/undefined)
+            if (pdfData && !pdfData.text && pdfData.doc !== undefined && pdfData.doc !== null) {
               console.log('[PDF Extractor] Instance has doc property, extracting text from doc');
               console.log('[PDF Extractor] Doc structure:', typeof pdfData.doc === 'object' ? Object.keys(pdfData.doc) : typeof pdfData.doc);
               

@@ -1,0 +1,28 @@
+WORKER] Job has 1 tasks
+[WORKER] Processing task 46236b4d-0aca-4b95-a237-17a412a488be: website - https://www.rurkahomes.com/images/RurkaCaliforniaWarranty.pdf
+[WORKER] Recursively crawling website: https://www.rurkahomes.com/images/RurkaCaliforniaWarranty.pdf (max depth: 2, max pages: 200)
+[Crawler] Detected PDF: https://www.rurkahomes.com/images/RurkaCaliforniaWarranty.pdf
+[PDF Extractor] Fetching PDF from: https://www.rurkahomes.com/images/RurkaCaliforniaWarranty.pdf
+[PDF Extractor] PDF downloaded, size: 240891 bytes
+[PDF Extractor] Named export PDFParse failed, trying fallback
+[PDF Extractor] Detected class constructor, instantiating with arguments...
+[PDF Extractor] Used constructor with buffer and options
+[PDF Extractor] pdfData.text exists? false pdfData.doc exists? false
+[PDF Extractor] pdfData.text value: undefined
+[PDF Extractor] pdfData.doc type: undefined
+[PDF Extractor] pdfData.doc value: undefined
+[PDF Extractor] Instance has doc property, extracting text from doc
+[PDF Extractor] Doc structure: undefined
+[PDF Extractor] Class instantiation failed: Cannot read properties of undefined (reading 'text')
+[PDF Extractor] Error extracting PDF: TypeError: Cannot read properties of undefined (reading 'text')
+    at extractPdfText (/home/runner/workspace/server/crawler.ts:270:31)
+    at async crawlWebsiteRecursive (/home/runner/workspace/server/crawler.ts:374:27)
+    at async crawlMultipleWebsitesRecursive (/home/runner/workspace/server/crawler.ts:468:21)
+    at async processIndexingTask (/home/runner/workspace/server/indexing-worker.ts:250:28)
+    at async processIndexingJob (/home/runner/workspace/server/indexing-worker.ts:472:9)
+    at async processIndexingJobWithTimeout (/home/runner/workspace/server/indexing-worker.ts:558:5)
+    at async workerLoop (/home/runner/workspace/server/indexing-worker.ts:630:9)
+[WORKER] Crawled 1 pages from https://www.rurkahomes.com/images/RurkaCaliforniaWarranty.pdf
+[WORKER] Task 46236b4d-0aca-4b95-a237-17a412a488be failed: All crawled pages were empty or had errors
+[WORKER] Will retry task 46236b4d-0aca-4b95-a237-17a412a488be (attempt 1/3)
+[WORKER] Job progress: 0/1 completed, 0 failed, 0 cancelled
