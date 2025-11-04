@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { MessageCircle, X, Send, Bot, Phone, UserPlus, Mail as MailIcon, Building2, Star } from "lucide-react";
 import { useRoute } from "wouter";
@@ -550,23 +550,14 @@ export default function ChatWidget() {
   }
 
   // Determine which suggested questions to display with rotation
-  const getDisplayedSuggestions = () => {
+  // Memoized to prevent recalculating on every render (especially during streaming)
+  const displayedSuggestions = useMemo(() => {
     const userMessages = messages.filter(m => m.role === "user");
     const hasUserInteracted = userMessages.length > 0;
     const HARDCODED_QUESTION = "How do I connect with a human?";
 
-    console.log('[ChatWidget] getDisplayedSuggestions called:', {
-      hasUserInteracted,
-      enableSuggestedQuestions: chatbot?.enableSuggestedQuestions,
-      hasSuggestedQuestionsData: !!suggestedQuestionsData?.questions,
-      questionsCount: suggestedQuestionsData?.questions?.length || 0,
-      welcomeQuestions: chatbot.suggestedQuestions?.length || 0,
-      questionRotationIndex,
-    });
-
     // After user has interacted: show AI-generated questions if toggle is enabled
     if (hasUserInteracted) {
-      console.log('[ChatWidget] User has interacted, checking AI questions...');
       if (chatbot?.enableSuggestedQuestions === "true" && suggestedQuestionsData?.questions && suggestedQuestionsData.questions.length > 0) {
         const totalQuestions = suggestedQuestionsData.questions.length;
         
@@ -578,11 +569,8 @@ export default function ChatWidget() {
           questions.push(suggestedQuestionsData.questions[index]);
         }
         
-        const questionsWithHardcoded = [...questions, HARDCODED_QUESTION];
-        console.log('[ChatWidget] ✓ Returning rotated AI-generated questions (index:', questionRotationIndex, '):', questionsWithHardcoded);
-        return questionsWithHardcoded;
+        return [...questions, HARDCODED_QUESTION];
       }
-      console.log('[ChatWidget] ✗ No AI questions to show, returning only hardcoded question');
       // After interaction, still show the hardcoded question even if no AI questions
       return [HARDCODED_QUESTION];
     }
@@ -590,16 +578,12 @@ export default function ChatWidget() {
     // Initially (before user interaction): ALWAYS show welcome questions if available
     if (chatbot.suggestedQuestions && chatbot.suggestedQuestions.length > 0) {
       const welcomeQuestions = chatbot.suggestedQuestions.slice(0, 2);
-      const questionsWithHardcoded = [...welcomeQuestions, HARDCODED_QUESTION];
-      console.log('[ChatWidget] Showing welcome questions + hardcoded:', questionsWithHardcoded);
-      return questionsWithHardcoded;
+      return [...welcomeQuestions, HARDCODED_QUESTION];
     }
 
     // If no welcome questions, just show the hardcoded question
     return [HARDCODED_QUESTION];
-  };
-
-  const displayedSuggestions = getDisplayedSuggestions();
+  }, [messages, chatbot, suggestedQuestionsData, questionRotationIndex]);
 
   // Render full-page chat for standalone mode
   if (isStandalone) {
