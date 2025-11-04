@@ -34,7 +34,7 @@ export function chunkContent(
   const chunks: ContentChunk[] = [];
   
   // Split content by double newlines (paragraphs)
-  const paragraphs = content
+  let paragraphs = content
     .split(/\n\n+/)
     .map(p => p.trim())
     .filter(p => p.length > 0);
@@ -42,6 +42,33 @@ export function chunkContent(
   if (paragraphs.length === 0) {
     return [];
   }
+
+  // Handle large paragraphs that need to be split further
+  // This is common with PDF extractions that have poor formatting
+  const processedParagraphs: string[] = [];
+  for (const para of paragraphs) {
+    if (para.length > maxChunkSize) {
+      // Split by sentences first
+      const sentences = para.split(/[.!?]+\s+/).filter(s => s.trim().length > 0);
+      
+      if (sentences.length > 1) {
+        // If we have multiple sentences, use them as sub-paragraphs
+        processedParagraphs.push(...sentences.map(s => s.trim() + '.'));
+      } else {
+        // No sentence breaks, split by character count as last resort
+        for (let i = 0; i < para.length; i += maxChunkSize - overlap) {
+          const chunk = para.substring(i, i + maxChunkSize);
+          if (chunk.trim().length > 0) {
+            processedParagraphs.push(chunk.trim());
+          }
+        }
+      }
+    } else {
+      processedParagraphs.push(para);
+    }
+  }
+  
+  paragraphs = processedParagraphs;
 
   let currentChunk = '';
   let chunkIndex = 0;
