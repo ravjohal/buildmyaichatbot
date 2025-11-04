@@ -1173,13 +1173,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
         conversation = newConv[0];
       }
 
-      // Build knowledge base context
+      // Build knowledge base context - USE CHUNK-BASED RETRIEVAL if available
       let knowledgeContext = "";
-      if (chatbot.websiteContent) {
-        knowledgeContext += `Website Content:\n${chatbot.websiteContent}\n\n`;
-      }
-      if (chatbot.documentContent) {
-        knowledgeContext += `Document Content:\n${chatbot.documentContent}\n\n`;
+      let usingChunks = false;
+      
+      // Check if chunks are available for this chatbot
+      const chunkCount = await storage.countChunksForChatbot(chatbotId);
+      
+      if (chunkCount > 0) {
+        // Use chunk-based retrieval for efficient, targeted context
+        console.log(`[NON-STREAMING] Using chunk-based retrieval (${chunkCount} chunks available)`);
+        usingChunks = true;
+        // Chunks will be retrieved after we generate the question embedding
+      } else {
+        // FALLBACK: Use truncated full content
+        console.log(`[NON-STREAMING] No chunks available, using truncated full content`);
+        const MAX_KNOWLEDGE_SIZE = 8000;
+        
+        if (chatbot.websiteContent) {
+          const websitePreview = chatbot.websiteContent.substring(0, MAX_KNOWLEDGE_SIZE / 2);
+          knowledgeContext += `Website Content:\n${websitePreview}\n\n`;
+        }
+        if (chatbot.documentContent) {
+          const docPreview = chatbot.documentContent.substring(0, MAX_KNOWLEDGE_SIZE / 2);
+          knowledgeContext += `Document Content:\n${docPreview}\n\n`;
+        }
       }
 
       // Build conversation history for context
@@ -1260,6 +1278,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
         } else {
         // Cache miss - call LLM
         console.log(`[CACHE MISS] Calling LLM for question hash: ${questionHash}`);
+        
+        // Retrieve relevant chunks if using chunk-based retrieval and we have embedding
+        if (usingChunks && questionEmbedding) {
+          try {
+            const relevantChunks = await storage.getTopKRelevantChunks(chatbotId, questionEmbedding, 5);
+            
+            if (relevantChunks && relevantChunks.length > 0) {
+              console.log(`[NON-STREAMING] Retrieved ${relevantChunks.length} relevant chunks`);
+              
+              // Build context from relevant chunks with clear URL references
+              knowledgeContext = relevantChunks
+                .map((chunk, idx) => {
+                  const sourceUrl = chunk.sourceUrl || '';
+                  const sourceTitle = chunk.sourceTitle || 'Website';
+                  return `[Source ${idx + 1}: ${sourceUrl}]\nTitle: ${sourceTitle}\nContent: ${chunk.chunkText}`;
+                })
+                .join('\n\n---\n\n');
+              
+              console.log(`[NON-STREAMING] Knowledge context size: ${knowledgeContext.length} characters`);
+            } else {
+              console.log(`[NON-STREAMING] No relevant chunks found, using fallback content`);
+            }
+          } catch (error) {
+            console.error("[NON-STREAMING] Error retrieving chunks:", error);
+          }
+        }
         
         // Create the full prompt for the main response
         const fullPrompt = `${chatbot.systemPrompt}
