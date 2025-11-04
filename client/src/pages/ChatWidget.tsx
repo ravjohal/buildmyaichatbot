@@ -541,17 +541,29 @@ export default function ChatWidget() {
     const userMessages = messages.filter(m => m.role === "user");
     const hasUserInteracted = userMessages.length > 0;
 
+    console.log('[ChatWidget] getDisplayedSuggestions called:', {
+      hasUserInteracted,
+      enableSuggestedQuestions: chatbot?.enableSuggestedQuestions,
+      hasSuggestedQuestionsData: !!suggestedQuestionsData?.questions,
+      questionsCount: suggestedQuestionsData?.questions?.length || 0,
+      welcomeQuestions: chatbot.suggestedQuestions?.length || 0,
+    });
+
     // After user has interacted: show AI-generated questions if toggle is enabled
     if (hasUserInteracted) {
+      console.log('[ChatWidget] User has interacted, checking AI questions...');
       if (chatbot?.enableSuggestedQuestions === "true" && suggestedQuestionsData?.questions && suggestedQuestionsData.questions.length > 0) {
+        console.log('[ChatWidget] ✓ Returning AI-generated questions:', suggestedQuestionsData.questions.slice(0, 3));
         return suggestedQuestionsData.questions.slice(0, 3);
       }
+      console.log('[ChatWidget] ✗ No AI questions to show (toggle or data missing)');
       // After interaction, don't show welcome questions anymore
       return null;
     }
 
     // Initially (before user interaction): ALWAYS show welcome questions if available
     if (chatbot.suggestedQuestions && chatbot.suggestedQuestions.length > 0) {
+      console.log('[ChatWidget] Showing welcome questions:', chatbot.suggestedQuestions.slice(0, 3));
       return chatbot.suggestedQuestions.slice(0, 3);
     }
 
