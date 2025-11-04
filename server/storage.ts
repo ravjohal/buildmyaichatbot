@@ -1164,6 +1164,8 @@ export class DbStorage implements IStorage {
   }
 
   async getRandomSuggestedQuestions(chatbotId: string, count: number = 3): Promise<string[]> {
+    const queryStart = Date.now();
+    
     // When fetching all/most questions (count >= 10), skip randomization for better performance
     // The frontend rotation system will handle variety
     const useRandom = count < 10;
@@ -1182,6 +1184,9 @@ export class DbStorage implements IStorage {
     const result = useRandom 
       ? await query.orderBy(sql`RANDOM()`)
       : await query.orderBy(chatbotSuggestedQuestions.id);
+    
+    const queryTime = Date.now() - queryStart;
+    console.log(`[PERF-DB] getRandomSuggestedQuestions: ${queryTime}ms (count=${count}, useRandom=${useRandom}, results=${result.length})`);
     
     return result.map(r => r.questionText);
   }

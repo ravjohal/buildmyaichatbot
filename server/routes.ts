@@ -2150,18 +2150,27 @@ Generate 3 short, natural questions that would help the user learn more. Return 
 
   // Get suggested questions for a chatbot (public - for widget use)
   app.get("/api/chatbots/:id/suggested-questions", async (req, res) => {
+    const perfStart = Date.now();
     try {
       const chatbotId = req.params.id;
       const count = parseInt(req.query.count as string) || 3;
       
       // Verify chatbot exists (no auth required - this is public for widget use)
+      const chatbotLookupStart = Date.now();
       const chatbot = await storage.getChatbotById(chatbotId);
+      const chatbotLookupTime = Date.now() - chatbotLookupStart;
+      
       if (!chatbot) {
         return res.status(404).json({ error: "Chatbot not found" });
       }
       
       // Get suggested questions (allow up to 20 for rotation system)
+      const questionsQueryStart = Date.now();
       const questions = await storage.getRandomSuggestedQuestions(chatbotId, Math.min(count, 20));
+      const questionsQueryTime = Date.now() - questionsQueryStart;
+      
+      const totalTime = Date.now() - perfStart;
+      console.log(`[PERF] Suggested questions API: total=${totalTime}ms (chatbot_lookup=${chatbotLookupTime}ms, questions_query=${questionsQueryTime}ms, count=${questions.length})`);
       
       res.json({ questions });
     } catch (error) {
