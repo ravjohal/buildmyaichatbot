@@ -1,6 +1,13 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, timestamp, index, jsonb, vector } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, timestamp, index, jsonb, vector, customType } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
+
+// Custom type for PostgreSQL tsvector
+const tsvector = customType<{ data: string }>({
+  dataType() {
+    return "tsvector";
+  },
+});
 import { z } from "zod";
 
 // Session storage table (required for Replit Auth)
@@ -306,6 +313,7 @@ export const knowledgeChunks = pgTable("knowledge_chunks", {
   chunkIndex: text("chunk_index").notNull(), // Position in source (0, 1, 2, ...)
   contentHash: text("content_hash").notNull(), // MD5 hash for change detection
   embedding: vector("embedding", { dimensions: 384 }), // Semantic embedding for retrieval
+  searchVector: tsvector("search_vector"), // Full-text search vector for lexical retrieval
   metadata: jsonb("metadata"), // Additional info: { headings: [], keywords: [], etc. }
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),

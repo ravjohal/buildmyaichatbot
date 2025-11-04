@@ -1692,10 +1692,11 @@ Generate 3 short, natural questions that would help the user learn more. Return 
       let chunksRetrievedSuccessfully = false;
       if (usingChunks && questionEmbedding) {
         try {
-          const relevantChunks = await storage.getTopKRelevantChunks(chatbotId, questionEmbedding, 5);
+          // Use hybrid retrieval (semantic + lexical) for better accuracy on specific terms
+          const relevantChunks = await storage.getHybridRelevantChunks(chatbotId, message, questionEmbedding, 6);
           
           if (relevantChunks.length > 0) {
-            console.log(`[STREAMING] Retrieved ${relevantChunks.length} relevant chunks for question`);
+            console.log(`[STREAMING] Hybrid retrieval found ${relevantChunks.length} relevant chunks`);
             
             // Debug: Log chunk lengths
             relevantChunks.forEach((chunk, idx) => {

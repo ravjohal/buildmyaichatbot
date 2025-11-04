@@ -61,6 +61,7 @@ export interface IStorage {
   // Knowledge Chunk operations (Phase 2)
   createKnowledgeChunks(chunks: InsertKnowledgeChunk[]): Promise<KnowledgeChunk[]>;
   getTopKRelevantChunks(chatbotId: string, questionEmbedding: number[], k?: number): Promise<KnowledgeChunk[]>;
+  getHybridRelevantChunks(chatbotId: string, question: string, questionEmbedding: number[], k?: number): Promise<KnowledgeChunk[]>;
   deleteChunksForChatbot(chatbotId: string): Promise<number>;
   deleteChunksForSource(chatbotId: string, sourceUrl: string): Promise<number>;
   countChunksForChatbot(chatbotId: string): Promise<number>;
@@ -758,6 +759,103 @@ export class DbStorage implements IStorage {
     );
     
     return result.rows as KnowledgeChunk[];
+  }
+
+  async getHybridRelevantChunks(
+    chatbotId: string,
+    question: string,
+    questionEmbedding: number[],
+    k: number = 6
+  ): Promise<KnowledgeChunk[]> {
+    const embeddingStr = `[${questionEmbedding.join(',')}]`;
+    
+    // Hybrid retrieval: Combine semantic (vector) + lexical (full-text) search
+    // Get top-k from each method, merge and deduplicate, return best k results
+    const result = await db.execute(
+      sql`
+        WITH semantic_results AS (
+          SELECT 
+            id,
+            chatbot_id as "chatbotId",
+            source_type as "sourceType",
+            source_url as "sourceUrl",
+            source_title as "sourceTitle",
+            chunk_text as "chunkText",
+            chunk_index as "chunkIndex",
+            content_hash as "contentHash",
+            embedding,
+            metadata,
+            created_at as "createdAt",
+            updated_at as "updatedAt",
+            (embedding <=> ${embeddingStr}::vector) as semantic_score,
+            0 as lexical_score
+          FROM ${knowledgeChunks}
+          WHERE chatbot_id = ${chatbotId}
+            AND embedding IS NOT NULL
+          ORDER BY embedding <=> ${embeddingStr}::vector
+          LIMIT 12
+        ),
+        lexical_results AS (
+          SELECT 
+            id,
+            chatbot_id as "chatbotId",
+            source_type as "sourceType",
+            source_url as "sourceUrl",
+            source_title as "sourceTitle",
+            chunk_text as "chunkText",
+            chunk_index as "chunkIndex",
+            content_hash as "contentHash",
+            embedding,
+            metadata,
+            created_at as "createdAt",
+            updated_at as "updatedAt",
+            1.0 as semantic_score,
+            ts_rank(search_vector, plainto_tsquery('english', ${question})) as lexical_score
+          FROM ${knowledgeChunks}
+          WHERE chatbot_id = ${chatbotId}
+            AND search_vector IS NOT NULL
+            AND search_vector @@ plainto_tsquery('english', ${question})
+          ORDER BY ts_rank(search_vector, plainto_tsquery('english', ${question})) DESC
+          LIMIT 12
+        ),
+        combined AS (
+          SELECT * FROM semantic_results
+          UNION
+          SELECT * FROM lexical_results
+        )
+        SELECT DISTINCT ON (id)
+          id,
+          "chatbotId",
+          "sourceType",
+          "sourceUrl",
+          "sourceTitle",
+          "chunkText",
+          "chunkIndex",
+          "contentHash",
+          embedding,
+          metadata,
+          "createdAt",
+          "updatedAt",
+          -- Normalize and combine scores (lower semantic_score is better, higher lexical_score is better)
+          ((1.0 - semantic_score) * 0.6 + lexical_score * 0.4) as combined_score
+        FROM combined
+        ORDER BY id, combined_score DESC
+        LIMIT ${k * 4}
+      `
+    );
+    
+    // Take top k by combined score
+    const rankedChunks = (result.rows as any[])
+      .sort((a, b) => b.combined_score - a.combined_score)
+      .slice(0, k)
+      .map(row => {
+        // Remove the combined_score before returning
+        const { combined_score, ...chunk } = row;
+        console.log(`[HYBRID] Chunk ${chunk.id.substring(0, 8)}: combined_score=${combined_score.toFixed(3)}`);
+        return chunk as KnowledgeChunk;
+      });
+    
+    return rankedChunks;
   }
 
   async deleteChunksForChatbot(chatbotId: string): Promise<number> {

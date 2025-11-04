@@ -25,7 +25,7 @@ export function chunkContent(
   } = {}
 ): ContentChunk[] {
   const {
-    maxChunkSize = 1000, // ~200-250 words
+    maxChunkSize = 800,  // ~160-200 words (better for precise retrieval)
     minChunkSize = 200,   // ~40-50 words
     overlap = 100,        // ~20 words overlap
     title,
@@ -170,6 +170,7 @@ function isLowQualityChunk(text: string): boolean {
 function createChunk(text: string, index: number, title?: string): ContentChunk {
   const contentHash = calculateHash(text);
   const headings = extractHeadings(text);
+  const keywords = extractKeywords(text);
   
   return {
     text,
@@ -178,6 +179,7 @@ function createChunk(text: string, index: number, title?: string): ContentChunk 
     metadata: {
       title,
       headings: headings.length > 0 ? headings : undefined,
+      keywords: keywords.length > 0 ? keywords : undefined,
     },
   };
 }
@@ -208,6 +210,76 @@ function extractHeadings(text: string): string[] {
 }
 
 /**
+ * Extract important keywords from text for lexical search
+ * Focuses on nouns, capitalized terms, and domain-specific words
+ */
+function extractKeywords(text: string): string[] {
+  const keywords = new Set<string>();
+  
+  // Common stop words to ignore
+  const stopWords = new Set([
+    'the', 'is', 'at', 'which', 'on', 'and', 'or', 'to', 'for', 'of', 'in', 'a', 'an',
+    'with', 'by', 'from', 'as', 'this', 'that', 'it', 'be', 'are', 'was', 'were',
+    'will', 'would', 'should', 'could', 'may', 'might', 'can', 'have', 'has', 'had'
+  ]);
+  
+  // Extract capitalized words (likely proper nouns or important terms)
+  const capitalizedMatches = text.match(/\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\b/g) || [];
+  capitalizedMatches.forEach(word => {
+    const clean = word.toLowerCase().trim();
+    if (clean.length > 2 && !stopWords.has(clean)) {
+      keywords.add(clean);
+    }
+  });
+  
+  // Extract words that appear in ALL CAPS (acronyms, important terms)
+  const allCapsMatches = text.match(/\b[A-Z]{2,}\b/g) || [];
+  allCapsMatches.forEach(word => {
+    if (word.length >= 2) {
+      keywords.add(word.toLowerCase());
+    }
+  });
+  
+  // Extract quoted terms (often important concepts)
+  const quotedMatches = text.match(/"([^"]+)"/g) || [];
+  quotedMatches.forEach(match => {
+    const clean = match.replace(/"/g, '').toLowerCase().trim();
+    if (clean.length > 2 && !stopWords.has(clean)) {
+      keywords.add(clean);
+    }
+  });
+  
+  // Extract compound words and technical terms (hyphenated or multi-word)
+  const compoundMatches = text.match(/\b[a-z]+-[a-z]+(?:-[a-z]+)*\b/gi) || [];
+  compoundMatches.forEach(word => {
+    const clean = word.toLowerCase().trim();
+    if (clean.length > 3) {
+      keywords.add(clean);
+    }
+  });
+  
+  // Extract potential domain-specific terms (longer words that aren't common)
+  const words = text.match(/\b[a-z]{5,}\b/gi) || [];
+  const wordFreq = new Map<string, number>();
+  words.forEach(word => {
+    const clean = word.toLowerCase().trim();
+    if (!stopWords.has(clean)) {
+      wordFreq.set(clean, (wordFreq.get(clean) || 0) + 1);
+    }
+  });
+  
+  // Add words that appear multiple times (likely important)
+  wordFreq.forEach((count, word) => {
+    if (count >= 2 && word.length > 4) {
+      keywords.add(word);
+    }
+  });
+  
+  // Limit to top 20 keywords to avoid bloat
+  return Array.from(keywords).slice(0, 20);
+}
+
+/**
  * Chunk website content with URL-specific metadata
  */
 export function chunkWebsiteContent(
@@ -217,7 +289,7 @@ export function chunkWebsiteContent(
 ): ContentChunk[] {
   return chunkContent(content, {
     title: title || url,
-    maxChunkSize: 1000,
+    maxChunkSize: 800,
     minChunkSize: 200,
     overlap: 100,
   });
@@ -232,7 +304,7 @@ export function chunkDocumentContent(
 ): ContentChunk[] {
   return chunkContent(content, {
     title: documentName,
-    maxChunkSize: 1000,
+    maxChunkSize: 800,
     minChunkSize: 200,
     overlap: 100,
   });
