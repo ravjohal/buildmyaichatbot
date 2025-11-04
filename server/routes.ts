@@ -870,7 +870,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
           }
           
-          // Strategy 3: Handle class constructor exports (production builds)
+          // Strategy 3: Try named export PDFParse (production builds with esbuild)
+          if (!pdfData && pdfParseModule.PDFParse) {
+            console.log('[Document Upload] Found PDFParse named export');
+            const PDFParse = pdfParseModule.PDFParse;
+            
+            try {
+              // Try calling as a static function
+              if (typeof PDFParse === 'function') {
+                pdfData = await PDFParse(file.buffer);
+                console.log('[Document Upload] Used PDFParse as function');
+              }
+            } catch (error: any) {
+              // If it's a class, instantiate it
+              if (error.message && error.message.includes('cannot be invoked without')) {
+                console.log('[Document Upload] PDFParse is a class, instantiating...');
+                const instance = new PDFParse(file.buffer);
+                pdfData = instance && typeof instance.then === 'function' 
+                  ? await instance 
+                  : instance;
+                console.log('[Document Upload] Used PDFParse constructor with buffer');
+              } else {
+                throw error;
+              }
+            }
+          }
+          
+          // Strategy 4: Handle class constructor exports (fallback)
           if (!pdfData) {
             const parse = pdfParseModule.default || pdfParseModule;
             

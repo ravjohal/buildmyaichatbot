@@ -216,7 +216,33 @@ async function extractPdfText(url: string): Promise<{ content: string; title: st
       }
     }
     
-    // Strategy 3: Handle class constructor exports (production builds)
+    // Strategy 3: Try named export PDFParse (production builds with esbuild)
+    if (!pdfData && pdfParseModule.PDFParse) {
+      console.log('[PDF Extractor] Found PDFParse named export');
+      const PDFParse = pdfParseModule.PDFParse;
+      
+      try {
+        // Try calling as a static function
+        if (typeof PDFParse === 'function') {
+          pdfData = await PDFParse(buffer);
+          console.log('[PDF Extractor] Used PDFParse as function');
+        }
+      } catch (error: any) {
+        // If it's a class, instantiate it
+        if (error.message && error.message.includes('cannot be invoked without')) {
+          console.log('[PDF Extractor] PDFParse is a class, instantiating...');
+          const instance = new PDFParse(buffer);
+          pdfData = instance && typeof instance.then === 'function' 
+            ? await instance 
+            : instance;
+          console.log('[PDF Extractor] Used PDFParse constructor with buffer');
+        } else {
+          throw error;
+        }
+      }
+    }
+    
+    // Strategy 4: Handle class constructor exports (fallback)
     if (!pdfData) {
       const parse = pdfParseModule.default || pdfParseModule;
       
