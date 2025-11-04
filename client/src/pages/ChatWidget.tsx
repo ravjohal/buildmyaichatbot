@@ -687,23 +687,6 @@ export default function ChatWidget() {
               </div>
             ))}
 
-            {displayedSuggestions && !chatMutation.isPending && (
-              <div className="flex flex-wrap gap-2 ml-13">
-                {displayedSuggestions.map((question, i) => (
-                  <Badge
-                    key={i}
-                    variant="outline"
-                    className="cursor-pointer hover-elevate"
-                    style={{ borderColor: chatbot.accentColor + "40" }}
-                    onClick={() => handleSuggestedQuestion(question)}
-                    data-testid={`suggested-question-${i}`}
-                  >
-                    {question}
-                  </Badge>
-                ))}
-              </div>
-            )}
-
             {chatMutation.isPending && (
               <div className="flex gap-3">
                 <div
@@ -719,6 +702,23 @@ export default function ChatWidget() {
                     <div className="w-2 h-2 rounded-full bg-muted-foreground animate-bounce [animation-delay:0.4s]" />
                   </div>
                 </div>
+              </div>
+            )}
+
+            {displayedSuggestions && (
+              <div className="flex flex-wrap gap-2 ml-13">
+                {displayedSuggestions.map((question, i) => (
+                  <Badge
+                    key={i}
+                    variant="outline"
+                    className="cursor-pointer hover-elevate"
+                    style={{ borderColor: chatbot.accentColor + "40" }}
+                    onClick={() => handleSuggestedQuestion(question)}
+                    data-testid={`suggested-question-${i}`}
+                  >
+                    {question}
+                  </Badge>
+                ))}
               </div>
             )}
           </div>
@@ -884,23 +884,6 @@ export default function ChatWidget() {
                 </div>
               ))}
 
-              {displayedSuggestions && !chatMutation.isPending && (
-                <div className="flex flex-wrap gap-2 ml-11">
-                  {displayedSuggestions.map((question, i) => (
-                    <Badge
-                      key={i}
-                      variant="outline"
-                      className="cursor-pointer hover-elevate"
-                      style={{ borderColor: chatbot.accentColor + "40" }}
-                      onClick={() => handleSuggestedQuestion(question)}
-                      data-testid={`suggested-question-${i}`}
-                    >
-                      {question}
-                    </Badge>
-                  ))}
-                </div>
-              )}
-
               {chatMutation.isPending && (
                 <div className="flex gap-3">
                   <div
@@ -916,6 +899,23 @@ export default function ChatWidget() {
                       <div className="w-2 h-2 rounded-full bg-muted-foreground animate-bounce [animation-delay:0.4s]" />
                     </div>
                   </div>
+                </div>
+              )}
+
+              {displayedSuggestions && (
+                <div className="flex flex-wrap gap-2 ml-11">
+                  {displayedSuggestions.map((question, i) => (
+                    <Badge
+                      key={i}
+                      variant="outline"
+                      className="cursor-pointer hover-elevate"
+                      style={{ borderColor: chatbot.accentColor + "40" }}
+                      onClick={() => handleSuggestedQuestion(question)}
+                      data-testid={`suggested-question-${i}`}
+                    >
+                      {question}
+                    </Badge>
+                  ))}
                 </div>
               )}
             </div>
