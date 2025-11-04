@@ -60,15 +60,22 @@ export default function ChatWidget() {
   });
   
   // Fetch ALL suggested questions from database for rotation (up to 20)
+  // Use aggressive caching to prevent refetches during streaming
   const { data: suggestedQuestionsData } = useQuery<{ questions: string[] }>({
     queryKey: [`/api/chatbots/${chatbotId}/suggested-questions?count=20`],
     enabled: !!chatbotId && chatbot?.enableSuggestedQuestions === "true",
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes (already set globally but being explicit)
+    gcTime: 10 * 60 * 1000, // Keep in cache for 10 minutes even when unmounted
+    refetchOnMount: false, // Don't refetch when component remounts
+    refetchOnReconnect: false, // Don't refetch on network reconnect
   });
 
   // Determine which suggested questions to display with rotation
   // Memoized to prevent recalculating on every render (especially during streaming)
   // MUST be declared before any conditional returns (React hooks rule)
   const displayedSuggestions = useMemo(() => {
+    const calcStart = performance.now();
+    
     if (!chatbot) return ["How do I connect with a human?"];
     
     const userMessages = messages.filter(m => m.role === "user");
@@ -88,6 +95,10 @@ export default function ChatWidget() {
           questions.push(suggestedQuestionsData.questions[index]);
         }
         
+        const calcTime = performance.now() - calcStart;
+        if (calcTime > 5) {
+          console.log(`[PERF-WIDGET] displayedSuggestions calculation: ${calcTime.toFixed(2)}ms (AI questions)`);
+        }
         return [...questions, HARDCODED_QUESTION];
       }
       // After interaction, still show the hardcoded question even if no AI questions
@@ -103,6 +114,21 @@ export default function ChatWidget() {
     // If no welcome questions, just show the hardcoded question
     return [HARDCODED_QUESTION];
   }, [messages, chatbot, suggestedQuestionsData, questionRotationIndex]);
+  
+  // Track suggested questions loading performance
+  useEffect(() => {
+    if (suggestedQuestionsData?.questions) {
+      console.log(`[PERF-WIDGET] Suggested questions loaded: ${suggestedQuestionsData.questions.length} questions`);
+    }
+  }, [suggestedQuestionsData]);
+  
+  // Track mutation pending state changes
+  useEffect(() => {
+    console.log(`[PERF-WIDGET] chatMutation.isPending: ${chatMutation.isPending}`);
+    if (!chatMutation.isPending) {
+      console.log(`[PERF-WIDGET] Mutation complete - suggested questions should now be visible`);
+    }
+  }, [chatMutation.isPending]);
   
   console.log('[ChatWidget] isLoading:', isLoading);
   console.log('[ChatWidget] chatbot:', chatbot);
@@ -255,8 +281,15 @@ export default function ChatWidget() {
 
   const chatMutation = useMutation({
     mutationFn: async (message: string) => {
+      console.log('[PERF-WIDGET] Chat mutation started');
+      const mutationStart = performance.now();
       await handleStreamingChat(message);
+      const mutationTime = performance.now() - mutationStart;
+      console.log(`[PERF-WIDGET] Chat mutation completed: ${mutationTime.toFixed(2)}ms`);
       return { success: true };
+    },
+    onSettled: () => {
+      console.log('[PERF-WIDGET] Chat mutation settled (isPending should now be false)');
     },
   });
 
