@@ -1,0 +1,73 @@
+2025-11-03 23:03:12.76
+e6e397ab
+User
+[PlaywrightRenderer] ⚠ Navigation timeout, attempting partial content extraction...
+2025-11-03 23:03:18.56
+e6e397ab
+User
+[PlaywrightRenderer] ✗ RENDER ERROR for https://www.rurkahomes.com/favorites
+2025-11-03 23:03:18.56
+e6e397ab
+User
+[PlaywrightRenderer] Error type: Error
+2025-11-03 23:03:18.56
+e6e397ab
+User
+[PlaywrightRenderer] Error message: page.content: Unable to retrieve content because the page is navigating and changing the content.
+2025-11-03 23:03:18.56
+e6e397ab
+User
+[PlaywrightRenderer] Error stack: page.content: Unable to retrieve content because the page is navigating and changing the content.
+2025-11-03 23:03:18.56
+e6e397ab
+User
+at PlaywrightRenderer.render (/home/runner/workspace/dist/index.js:1430:35)
+2025-11-03 23:03:18.56
+e6e397ab
+User
+at async crawlWithRenderer (/home/runner/workspace/dist/index.js:1497:18)
+2025-11-03 23:03:18.56
+e6e397ab
+User
+at async crawlWebsiteRecursive (/home/runner/workspace/dist/index.js:1858:30)
+2025-11-03 23:03:18.56
+e6e397ab
+User
+at async crawlMultipleWebsitesRecursive (/home/runner/workspace/dist/index.js:1902:21)
+2025-11-03 23:03:18.56
+e6e397ab
+User
+at async processIndexingTask (/home/runner/workspace/dist/index.js:2520:28)
+2025-11-03 23:03:18.56
+e6e397ab
+User
+at async processIndexingJob (/home/runner/workspace/dist/index.js:2682:9)
+2025-11-03 23:03:18.56
+e6e397ab
+User
+at async processIndexingJobWithTimeout (/home/runner/workspace/dist/index.js:2743:5)
+2025-11-03 23:03:18.56
+e6e397ab
+User
+at async workerLoop (/home/runner/workspace/dist/index.js:2797:9)
+2025-11-03 23:03:18.56
+e6e397ab
+User
+[PlaywrightRenderer] Full error: {
+
+2025-11-03 23:03:18.56
+e6e397ab
+User
+"stack": "page.content: Unable to retrieve content because the page is navigating and changing the content.\n at PlaywrightRenderer.render (/home/runner/workspace/dist/index.js:1430:35)\n at async crawlWithRenderer (/home/runner/workspace/dist/index.js:1497:18)\n at async crawlWebsiteRecursive (/home/runner/workspace/dist/index.js:1858:30)\n at async crawlMultipleWebsitesRecursive (/home/runner/workspace/dist/index.js:1902:21)\n at async processIndexingTask (/home/runner/workspace/dist/index.js:2520:28)\n at async processIndexingJob (/home/runner/workspace/dist/index.js:2682:9)\n at async processIndexingJobWithTimeout (/home/runner/workspace/dist/index.js:2743:5)\n at async workerLoop (/home/runner/workspace/dist/index.js:2797:9)",
+2025-11-03 23:03:18.56
+e6e397ab
+User
+"message": "page.content: Unable to retrieve content because the page is navigating and changing the content.",
+2025-11-03 23:03:18.56
+e6e397ab
+User
+"name": "Error"
+2025-11-03 23:03:18.56
+e6e397ab
+User
+}

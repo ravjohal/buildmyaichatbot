@@ -265,22 +265,59 @@ export class PlaywrightRenderer implements PageRenderer {
         await page.waitForTimeout(3000);
       } catch {}
 
-      // Extract whatever content we can get
-      const html = await page.content();
-      const title = await page.title();
+      // Extract content with retry logic for pages that keep navigating
+      let html = '';
+      let title = '';
+      let textContent = '';
       
-      const textContent = await page.evaluate(() => {
-        const scripts = document.querySelectorAll('script, style, noscript, iframe');
-        scripts.forEach(el => el.remove());
+      const maxRetries = 3;
+      let lastError: Error | null = null;
+      
+      for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+          // Try to wait for network to be idle (max 2 seconds)
+          try {
+            await page.waitForLoadState('networkidle', { timeout: 2000 });
+          } catch {
+            // Network might never be idle for some SPAs, continue anyway
+          }
+          
+          html = await page.content();
+          title = await page.title();
+          
+          textContent = await page.evaluate(() => {
+            const scripts = document.querySelectorAll('script, style, noscript, iframe');
+            scripts.forEach(el => el.remove());
 
-        const main = document.querySelector('main, article, [role="main"]');
-        const content = main ? main.textContent : document.body.textContent;
-        
-        return (content || '')
-          .replace(/\s+/g, ' ')
-          .trim()
-          .substring(0, 100000);
-      });
+            const main = document.querySelector('main, article, [role="main"]');
+            const content = main ? main.textContent : document.body.textContent;
+            
+            return (content || '')
+              .replace(/\s+/g, ' ')
+              .trim()
+              .substring(0, 100000);
+          });
+          
+          // Successfully extracted content, break out of retry loop
+          break;
+        } catch (extractError) {
+          lastError = extractError instanceof Error ? extractError : new Error(String(extractError));
+          
+          // Check if it's the "navigating and changing content" error
+          const isNavigatingError = lastError.message.includes('navigating and changing');
+          
+          if (isNavigatingError && attempt < maxRetries) {
+            console.log(`[PlaywrightRenderer] ⚠ Page still navigating (attempt ${attempt}/${maxRetries}), waiting 2s before retry...`);
+            await page.waitForTimeout(2000);
+          } else if (attempt === maxRetries) {
+            // Final attempt failed, throw the error
+            throw new Error(`Content extraction failed after ${maxRetries} attempts: ${lastError.message}`);
+          } else {
+            // Non-navigation error, throw immediately
+            throw extractError;
+          }
+        }
+      }
 
       await context.close();
       this.activePage = null;
