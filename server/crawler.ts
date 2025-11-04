@@ -252,6 +252,16 @@ async function extractPdfText(url: string): Promise<{ content: string; title: st
             console.log('[PDF Extractor] Instance created, checking for methods...');
             console.log('[PDF Extractor] Instance keys:', Object.keys(directInstance));
             console.log('[PDF Extractor] Instance has parse method?', typeof directInstance.parse === 'function');
+            console.log('[PDF Extractor] Instance.options:', directInstance.options);
+            console.log('[PDF Extractor] Instance.progress:', directInstance.progress);
+            
+            // Check if progress has methods
+            if (directInstance.progress) {
+              console.log('[PDF Extractor] Progress is:', typeof directInstance.progress);
+              if (typeof directInstance.progress === 'object') {
+                console.log('[PDF Extractor] Progress keys:', Object.keys(directInstance.progress));
+              }
+            }
             
             // Check if it's a promise and await it
             pdfData = directInstance && typeof directInstance.then === 'function' 
