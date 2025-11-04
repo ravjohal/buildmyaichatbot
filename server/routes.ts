@@ -1040,10 +1040,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           if (!pdfData || !pdfData.text) {
             console.error('[Document Upload] PDF data structure:', pdfData ? Object.keys(pdfData) : 'null');
-            throw new Error('Failed to extract text from PDF - no text property found');
+            
+            // LAST RESORT: Extract basic text using simple buffer scanning
+            console.log('[Document Upload] All strategies failed, attempting basic text extraction...');
+            
+            try {
+              // Convert buffer to string and extract visible text
+              const bufferStr = file.buffer.toString('utf-8', 0, Math.min(file.buffer.length, 1000000));
+              
+              // Very basic PDF text extraction - find text between stream markers
+              const textMatches = bufferStr.match(/\((.*?)\)/g);
+              
+              if (textMatches && textMatches.length > 0) {
+                extractedText = textMatches
+                  .map(m => m.slice(1, -1)) // Remove parentheses
+                  .filter(t => t.length > 2 && /[a-zA-Z]/.test(t)) // Filter out junk
+                  .join(' ')
+                  .replace(/\\[nrt]/g, ' ') // Remove escape sequences
+                  .replace(/\s+/g, ' ') // Normalize whitespace
+                  .trim();
+                
+                if (extractedText.length > 50) {
+                  console.log(`[Document Upload] Basic extraction found ${extractedText.length} chars`);
+                } else {
+                  throw new Error('Basic extraction yielded insufficient text');
+                }
+              } else {
+                throw new Error('No text patterns found in PDF buffer');
+              }
+            } catch (basicError) {
+              console.error('[Document Upload] Basic extraction also failed:', basicError);
+              throw new Error('Failed to extract text from PDF - no text property found');
+            }
+          } else {
+            extractedText = pdfData.text.trim();
           }
-          
-          extractedText = pdfData.text.trim();
           console.log(`[Document Upload] Extracted ${extractedText.length} characters from PDF`);
         } catch (error: any) {
           console.error("[Document Upload] PDF extraction error:", error);

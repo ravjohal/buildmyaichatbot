@@ -1,0 +1,29 @@
+[WORKER] Found 1 pending indexing job(s)
+[WORKER] Processing indexing job cee29bfd-3f94-4d1a-978a-03f122c545c6
+[WORKER] Job has 1 tasks
+[WORKER] Processing task aec59e4e-a041-4f56-82e6-e3556f3ab8bf: website - https://www.rurkahomes.com/images/RurkaCaliforniaWarranty.pdf
+[WORKER] Recursively crawling website: https://www.rurkahomes.com/images/RurkaCaliforniaWarranty.pdf (max depth: 2, max pages: 200)
+[Crawler] Detected PDF: https://www.rurkahomes.com/images/RurkaCaliforniaWarranty.pdf
+[PDF Extractor] Fetching PDF from: https://www.rurkahomes.com/images/RurkaCaliforniaWarranty.pdf
+[PDF Extractor] PDF downloaded, size: 240891 bytes
+[PDF Extractor] Named export PDFParse failed, trying fallback
+[PDF Extractor] Detected class constructor, instantiating with arguments...
+[PDF Extractor] Instance created, checking for methods...
+[PDF Extractor] Instance keys: [ 'options', 'doc', 'progress' ]
+[PDF Extractor] Instance has parse method? false
+[PDF Extractor] Instance.options: <Buffer 25 50 44 46 2d 31 2e 33 0a 25 c4 e5 f2 e5 eb a7 f3 a0 d0 c4 c6 0a 33 20 30 20 6f 62 6a 0a 3c 3c 20 2f 46 69 6c 74 65 72 20 2f 46 6c 61 74 65 44 65 63 ... 240841 more bytes, verbosity: 0>
+[PDF Extractor] Instance.progress: { loaded: -1, total: 0 }
+[PDF Extractor] Progress is: object
+[PDF Extractor] Progress keys: [ 'loaded', 'total' ]
+[PDF Extractor] Used constructor with buffer and options
+[PDF Extractor] pdfData.text exists? false pdfData.doc exists? false
+[PDF Extractor] pdfData.text value: undefined
+[PDF Extractor] pdfData.doc type: undefined
+[PDF Extractor] pdfData.doc value: undefined
+[PDF Extractor] PDF data structure: [ 'options', 'doc', 'progress' ]
+[PDF Extractor] All strategies failed, attempting basic text extraction...
+[PDF Extractor] Basic extraction found 18035 chars
+[WORKER] Crawled 1 pages from https://www.rurkahomes.com/images/RurkaCaliforniaWarranty.pdf
+[WORKER] Stored crawl metadata for https://www.rurkahomes.com/images/RurkaCaliforniaWarranty.pdf
+[WORKER] Processing page: https://www.rurkahomes.com/images/RurkaCaliforniaWarranty.pdf (18035 chars)
+[WORKER] Generated 1 chunks for https://www.rurkahomes.com/images/RurkaCaliforniaWarranty.pdf
