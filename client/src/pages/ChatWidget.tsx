@@ -59,9 +59,9 @@ export default function ChatWidget() {
     enabled: !!chatbotId,
   });
   
-  // Fetch suggested questions from stored database
+  // Fetch ALL suggested questions from database for rotation (up to 20)
   const { data: suggestedQuestionsData } = useQuery<{ questions: string[] }>({
-    queryKey: [`/api/chatbots/${chatbotId}/suggested-questions`],
+    queryKey: [`/api/chatbots/${chatbotId}/suggested-questions?count=20`],
     enabled: !!chatbotId && chatbot?.enableSuggestedQuestions === "true",
   });
   

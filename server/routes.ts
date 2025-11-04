@@ -2160,8 +2160,8 @@ Generate 3 short, natural questions that would help the user learn more. Return 
         return res.status(404).json({ error: "Chatbot not found" });
       }
       
-      // Get random suggested questions
-      const questions = await storage.getRandomSuggestedQuestions(chatbotId, Math.min(count, 10));
+      // Get suggested questions (allow up to 20 for rotation system)
+      const questions = await storage.getRandomSuggestedQuestions(chatbotId, Math.min(count, 20));
       
       res.json({ questions });
     } catch (error) {
