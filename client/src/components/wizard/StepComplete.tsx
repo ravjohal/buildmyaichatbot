@@ -69,9 +69,14 @@ export function StepComplete({ chatbotId, indexingStatus }: StepCompleteProps) {
               Your AI assistant is fully ready and can be deployed on your website
             </p>
           ) : (
-            <p className="text-xl text-muted-foreground">
-              Your AI assistant is ready to deploy on your website
-            </p>
+            <div className="space-y-3">
+              <p className="text-xl text-muted-foreground">
+                Your chatbot has been created and is preparing your knowledge base
+              </p>
+              <p className="text-base text-muted-foreground">
+                The indexing process typically takes <strong>20-30 minutes</strong>. You can embed the widget now, but full functionality will be available once indexing completes.
+              </p>
+            </div>
           )}
         </div>
 
