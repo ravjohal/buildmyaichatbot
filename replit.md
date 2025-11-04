@@ -21,12 +21,11 @@ BuildMyChatbot.Ai is a SaaS web application that enables non-technical business 
 
 **Database Connection Resilience (Nov 3, 2025)**: Implemented automatic retry logic with exponential backoff for Neon serverless database connections in the indexing worker. Handles "Connection terminated unexpectedly" errors that occur when long-running workers experience database connection timeouts. Worker now automatically retries up to 3 times with exponential backoff (1s, 2s, 4s) before failing.
 
-**PDF Extraction Fix (Nov 3, 2025)**: Resolved production PDF extraction failures caused by esbuild module compilation. Implemented 4-strategy fallback system that handles different pdf-parse export patterns:
+**PDF Extraction Fix (Nov 3, 2025)**: Resolved production PDF extraction failures caused by esbuild module compilation. Implemented 3-strategy fallback system that handles different pdf-parse export patterns:
 - Strategy 1: Direct function export (development builds)
 - Strategy 2: CommonJS module pattern
-- Strategy 3: PDFParse named export (production esbuild with class constructors)
-- Strategy 4: Fallback class constructor handling with proper async detection
-The fix includes thenable detection to await promises returned by class constructors, and handles the PDFParse named export pattern seen in production esbuild compilations. Ensures PDF text extraction works reliably in both development and production environments. Applied to both URL-based PDFs (`crawler.ts`) and uploaded documents (`routes.ts`).
+- Strategy 3: Class constructor exports with proper async handling (production builds)
+The fix includes thenable detection to await promises returned by class constructors, ensuring PDF text extraction works in both development and production environments. Applied to both URL-based PDFs (`crawler.ts`) and uploaded documents (`routes.ts`).
 
 **Source Attribution Fix (Nov 3, 2025)**: Fixed chatbot source citations to show specific page URLs instead of just the main domain. Modified indexing worker to process each crawled page individually, preserving per-page URLs and titles in knowledge chunks. When LLM generates responses, it now cites specific pages (e.g., "https://example.com/products") instead of always citing the root domain. Maintains cancellation checkpoints, storage limit enforcement, and crawl metadata for refresh detection.
 

@@ -71,19 +71,19 @@ export function StepPersonality({ formData, updateFormData }: StepPersonalityPro
       <div className="border-t pt-6 space-y-4">
         <div className="flex items-center gap-2">
           <Sparkles className="w-5 h-5 text-primary" />
-          <h3 className="text-lg font-semibold">AI Follow-up Questions</h3>
+          <h3 className="text-lg font-semibold">Suggested Questions</h3>
         </div>
         <p className="text-sm text-muted-foreground">
-          Show AI-generated follow-up questions after the visitor asks their first question
+          Show AI-generated follow-up questions to guide conversations
         </p>
 
         <div className="flex items-center justify-between rounded-lg border p-4">
           <div className="space-y-0.5">
             <Label htmlFor="enableSuggestedQuestions" className="text-base font-medium">
-              Enable AI Follow-up Questions
+              Enable Suggested Questions
             </Label>
             <p className="text-sm text-muted-foreground">
-              Display up to 3 relevant AI-generated questions after the first message
+              Display up to 3 relevant follow-up questions after each response
             </p>
           </div>
           <Switch

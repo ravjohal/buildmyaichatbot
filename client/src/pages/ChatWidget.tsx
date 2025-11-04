@@ -536,20 +536,12 @@ export default function ChatWidget() {
     return null;
   }
 
-  // Show suggested questions based on conversation state
+  // Show stored suggested questions from database
   const getDisplayedSuggestions = () => {
-    // CASE 1: Initially when chat opens (no messages or only welcome message)
-    // Show user-added questions from Customize Appearance step
-    if (messages.length <= 1 && chatbot?.suggestedQuestions && chatbot.suggestedQuestions.length > 0) {
-      return chatbot.suggestedQuestions.slice(0, 3); // Show max 3
-    }
-    
-    // CASE 2: After user has asked their first question
-    // Show AI-generated questions from database (if feature is enabled)
-    if (messages.length > 1 && chatbot?.enableSuggestedQuestions === "true" && suggestedQuestionsData?.questions && suggestedQuestionsData.questions.length > 0) {
+    // Only show if enabled and we have questions from the database
+    if (chatbot?.enableSuggestedQuestions === "true" && suggestedQuestionsData?.questions && suggestedQuestionsData.questions.length > 0) {
       return suggestedQuestionsData.questions;
     }
-    
     return null;
   };
 

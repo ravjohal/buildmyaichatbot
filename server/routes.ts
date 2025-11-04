@@ -870,33 +870,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
           }
           
-          // Strategy 3: Try named export PDFParse (production builds with esbuild)
-          if (!pdfData && pdfParseModule.PDFParse) {
-            console.log('[Document Upload] Found PDFParse named export');
-            const PDFParse = pdfParseModule.PDFParse;
-            
-            try {
-              // Try calling as a static function
-              if (typeof PDFParse === 'function') {
-                pdfData = await PDFParse(file.buffer);
-                console.log('[Document Upload] Used PDFParse as function');
-              }
-            } catch (error: any) {
-              // If it's a class, instantiate it
-              if (error.message && error.message.includes('cannot be invoked without')) {
-                console.log('[Document Upload] PDFParse is a class, instantiating...');
-                const instance = new PDFParse(file.buffer);
-                pdfData = instance && typeof instance.then === 'function' 
-                  ? await instance 
-                  : instance;
-                console.log('[Document Upload] Used PDFParse constructor with buffer');
-              } else {
-                throw error;
-              }
-            }
-          }
-          
-          // Strategy 4: Handle class constructor exports (fallback)
+          // Strategy 3: Handle class constructor exports (production builds)
           if (!pdfData) {
             const parse = pdfParseModule.default || pdfParseModule;
             
@@ -1173,31 +1147,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         conversation = newConv[0];
       }
 
-      // Build knowledge base context - USE CHUNK-BASED RETRIEVAL if available
+      // Build knowledge base context
       let knowledgeContext = "";
-      let usingChunks = false;
-      
-      // Check if chunks are available for this chatbot
-      const chunkCount = await storage.countChunksForChatbot(chatbotId);
-      
-      if (chunkCount > 0) {
-        // Use chunk-based retrieval for efficient, targeted context
-        console.log(`[NON-STREAMING] Using chunk-based retrieval (${chunkCount} chunks available)`);
-        usingChunks = true;
-        // Chunks will be retrieved after we generate the question embedding
-      } else {
-        // FALLBACK: Use truncated full content
-        console.log(`[NON-STREAMING] No chunks available, using truncated full content`);
-        const MAX_KNOWLEDGE_SIZE = 8000;
-        
-        if (chatbot.websiteContent) {
-          const websitePreview = chatbot.websiteContent.substring(0, MAX_KNOWLEDGE_SIZE / 2);
-          knowledgeContext += `Website Content:\n${websitePreview}\n\n`;
-        }
-        if (chatbot.documentContent) {
-          const docPreview = chatbot.documentContent.substring(0, MAX_KNOWLEDGE_SIZE / 2);
-          knowledgeContext += `Document Content:\n${docPreview}\n\n`;
-        }
+      if (chatbot.websiteContent) {
+        knowledgeContext += `Website Content:\n${chatbot.websiteContent}\n\n`;
+      }
+      if (chatbot.documentContent) {
+        knowledgeContext += `Document Content:\n${chatbot.documentContent}\n\n`;
       }
 
       // Build conversation history for context
@@ -1278,32 +1234,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         } else {
         // Cache miss - call LLM
         console.log(`[CACHE MISS] Calling LLM for question hash: ${questionHash}`);
-        
-        // Retrieve relevant chunks if using chunk-based retrieval and we have embedding
-        if (usingChunks && questionEmbedding) {
-          try {
-            const relevantChunks = await storage.getTopKRelevantChunks(chatbotId, questionEmbedding, 5);
-            
-            if (relevantChunks && relevantChunks.length > 0) {
-              console.log(`[NON-STREAMING] Retrieved ${relevantChunks.length} relevant chunks`);
-              
-              // Build context from relevant chunks with clear URL references
-              knowledgeContext = relevantChunks
-                .map((chunk, idx) => {
-                  const sourceUrl = chunk.sourceUrl || '';
-                  const sourceTitle = chunk.sourceTitle || 'Website';
-                  return `[Source ${idx + 1}: ${sourceUrl}]\nTitle: ${sourceTitle}\nContent: ${chunk.chunkText}`;
-                })
-                .join('\n\n---\n\n');
-              
-              console.log(`[NON-STREAMING] Knowledge context size: ${knowledgeContext.length} characters`);
-            } else {
-              console.log(`[NON-STREAMING] No relevant chunks found, using fallback content`);
-            }
-          } catch (error) {
-            console.error("[NON-STREAMING] Error retrieving chunks:", error);
-          }
-        }
         
         // Create the full prompt for the main response
         const fullPrompt = `${chatbot.systemPrompt}
