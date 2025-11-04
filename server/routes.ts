@@ -1041,38 +1041,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if (!pdfData || !pdfData.text) {
             console.error('[Document Upload] PDF data structure:', pdfData ? Object.keys(pdfData) : 'null');
             
-            // LAST RESORT: Extract basic text using simple buffer scanning
-            console.log('[Document Upload] All strategies failed, attempting basic text extraction...');
+            // Strategy 5: Try unpdf (modern pdf-parse replacement)
+            console.log('[Document Upload] Trying unpdf as fallback...');
             
             try {
-              // Convert buffer to string and extract visible text
-              const bufferStr = file.buffer.toString('utf-8', 0, Math.min(file.buffer.length, 1000000));
+              const { extractText, getDocumentProxy } = await import('unpdf');
+              const pdf = await getDocumentProxy(new Uint8Array(file.buffer));
+              const { text } = await extractText(pdf, { mergePages: true });
               
-              // Very basic PDF text extraction - find text between stream markers
-              const textMatches = bufferStr.match(/\((.*?)\)/g);
-              
-              if (textMatches && textMatches.length > 0) {
-                extractedText = textMatches
-                  .map((m: string) => m.slice(1, -1)) // Remove parentheses
-                  .filter((t: string) => t.length > 2 && /[a-zA-Z]/.test(t)) // Filter out junk
-                  .join(' ')
-                  .replace(/\\[nrt]/g, ' ') // Remove escape sequences
-                  .replace(/\s+/g, ' ') // Normalize whitespace
-                  .replace(/[^\x20-\x7E\n\r\t]/g, '') // Remove non-printable/control chars (keep only ASCII 32-126 + newlines/tabs)
-                  .replace(/\0/g, '') // Remove null bytes
-                  .trim();
-                
-                if (extractedText.length > 50) {
-                  console.log(`[Document Upload] Basic extraction found ${extractedText.length} chars (sanitized)`);
-                } else {
-                  throw new Error('Basic extraction yielded insufficient text');
-                }
+              if (text && text.trim().length > 50) {
+                console.log(`[Document Upload] unpdf extraction succeeded: ${text.length} chars`);
+                extractedText = text.trim();
               } else {
-                throw new Error('No text patterns found in PDF buffer');
+                console.log('[Document Upload] unpdf returned insufficient text');
+                throw new Error('unpdf returned insufficient text');
               }
-            } catch (basicError) {
-              console.error('[Document Upload] Basic extraction also failed:', basicError);
-              throw new Error('Failed to extract text from PDF - no text property found');
+            } catch (unpdfError: any) {
+              console.error('[Document Upload] unpdf failed:', unpdfError.message);
+              
+              // Strategy 6 (LAST RESORT): Extract basic text using simple buffer scanning
+              // This is a very basic fallback for when both pdf-parse and unpdf fail
+              console.log('[Document Upload] All library strategies failed, attempting basic text extraction...');
+            
+              try {
+                // Convert buffer to string and extract visible text
+                const bufferStr = file.buffer.toString('utf-8', 0, Math.min(file.buffer.length, 1000000));
+                
+                // Very basic PDF text extraction - find text between stream markers
+                const textMatches = bufferStr.match(/\((.*?)\)/g);
+                
+                if (textMatches && textMatches.length > 0) {
+                  extractedText = textMatches
+                    .map((m: string) => m.slice(1, -1)) // Remove parentheses
+                    .filter((t: string) => t.length > 2 && /[a-zA-Z]/.test(t)) // Filter out junk
+                    .join(' ')
+                    .replace(/\\[nrt]/g, ' ') // Remove escape sequences
+                    .replace(/\s+/g, ' ') // Normalize whitespace
+                    .replace(/[^\x20-\x7E\n\r\t]/g, '') // Remove non-printable/control chars (keep only ASCII 32-126 + newlines/tabs)
+                    .replace(/\0/g, '') // Remove null bytes
+                    .trim();
+                  
+                  if (extractedText.length > 50) {
+                    console.log(`[Document Upload] Basic extraction found ${extractedText.length} chars (sanitized)`);
+                  } else {
+                    throw new Error('Basic extraction yielded insufficient text');
+                  }
+                } else {
+                  throw new Error('No text patterns found in PDF buffer');
+                }
+              } catch (basicError) {
+                console.error('[Document Upload] Basic extraction also failed:', basicError);
+                throw new Error('Failed to extract text from PDF - no text property found');
+              }
             }
           } else {
             extractedText = pdfData.text.trim();

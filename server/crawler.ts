@@ -329,9 +329,31 @@ async function extractPdfText(url: string): Promise<{ content: string; title: st
     if (!pdfData || !pdfData.text) {
       console.error('[PDF Extractor] PDF data structure:', pdfData ? Object.keys(pdfData) : 'null');
       
-      // LAST RESORT: Extract basic text using simple buffer scanning
-      // This is a very basic fallback for when pdf-parse class pattern fails
-      console.log('[PDF Extractor] All strategies failed, attempting basic text extraction...');
+      // Strategy 5: Try unpdf (modern pdf-parse replacement)
+      console.log('[PDF Extractor] Trying unpdf as fallback...');
+      
+      try {
+        const { extractText, getDocumentProxy } = await import('unpdf');
+        const pdf = await getDocumentProxy(new Uint8Array(buffer));
+        const { text } = await extractText(pdf, { mergePages: true });
+        
+        if (text && text.trim().length > 50) {
+          console.log(`[PDF Extractor] unpdf extraction succeeded: ${text.length} chars`);
+          const filename = new URL(url).pathname.split('/').pop() || 'PDF Document';
+          return {
+            content: text.trim(),
+            title: filename.replace('.pdf', ''),
+          };
+        } else {
+          console.log('[PDF Extractor] unpdf returned insufficient text');
+        }
+      } catch (unpdfError: any) {
+        console.error('[PDF Extractor] unpdf failed:', unpdfError.message);
+      }
+      
+      // Strategy 6 (LAST RESORT): Extract basic text using simple buffer scanning
+      // This is a very basic fallback for when both pdf-parse and unpdf fail
+      console.log('[PDF Extractor] All library strategies failed, attempting basic text extraction...');
       
       try {
         // Convert buffer to string and extract visible text
