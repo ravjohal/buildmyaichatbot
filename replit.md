@@ -21,12 +21,12 @@ BuildMyChatbot.Ai is a SaaS web application that enables non-technical business 
 
 **Database Connection Resilience (Nov 3, 2025)**: Implemented automatic retry logic with exponential backoff for Neon serverless database connections in the indexing worker. Handles "Connection terminated unexpectedly" errors that occur when long-running workers experience database connection timeouts. Worker now automatically retries up to 3 times with exponential backoff (1s, 2s, 4s) before failing.
 
-**PDF Extraction Fix (Nov 4, 2025)**: Fixed "Cannot read properties of undefined (reading 'verbosity')" error in production PDF extraction. Root cause: pdf-parse library expects an options object as second parameter, and the class constructor needs buffer and options passed to it. Implemented 4-strategy fallback system:
+**PDF Extraction Fix (Nov 4, 2025)**: Fixed "Cannot read properties of undefined (reading 'verbosity')" error and "no text property found" error in production PDF extraction. Root cause: pdf-parse library expects an options object as second parameter, and the class constructor needs buffer and options passed to it. Implemented 4-strategy fallback system:
 - Strategy 1: Default export as function (development builds)
 - Strategy 2: Module itself as function (CommonJS pattern)
 - Strategy 3: Named export `PDFParse` (common in some builds)
 - Strategy 4: Class constructor exports - passes buffer and options directly to constructor (production builds)
-All strategies now include `pdfOptions = { max: 0 }` parameter to prevent undefined options errors. Strategy 4 simplified to instantiate class with `new PDFParse(buffer, pdfOptions)` instead of calling constructor without arguments. Applied to both URL-based PDFs (`crawler.ts`) and uploaded documents (`routes.ts`).
+All strategies now include `pdfOptions = { max: 0 }` parameter to prevent undefined options errors. Strategy 4 instantiates class with `new PDFParse(buffer, pdfOptions)` and handles cases where the instance returns `doc` property instead of `text` property, extracting text from `doc.text` or treating `doc` as a string. Applied to both URL-based PDFs (`crawler.ts`) and uploaded documents (`routes.ts`).
 
 **Source Attribution Fix (Nov 3, 2025)**: Fixed chatbot source citations to show specific page URLs instead of just the main domain. Modified indexing worker to process each crawled page individually, preserving per-page URLs and titles in knowledge chunks. When LLM generates responses, it now cites specific pages (e.g., "https://example.com/products") instead of always citing the root domain. Maintains cancellation checkpoints, storage limit enforcement, and crawl metadata for refresh detection.
 
