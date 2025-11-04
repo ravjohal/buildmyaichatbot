@@ -3,10 +3,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
-import { Badge } from "@/components/ui/badge";
-import { Sparkles, Zap, Plus, X } from "lucide-react";
+import { Sparkles, Zap } from "lucide-react";
 import type { InsertChatbot } from "@shared/schema";
-import { useState } from "react";
 
 interface StepPersonalityProps {
   formData: Partial<InsertChatbot>;
@@ -14,28 +12,6 @@ interface StepPersonalityProps {
 }
 
 export function StepPersonality({ formData, updateFormData }: StepPersonalityProps) {
-  const [newQuestion, setNewQuestion] = useState("");
-  
-  const handleAddQuestion = () => {
-    if (!newQuestion.trim()) return;
-    
-    const currentQuestions = formData.suggestedQuestions || [];
-    if (currentQuestions.length >= 3) {
-      return; // Max 3 questions
-    }
-    
-    updateFormData({
-      suggestedQuestions: [...currentQuestions, newQuestion.trim()]
-    });
-    setNewQuestion("");
-  };
-  
-  const handleRemoveQuestion = (index: number) => {
-    const currentQuestions = formData.suggestedQuestions || [];
-    updateFormData({
-      suggestedQuestions: currentQuestions.filter((_, i) => i !== index)
-    });
-  };
   const useTemplate = () => {
     const businessName = formData.name || "your business";
     const template = `You are a friendly and helpful customer service assistant for ${businessName}. Your goal is to answer questions based ONLY on the provided information from the website and documents. Be conversational and professional. Do not make up information you don't know. If you cannot find an answer, politely let the customer know and offer to escalate to a human representative.`;
@@ -95,19 +71,19 @@ export function StepPersonality({ formData, updateFormData }: StepPersonalityPro
       <div className="border-t pt-6 space-y-4">
         <div className="flex items-center gap-2">
           <Sparkles className="w-5 h-5 text-primary" />
-          <h3 className="text-lg font-semibold">Suggested Questions</h3>
+          <h3 className="text-lg font-semibold">AI-Generated Suggested Questions</h3>
         </div>
         <p className="text-sm text-muted-foreground">
-          Show suggested questions to guide conversations. Your custom questions appear initially, then AI-generated questions appear after visitors start asking questions.
+          After visitors ask their first question, the chatbot can display AI-generated suggested questions based on your content to help guide the conversation.
         </p>
 
         <div className="flex items-center justify-between rounded-lg border p-4">
           <div className="space-y-0.5">
             <Label htmlFor="enableSuggestedQuestions" className="text-base font-medium">
-              Enable Suggested Questions
+              Enable AI-Generated Suggested Questions
             </Label>
             <p className="text-sm text-muted-foreground">
-              Display up to 3 relevant follow-up questions after each response
+              Display up to 3 AI-generated questions after visitors start chatting
             </p>
           </div>
           <Switch
@@ -121,67 +97,17 @@ export function StepPersonality({ formData, updateFormData }: StepPersonalityPro
         </div>
 
         {formData.enableSuggestedQuestions === "true" && (
-          <div className="space-y-4 pl-4 border-l-2">
-            <div className="space-y-2">
-              <Label htmlFor="suggestedQuestion">
-                Add Custom Questions (up to 3)
-              </Label>
-              <div className="flex gap-2">
-                <Input
-                  id="suggestedQuestion"
-                  placeholder="e.g., What are your business hours?"
-                  value={newQuestion}
-                  onChange={(e) => setNewQuestion(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      handleAddQuestion();
-                    }
-                  }}
-                  disabled={(formData.suggestedQuestions?.length || 0) >= 3}
-                  data-testid="input-suggested-question"
-                />
-                <Button
-                  type="button"
-                  size="icon"
-                  onClick={handleAddQuestion}
-                  disabled={!newQuestion.trim() || (formData.suggestedQuestions?.length || 0) >= 3}
-                  data-testid="button-add-question"
-                >
-                  <Plus className="w-4 h-4" />
-                </Button>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                These questions will appear initially when visitors open the chat. AI questions will appear after they start asking.
-              </p>
-            </div>
-
-            {formData.suggestedQuestions && formData.suggestedQuestions.length > 0 && (
-              <div className="space-y-2">
-                <Label className="text-sm">Your Questions:</Label>
-                <div className="flex flex-wrap gap-2">
-                  {formData.suggestedQuestions.map((question, index) => (
-                    <Badge
-                      key={index}
-                      variant="secondary"
-                      className="pr-1"
-                      data-testid={`badge-question-${index}`}
-                    >
-                      {question}
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-4 w-4 ml-1 hover:bg-transparent"
-                        onClick={() => handleRemoveQuestion(index)}
-                        data-testid={`button-remove-question-${index}`}
-                      >
-                        <X className="w-3 h-3" />
-                      </Button>
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            )}
+          <div className="bg-muted/50 rounded-lg p-4 space-y-2">
+            <h4 className="font-medium text-sm flex items-center gap-2">
+              <Sparkles className="w-4 h-4" />
+              How It Works
+            </h4>
+            <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
+              <li>AI analyzes your knowledge base during indexing</li>
+              <li>Generates 8-12 FAQ-style questions about your content</li>
+              <li>Shows 3 random questions after visitor's first message</li>
+              <li>Helps guide conversations and improve engagement</li>
+            </ul>
           </div>
         )}
       </div>

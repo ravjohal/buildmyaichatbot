@@ -39,7 +39,7 @@ export function StepCustomization({ formData, updateFormData, isFreeTier = false
         <h2 className="text-2xl font-semibold">Customize Appearance</h2>
         <p className="text-muted-foreground mt-2">
           {isFreeTier 
-            ? "Upgrade to Pro to customize colors and logo. Welcome messages and suggested questions are available on all plans."
+            ? "Upgrade to Pro to customize colors and logo. Welcome messages and welcome questions are available on all plans."
             : "Make the chatbot widget match your brand with custom colors and messaging."
           }
         </p>
@@ -180,23 +180,30 @@ export function StepCustomization({ formData, updateFormData, isFreeTier = false
           </div>
 
           <div className="space-y-3">
-            <Label className="text-base">Suggested Questions (Optional)</Label>
+            <Label className="text-base">Welcome Questions (Optional)</Label>
+            <p className="text-sm text-muted-foreground">
+              These questions appear immediately when visitors first open the chat to help them get started.
+            </p>
             <div className="flex gap-2">
               <Input
                 placeholder="e.g., What are your business hours?"
                 value={newQuestion}
                 onChange={(e) => setNewQuestion(e.target.value)}
                 onKeyPress={(e) => e.key === "Enter" && addSuggestedQuestion()}
-                data-testid="input-suggested-question"
+                disabled={(formData.suggestedQuestions?.length || 0) >= 3}
+                data-testid="input-welcome-question"
               />
               <Button
                 onClick={addSuggestedQuestion}
-                disabled={!newQuestion.trim()}
-                data-testid="button-add-question"
+                disabled={!newQuestion.trim() || (formData.suggestedQuestions?.length || 0) >= 3}
+                data-testid="button-add-welcome-question"
               >
                 <Plus className="w-4 h-4" />
               </Button>
             </div>
+            <p className="text-xs text-muted-foreground">
+              Maximum 3 welcome questions
+            </p>
             {formData.suggestedQuestions && formData.suggestedQuestions.length > 0 && (
               <div className="flex flex-wrap gap-2">
                 {formData.suggestedQuestions.map((q, i) => (
@@ -204,12 +211,13 @@ export function StepCustomization({ formData, updateFormData, isFreeTier = false
                     key={i}
                     variant="secondary"
                     className="gap-2"
-                    data-testid={`badge-question-${i}`}
+                    data-testid={`badge-welcome-question-${i}`}
                   >
                     {q}
                     <button
                       onClick={() => removeSuggestedQuestion(i)}
                       className="hover:text-destructive"
+                      data-testid={`button-remove-welcome-question-${i}`}
                     >
                       <X className="w-3 h-3" />
                     </button>
