@@ -1164,15 +1164,24 @@ export class DbStorage implements IStorage {
   }
 
   async getRandomSuggestedQuestions(chatbotId: string, count: number = 3): Promise<string[]> {
-    const result = await db
+    // When fetching all/most questions (count >= 10), skip randomization for better performance
+    // The frontend rotation system will handle variety
+    const useRandom = count < 10;
+    
+    const query = db
       .select({ questionText: chatbotSuggestedQuestions.questionText })
       .from(chatbotSuggestedQuestions)
       .where(and(
         eq(chatbotSuggestedQuestions.chatbotId, chatbotId),
         eq(chatbotSuggestedQuestions.isActive, "true")
       ))
-      .orderBy(sql`RANDOM()`)
       .limit(count);
+    
+    // Only use ORDER BY RANDOM() for small fetches (< 10 questions)
+    // For larger fetches, use index-optimized ordering
+    const result = useRandom 
+      ? await query.orderBy(sql`RANDOM()`)
+      : await query.orderBy(chatbotSuggestedQuestions.id);
     
     return result.map(r => r.questionText);
   }
