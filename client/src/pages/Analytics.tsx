@@ -99,9 +99,8 @@ export default function Analytics() {
 
   const clearCacheMutation = useMutation({
     mutationFn: async () => {
-      return await apiRequest(`/api/chatbots/${chatbotId}/cache`, {
-        method: "DELETE",
-      });
+      const response = await apiRequest("DELETE", `/api/chatbots/${chatbotId}/cache`);
+      return await response.json();
     },
     onSuccess: (data: any) => {
       toast({
