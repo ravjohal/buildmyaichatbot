@@ -254,6 +254,8 @@ async function extractPdfText(url: string): Promise<{ content: string; title: st
               ? await directInstance 
               : directInstance;
             console.log('[PDF Extractor] Used constructor with buffer and options');
+            console.log('[PDF Extractor] pdfData.text exists?', !!pdfData?.text, 'pdfData.doc exists?', !!pdfData?.doc);
+            console.log('[PDF Extractor] pdfData.text value:', pdfData?.text);
             
             // Handle case where instance has 'doc' property instead of 'text'
             if (pdfData && !pdfData.text && pdfData.doc) {
