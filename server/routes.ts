@@ -1579,6 +1579,9 @@ Generate 3 short, natural questions that would help the user learn more. Return 
 
   // Streaming chat endpoint - Server-Sent Events (SSE) for real-time responses
   app.post("/api/chat/stream", async (req, res) => {
+    const perfStart = performance.now();
+    const perfTimings: Record<string, number> = {};
+    
     try {
       const { chatbotId, message, conversationHistory, sessionId } = req.body as ChatRequest;
 
@@ -1593,8 +1596,10 @@ Generate 3 short, natural questions that would help the user learn more. Return 
       res.setHeader('X-Accel-Buffering', 'no'); // Disable nginx buffering
 
       // Get chatbot
+      const dbStart = performance.now();
       const chatbotResult = await db.select().from(chatbots).where(eq(chatbots.id, chatbotId)).limit(1);
       const chatbot = chatbotResult[0];
+      perfTimings.dbChatbotFetch = performance.now() - dbStart;
       
       if (!chatbot) {
         res.write(`data: ${JSON.stringify({ error: "Chatbot not found" })}\n\n`);
@@ -1602,8 +1607,10 @@ Generate 3 short, natural questions that would help the user learn more. Return 
       }
 
       // Check subscription tier limits
+      const ownerStart = performance.now();
       const ownerResult = await db.select().from(users).where(eq(users.id, chatbot.userId)).limit(1);
       const owner = ownerResult[0];
+      perfTimings.dbOwnerFetch = performance.now() - ownerStart;
       
       if (owner && owner.isAdmin !== "true") {
         const tier = owner.subscriptionTier;
@@ -1641,6 +1648,7 @@ Generate 3 short, natural questions that would help the user learn more. Return 
       }
 
       // Find or create conversation
+      const conversationStart = performance.now();
       let conversation;
       if (sessionId) {
         const existingConv = await db.select().from(conversations)
@@ -1658,13 +1666,16 @@ Generate 3 short, natural questions that would help the user learn more. Return 
         }).returning();
         conversation = newConv[0];
       }
+      perfTimings.conversationLookup = performance.now() - conversationStart;
 
       // Build knowledge base context - USE CHUNK-BASED RETRIEVAL if available
       let knowledgeContext = "";
       let usingChunks = false;
       
       // Check if chunks are available for this chatbot
+      const chunkCountStart = performance.now();
       const chunkCount = await storage.countChunksForChatbot(chatbotId);
+      perfTimings.chunkCountQuery = performance.now() - chunkCountStart;
       
       if (chunkCount > 0) {
         // PHASE 2: Use chunk-based retrieval for efficient, targeted context
@@ -1697,20 +1708,24 @@ Generate 3 short, natural questions that would help the user learn more. Return 
       
       // Generate embedding once for all cache checks AND chunk retrieval
       let questionEmbedding: number[] | null = null;
+      const embeddingStart = performance.now();
       try {
         questionEmbedding = await embeddingService.generateEmbedding(normalizedQuestion);
       } catch (error) {
         console.error("[EMBEDDING] Error generating embedding:", error);
       }
+      perfTimings.embeddingGeneration = performance.now() - embeddingStart;
       
       // If using chunks, retrieve relevant chunks NOW (before cache checks)
       let chunksRetrievedSuccessfully = false;
       if (usingChunks && questionEmbedding) {
+        const retrievalStart = performance.now();
         try {
           // Use hybrid retrieval (semantic + lexical) for better accuracy on specific terms
           // Dynamically scale chunks: use more chunks for comprehensive coverage
           const targetChunks = Math.min(chunkCount, 30);
           const relevantChunks = await storage.getHybridRelevantChunks(chatbotId, message, questionEmbedding, targetChunks);
+          perfTimings.hybridRetrieval = performance.now() - retrievalStart;
           
           if (relevantChunks.length > 0) {
             console.log(`[STREAMING] Hybrid retrieval found ${relevantChunks.length} relevant chunks`);
@@ -1761,10 +1776,12 @@ Generate 3 short, natural questions that would help the user learn more. Return 
       }
       
       // Check manual override first
+      const cacheStart = performance.now();
       let manualOverride = await storage.getManualOverride(chatbotId, questionHash);
       if (!manualOverride && questionEmbedding) {
         manualOverride = await storage.findSimilarManualOverride(chatbotId, questionEmbedding, 0.85);
       }
+      perfTimings.manualOverrideCheck = performance.now() - cacheStart;
       
       let aiMessage: string;
       let suggestedQuestions: string[] = [];
@@ -1783,10 +1800,12 @@ Generate 3 short, natural questions that would help the user learn more. Return 
         storage.incrementOverrideUseCount(manualOverride.id).catch(() => {});
       } else {
         // Check automated cache
+        const autoCacheStart = performance.now();
         let cachedAnswer = await storage.getCachedAnswer(chatbotId, questionHash);
         if (!cachedAnswer && questionEmbedding) {
           cachedAnswer = await storage.findSimilarCachedAnswer(chatbotId, questionEmbedding, 0.85);
         }
+        perfTimings.automatedCacheCheck = performance.now() - autoCacheStart;
         
         if (cachedAnswer) {
           // Cache hit - send immediately
@@ -1833,6 +1852,7 @@ INCORRECT citation examples (NEVER do this):
 ✗ "See Source for more details"`;
 
           // Stream the main response
+          const llmStart = performance.now();
           let fullResponse = "";
           try {
             const stream = await genAI.models.generateContentStream({
@@ -1851,11 +1871,13 @@ INCORRECT citation examples (NEVER do this):
                 })}\n\n`);
               }
             }
+            perfTimings.llmStreaming = performance.now() - llmStart;
 
             aiMessage = fullResponse || "I apologize, but I couldn't generate a response.";
             
             // Generate suggested questions only if enabled (non-streaming, after main response)
             if (chatbot.enableSuggestedQuestions === "true") {
+              const suggestionsStart = performance.now();
               try {
                 const suggestionsResult = await genAI.models.generateContent({
                   model: "gemini-2.5-flash",
@@ -1878,6 +1900,7 @@ Generate 3 short, natural questions that would help the user learn more. Return 
               } catch (error) {
                 console.error("Error generating suggested questions:", error);
               }
+              perfTimings.suggestedQuestionsGen = performance.now() - suggestionsStart;
             }
             
             // Send completion event
@@ -1926,6 +1949,7 @@ Generate 3 short, natural questions that would help the user learn more. Return 
       }
 
       // Save messages to database
+      const dbSaveStart = performance.now();
       const newMessageCount = (parseInt(conversation.messageCount) + 2).toString();
       await Promise.all([
         db.insert(conversationMessages).values({
@@ -1950,6 +1974,7 @@ Generate 3 short, natural questions that would help the user learn more. Return 
           .where(eq(conversations.id, conversation.id)),
         storage.incrementChatbotQuestionCount(chatbotId)
       ]);
+      perfTimings.dbSaveMessages = performance.now() - dbSaveStart;
       
       // Increment monthly conversation count for pro/scale tiers
       if (owner && owner.isAdmin !== "true" && (owner.subscriptionTier === "pro" || owner.subscriptionTier === "scale")) {
@@ -1957,6 +1982,23 @@ Generate 3 short, natural questions that would help the user learn more. Return 
           console.error("Error incrementing monthly conversation count:", err);
         });
       }
+
+      // Calculate total time and log performance breakdown
+      const totalTime = performance.now() - perfStart;
+      console.log(`[PERF-CHAT] ========== Performance Breakdown ==========`);
+      console.log(`[PERF-CHAT] DB Chatbot Fetch: ${perfTimings.dbChatbotFetch?.toFixed(2)}ms`);
+      console.log(`[PERF-CHAT] DB Owner Fetch: ${perfTimings.dbOwnerFetch?.toFixed(2)}ms`);
+      console.log(`[PERF-CHAT] Conversation Lookup: ${perfTimings.conversationLookup?.toFixed(2)}ms`);
+      console.log(`[PERF-CHAT] Chunk Count Query: ${perfTimings.chunkCountQuery?.toFixed(2)}ms`);
+      console.log(`[PERF-CHAT] Embedding Generation: ${perfTimings.embeddingGeneration?.toFixed(2)}ms`);
+      console.log(`[PERF-CHAT] Hybrid Retrieval: ${perfTimings.hybridRetrieval?.toFixed(2) || 'N/A'}ms`);
+      console.log(`[PERF-CHAT] Manual Override Check: ${perfTimings.manualOverrideCheck?.toFixed(2)}ms`);
+      console.log(`[PERF-CHAT] Automated Cache Check: ${perfTimings.automatedCacheCheck?.toFixed(2) || 'N/A'}ms`);
+      console.log(`[PERF-CHAT] LLM Streaming: ${perfTimings.llmStreaming?.toFixed(2) || 'N/A'}ms`);
+      console.log(`[PERF-CHAT] Suggested Questions Gen: ${perfTimings.suggestedQuestionsGen?.toFixed(2) || 'N/A'}ms`);
+      console.log(`[PERF-CHAT] DB Save Messages: ${perfTimings.dbSaveMessages?.toFixed(2)}ms`);
+      console.log(`[PERF-CHAT] TOTAL TIME: ${totalTime.toFixed(2)}ms`);
+      console.log(`[PERF-CHAT] =========================================`);
 
       // Send final metadata
       res.write(`data: ${JSON.stringify({ 
