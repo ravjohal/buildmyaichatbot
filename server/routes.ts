@@ -1875,33 +1875,12 @@ INCORRECT citation examples (NEVER do this):
 
             aiMessage = fullResponse || "I apologize, but I couldn't generate a response.";
             
-            // Generate suggested questions only if enabled (non-streaming, after main response)
-            if (chatbot.enableSuggestedQuestions === "true") {
-              const suggestionsStart = performance.now();
-              try {
-                const suggestionsResult = await genAI.models.generateContent({
-                  model: "gemini-2.5-flash",
-                  contents: `Based on this conversation, suggest 3 relevant follow-up questions (each under 60 characters).
-
-Knowledge Base Topics:
-${knowledgeContext ? knowledgeContext.substring(0, 1500) : "General customer support"}
-
-User's Question: ${message}
-
-Generate 3 short, natural questions that would help the user learn more. Return only the questions, one per line, without numbering.`,
-                });
-                
-                const suggestionsText = suggestionsResult.text || "";
-                suggestedQuestions = suggestionsText
-                  .split('\n')
-                  .map(q => q.trim())
-                  .filter(q => q.length > 0 && q.length < 100)
-                  .slice(0, 3);
-              } catch (error) {
-                console.error("Error generating suggested questions:", error);
-              }
-              perfTimings.suggestedQuestionsGen = performance.now() - suggestionsStart;
-            }
+            // DISABLED: Follow-up question generation (redundant with 20 rotating AI questions from DB)
+            // This was causing 11+ second delay after main response
+            // The widget already shows rotating questions from aiGeneratedQuestions array
+            // if (chatbot.enableSuggestedQuestions === "true") {
+            //   ... generate 3 follow-up questions ...
+            // }
             
             // Send completion event
             res.write(`data: ${JSON.stringify({ 
