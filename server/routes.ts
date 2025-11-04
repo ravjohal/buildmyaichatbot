@@ -870,9 +870,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
           }
           
-          // Strategy 3: Handle class constructor exports (production builds)
+          // Strategy 3: Try named export PDFParse (common in some builds)
+          if (!pdfData && pdfParseModule.PDFParse && typeof pdfParseModule.PDFParse === 'function') {
+            try {
+              pdfData = await pdfParseModule.PDFParse(file.buffer);
+              console.log('[Document Upload] Used named export PDFParse');
+            } catch (error: any) {
+              console.log('[Document Upload] Named export PDFParse failed, trying fallback');
+            }
+          }
+          
+          // Strategy 4: Handle class constructor exports (production builds)
           if (!pdfData) {
-            const parse = pdfParseModule.default || pdfParseModule;
+            const parse = pdfParseModule.default || pdfParseModule.PDFParse || pdfParseModule;
             
             if (typeof parse !== 'function') {
               console.error('[Document Upload] Module structure:', Object.keys(pdfParseModule));

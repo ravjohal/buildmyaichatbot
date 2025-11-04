@@ -216,9 +216,19 @@ async function extractPdfText(url: string): Promise<{ content: string; title: st
       }
     }
     
-    // Strategy 3: Handle class constructor exports (production builds)
+    // Strategy 3: Try named export PDFParse (common in some builds)
+    if (!pdfData && pdfParseModule.PDFParse && typeof pdfParseModule.PDFParse === 'function') {
+      try {
+        pdfData = await pdfParseModule.PDFParse(buffer);
+        console.log('[PDF Extractor] Used named export PDFParse');
+      } catch (error: any) {
+        console.log('[PDF Extractor] Named export PDFParse failed, trying fallback');
+      }
+    }
+    
+    // Strategy 4: Handle class constructor exports (production builds)
     if (!pdfData) {
-      const parse = pdfParseModule.default || pdfParseModule;
+      const parse = pdfParseModule.default || pdfParseModule.PDFParse || pdfParseModule;
       
       if (typeof parse !== 'function') {
         console.error('[PDF Extractor] Module structure:', Object.keys(pdfParseModule));
