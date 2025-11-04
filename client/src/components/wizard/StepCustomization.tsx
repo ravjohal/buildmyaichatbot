@@ -180,7 +180,10 @@ export function StepCustomization({ formData, updateFormData, isFreeTier = false
           </div>
 
           <div className="space-y-3">
-            <Label className="text-base">Suggested Questions (Optional)</Label>
+            <Label className="text-base">Quick Start Questions (Optional)</Label>
+            <p className="text-sm text-muted-foreground">
+              These questions appear when the chat first opens to help visitors get started
+            </p>
             <div className="flex gap-2">
               <Input
                 placeholder="e.g., What are your business hours?"
