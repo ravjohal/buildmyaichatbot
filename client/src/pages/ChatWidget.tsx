@@ -51,6 +51,9 @@ export default function ChatWidget() {
   const [showProactivePopup, setShowProactivePopup] = useState(false);
   const proactiveTimerRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Question rotation state - track current index for cycling through all 20 questions
+  const [questionRotationIndex, setQuestionRotationIndex] = useState(0);
+
   const { data: chatbot, isLoading, error } = useQuery<Chatbot>({
     queryKey: [`/api/public/chatbots/${chatbotId}`],
     enabled: !!chatbotId,
@@ -353,6 +356,11 @@ export default function ChatWidget() {
     setMessages((prev) => [...prev, userMessage]);
     chatMutation.mutate(inputValue.trim());
     setInputValue("");
+    
+    // Rotate questions for next display (advance by 2 since we show 2 at a time)
+    if (suggestedQuestionsData?.questions && suggestedQuestionsData.questions.length > 0) {
+      setQuestionRotationIndex((prev) => (prev + 2) % suggestedQuestionsData.questions.length);
+    }
   };
 
   const handleSuggestedQuestion = async (question: string) => {
@@ -374,6 +382,11 @@ export default function ChatWidget() {
 
     setMessages((prev) => [...prev, userMessage]);
     chatMutation.mutate(question);
+    
+    // Rotate questions for next display (advance by 2 since we show 2 at a time)
+    if (suggestedQuestionsData?.questions && suggestedQuestionsData.questions.length > 0) {
+      setQuestionRotationIndex((prev) => (prev + 2) % suggestedQuestionsData.questions.length);
+    }
   };
 
   const handleLeadSubmit = (e: React.FormEvent) => {
@@ -536,7 +549,7 @@ export default function ChatWidget() {
     return null;
   }
 
-  // Determine which suggested questions to display
+  // Determine which suggested questions to display with rotation
   const getDisplayedSuggestions = () => {
     const userMessages = messages.filter(m => m.role === "user");
     const hasUserInteracted = userMessages.length > 0;
@@ -548,15 +561,25 @@ export default function ChatWidget() {
       hasSuggestedQuestionsData: !!suggestedQuestionsData?.questions,
       questionsCount: suggestedQuestionsData?.questions?.length || 0,
       welcomeQuestions: chatbot.suggestedQuestions?.length || 0,
+      questionRotationIndex,
     });
 
     // After user has interacted: show AI-generated questions if toggle is enabled
     if (hasUserInteracted) {
       console.log('[ChatWidget] User has interacted, checking AI questions...');
       if (chatbot?.enableSuggestedQuestions === "true" && suggestedQuestionsData?.questions && suggestedQuestionsData.questions.length > 0) {
-        const aiQuestions = suggestedQuestionsData.questions.slice(0, 2);
-        const questionsWithHardcoded = [...aiQuestions, HARDCODED_QUESTION];
-        console.log('[ChatWidget] ✓ Returning AI-generated questions + hardcoded:', questionsWithHardcoded);
+        const totalQuestions = suggestedQuestionsData.questions.length;
+        
+        // Rotate through all questions, showing 2 at a time
+        // Use modulo to wrap around when we reach the end
+        const questions = [];
+        for (let i = 0; i < 2; i++) {
+          const index = (questionRotationIndex + i) % totalQuestions;
+          questions.push(suggestedQuestionsData.questions[index]);
+        }
+        
+        const questionsWithHardcoded = [...questions, HARDCODED_QUESTION];
+        console.log('[ChatWidget] ✓ Returning rotated AI-generated questions (index:', questionRotationIndex, '):', questionsWithHardcoded);
         return questionsWithHardcoded;
       }
       console.log('[ChatWidget] ✗ No AI questions to show, returning only hardcoded question');

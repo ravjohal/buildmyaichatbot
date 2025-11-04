@@ -104,8 +104,9 @@ export function StepPersonality({ formData, updateFormData }: StepPersonalityPro
             </h4>
             <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
               <li>AI analyzes your knowledge base during indexing</li>
-              <li>Generates 8-12 FAQ-style questions about your content</li>
-              <li>Shows 3 random questions after visitor's first message</li>
+              <li>Generates 20 FAQ-style questions about your content</li>
+              <li>Shows 3 questions (2 AI + 1 hardcoded) after visitor's first message</li>
+              <li>Questions rotate automatically after each message for variety</li>
               <li>Helps guide conversations and improve engagement</li>
             </ul>
           </div>

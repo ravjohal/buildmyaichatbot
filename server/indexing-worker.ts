@@ -146,23 +146,27 @@ async function generateSuggestedQuestions(chatbotId: string): Promise<string[]> 
   try {
     console.log(`[WORKER] Generating suggested questions for chatbot ${chatbotId}...`);
     
-    // Get a sample of knowledge chunks directly from database (no embedding lookup needed)
+    // Get a larger sample of knowledge chunks to ensure comprehensive coverage
+    // Sample up to 100 chunks from all indexed data for better diversity
     const chunks = await db
       .select()
       .from(knowledgeChunks)
       .where(eq(knowledgeChunks.chatbotId, chatbotId))
-      .limit(10);
+      .limit(100);
     
     if (chunks.length === 0) {
       console.log(`[WORKER] No knowledge chunks available for chatbot ${chatbotId}, skipping question generation`);
       return [];
     }
     
-    // Build a summary of the content
+    console.log(`[WORKER] Using ${chunks.length} knowledge chunks for question generation`);
+    
+    // Build a comprehensive summary of the content
+    // Use more content (8000 chars) to generate better questions
     const contentSummary = chunks
       .map(chunk => chunk.chunkText)
       .join('\n\n')
-      .substring(0, 3000); // Limit to 3000 chars to keep prompt manageable
+      .substring(0, 8000);
     
     // Get source titles for context
     const sourceTitles = Array.from(new Set(chunks.map(chunk => chunk.sourceTitle).filter(Boolean)));
@@ -173,22 +177,25 @@ async function generateSuggestedQuestions(chatbotId: string): Promise<string[]> 
 
 Website Content Overview:
 Sources: ${sourceTitles.length > 0 ? sourceTitles.join(', ') : 'Various pages'}
+Total content chunks analyzed: ${chunks.length}
 
 Content Sample:
 ${contentSummary}
 
-Generate 8-12 frequently asked questions (FAQ-style) that visitors to this website might ask about the content, products, or services described above.
+Generate EXACTLY 20 frequently asked questions (FAQ-style) that visitors to this website might ask about the content, products, or services described above.
 
 Requirements:
+- Generate EXACTLY 20 questions
 - Each question should be under 90 characters
-- Questions should be diverse, covering different topics and intents from the content
+- Questions should be diverse, covering different topics and intents from ALL the content
 - Use natural, conversational language
 - Avoid duplicates or very similar questions
 - Do NOT generate follow-up questions - these should be standalone FAQs
 - Focus on what customers would actually want to know
+- Cover a broad range of topics from the content (don't focus on just one area)
 
-Return ONLY a valid JSON array of question strings, nothing else. Example format:
-["Question 1?", "Question 2?", "Question 3?"]`;
+Return ONLY a valid JSON array of EXACTLY 20 question strings, nothing else. Example format:
+["Question 1?", "Question 2?", ..., "Question 20?"]`;
 
     const result = await genAI.models.generateContent({
       model: "gemini-2.5-flash",
@@ -212,7 +219,7 @@ Return ONLY a valid JSON array of question strings, nothing else. Example format
       // Validate and filter questions
       questions = questions
         .filter(q => typeof q === 'string' && q.length > 0 && q.length <= 90)
-        .slice(0, 12); // Limit to max 12 questions
+        .slice(0, 20); // Limit to max 20 questions
         
       console.log(`[WORKER] Generated ${questions.length} suggested questions for chatbot ${chatbotId}`);
       return questions;
