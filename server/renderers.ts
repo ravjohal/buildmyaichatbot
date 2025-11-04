@@ -267,18 +267,27 @@ export class PlaywrightRenderer implements PageRenderer {
       } catch {}
 
       // Extract content with retry logic for pages that keep navigating
+      // Add overall timeout to prevent spending too long on problematic pages
       let html = '';
       let title = '';
       let textContent = '';
       
-      const maxRetries = 3;
+      const maxRetries = 2; // Reduced from 3 to 2 attempts
+      const maxExtractionTime = 10000; // Maximum 10 seconds for content extraction
+      const extractionStartTime = Date.now();
       let lastError: Error | null = null;
       
       for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        // Check if we've exceeded the overall extraction timeout
+        if (Date.now() - extractionStartTime > maxExtractionTime) {
+          console.log(`[PlaywrightRenderer] ⚠ Content extraction timeout (${maxExtractionTime}ms exceeded)`);
+          throw new Error(`Content extraction timed out after ${maxExtractionTime}ms`);
+        }
+        
         try {
-          // Try to wait for network to be idle (max 2 seconds)
+          // Try to wait for network to be idle (max 1 second - reduced from 2s)
           try {
-            await page.waitForLoadState('networkidle', { timeout: 2000 });
+            await page.waitForLoadState('networkidle', { timeout: 1000 });
           } catch {
             // Network might never be idle for some SPAs, continue anyway
           }
@@ -300,6 +309,7 @@ export class PlaywrightRenderer implements PageRenderer {
           });
           
           // Successfully extracted content, break out of retry loop
+          console.log(`[PlaywrightRenderer] ✓ Content extracted on attempt ${attempt}`);
           break;
         } catch (extractError) {
           lastError = extractError instanceof Error ? extractError : new Error(String(extractError));
@@ -308,8 +318,8 @@ export class PlaywrightRenderer implements PageRenderer {
           const isNavigatingError = lastError.message.includes('navigating and changing');
           
           if (isNavigatingError && attempt < maxRetries) {
-            console.log(`[PlaywrightRenderer] ⚠ Page still navigating (attempt ${attempt}/${maxRetries}), waiting 2s before retry...`);
-            await page.waitForTimeout(2000);
+            console.log(`[PlaywrightRenderer] ⚠ Page still navigating (attempt ${attempt}/${maxRetries}), waiting 1s before retry...`);
+            await page.waitForTimeout(1000); // Reduced from 2s to 1s
           } else if (attempt === maxRetries) {
             // Final attempt failed, throw the error
             throw new Error(`Content extraction failed after ${maxRetries} attempts: ${lastError.message}`);
