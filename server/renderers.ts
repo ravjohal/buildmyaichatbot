@@ -140,7 +140,8 @@ export class CheerioRenderer implements PageRenderer {
 export class PlaywrightRenderer implements PageRenderer {
   private browser: Browser | null = null;
   private activePage: Page | null = null;
-  private readonly timeout: number = 15000; // 15s timeout with partial crawl fallback
+  // Environment-aware timeout: production uses slower system Chromium
+  private readonly timeout: number = process.env.NODE_ENV === 'production' ? 20000 : 15000;
 
   async render(url: string): Promise<RenderResult> {
     console.log(`[PlaywrightRenderer] Starting render for: ${url}`);

@@ -7,6 +7,7 @@ import { db } from "./db";
 import { urlCrawlMetadata, indexingJobs, indexingTasks, knowledgeChunks } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { GoogleGenAI } from "@google/genai";
+import { PerformanceMonitor, getEnvironmentConfig } from "./performance-monitor";
 
 const POLL_INTERVAL_MS = 3000; // Check for new jobs every 3 seconds
 const MAX_RETRY_COUNT = 3;
@@ -242,7 +243,13 @@ Return ONLY a valid JSON array of EXACTLY 20 question strings, nothing else. Exa
 
 // Process a single indexing task (URL or document)
 async function processIndexingTask(taskId: string, jobId: string, chatbotId: string, sourceType: string, sourceUrl: string, monitor?: CancellationMonitor): Promise<void> {
+  const perfMonitor = new PerformanceMonitor(jobId);
+  const config = getEnvironmentConfig();
+  
   console.log(`[WORKER] Processing task ${taskId}: ${sourceType} - ${sourceUrl}`);
+  console.log(`[WORKER] Environment config:`, JSON.stringify(config, null, 2));
+  
+  perfMonitor.start('task-total', { taskId, sourceType, sourceUrl });
   
   try {
     await storage.updateIndexingTaskStatus(taskId, "processing");
@@ -256,13 +263,15 @@ async function processIndexingTask(taskId: string, jobId: string, chatbotId: str
     let title = "";
     
     if (sourceType === "website") {
-      // Recursively crawl the website (max 2 levels deep, max 200 pages)
-      console.log(`[WORKER] Recursively crawling website: ${sourceUrl} (max depth: 2, max pages: 200)`);
+      // Recursively crawl the website with environment-specific limits
+      perfMonitor.start('crawling', { maxDepth: config.crawling.maxDepth, maxPages: config.crawling.maxPages });
+      console.log(`[WORKER] Recursively crawling website: ${sourceUrl} (max depth: ${config.crawling.maxDepth}, max pages: ${config.crawling.maxPages})`);
       const crawlResults = await crawlMultipleWebsitesRecursive([sourceUrl], {
-        maxDepth: 2,
-        maxPages: 200,
+        maxDepth: config.crawling.maxDepth,
+        maxPages: config.crawling.maxPages,
         sameDomainOnly: true,
       });
+      perfMonitor.end('crawling', { pagesFound: crawlResults.length });
       
       // crawlResults is an array of crawled pages
       console.log(`[WORKER] Crawled ${crawlResults.length} pages from ${sourceUrl}`);
@@ -330,7 +339,10 @@ async function processIndexingTask(taskId: string, jobId: string, chatbotId: str
       
       // Process each page individually to preserve specific URLs
       // We'll collect all chunks first, then store them together
+      perfMonitor.start('chunking-and-embedding', { totalPages: validPages.length });
       const allChunksWithEmbeddings: InsertKnowledgeChunk[] = [];
+      let totalChunks = 0;
+      let totalEmbeddings = 0;
       
       for (const page of validPages) {
         const pageContent = page.content;
@@ -345,53 +357,81 @@ async function processIndexingTask(taskId: string, jobId: string, chatbotId: str
         }
         
         // Chunk this page's content
+        perfMonitor.start('chunk-single-page');
         const pageChunks = chunkContent(pageContent, { title: pageTitle });
+        perfMonitor.end('chunk-single-page', { chunks: pageChunks.length, url: pageUrl });
+        totalChunks += pageChunks.length;
         console.log(`[WORKER] Generated ${pageChunks.length} chunks for ${pageUrl}`);
         
-        // Generate embeddings for this page's chunks
-        for (const chunk of pageChunks) {
-          // Checkpoint: Check for cancellation during embedding loop (every 5 chunks)
-          if (monitor && chunk.index % 5 === 0) {
+        // Generate embeddings for this page's chunks with TRUE concurrency limiting
+        perfMonitor.start('embed-page-chunks');
+        
+        // Process chunks with actual concurrency control
+        // Don't create all promises upfront - only create them when ready to process
+        for (let i = 0; i < pageChunks.length; i += config.embedding.concurrency) {
+          // Take a small batch based on concurrency limit
+          const concurrentBatch = pageChunks.slice(i, i + config.embedding.concurrency);
+          
+          // Checkpoint: Check for cancellation per batch
+          if (monitor) {
             await monitor.check();
           }
           
-          try {
-            const embedding = await embeddingService.generateEmbedding(chunk.text);
-            allChunksWithEmbeddings.push({
-              chatbotId,
-              sourceType: "website",
-              sourceUrl: pageUrl, // Use specific page URL
-              sourceTitle: pageTitle, // Use specific page title
-              chunkText: chunk.text,
-              chunkIndex: chunk.index.toString(),
-              contentHash: chunk.contentHash,
-              embedding,
-              metadata: chunk.metadata,
-            });
-          } catch (embError) {
-            console.error(`[WORKER] Failed to generate embedding for chunk ${chunk.index} of ${pageUrl}:`, embError);
-            // Store chunk without embedding
-            allChunksWithEmbeddings.push({
-              chatbotId,
-              sourceType: "website",
-              sourceUrl: pageUrl, // Use specific page URL
-              sourceTitle: pageTitle, // Use specific page title
-              chunkText: chunk.text,
-              chunkIndex: chunk.index.toString(),
-              contentHash: chunk.contentHash,
-              metadata: chunk.metadata,
-            });
-          }
+          // Now create and execute promises for this batch ONLY
+          // This ensures we only have N concurrent embedding API calls at a time
+          const batchResults = await Promise.all(
+            concurrentBatch.map(async (chunk) => {
+              try {
+                const embedding = await embeddingService.generateEmbedding(chunk.text);
+                totalEmbeddings++;
+                return {
+                  chatbotId,
+                  sourceType: "website" as const,
+                  sourceUrl: pageUrl,
+                  sourceTitle: pageTitle,
+                  chunkText: chunk.text,
+                  chunkIndex: chunk.index.toString(),
+                  contentHash: chunk.contentHash,
+                  embedding,
+                  metadata: chunk.metadata,
+                };
+              } catch (embError) {
+                console.error(`[WORKER] Failed to generate embedding for chunk ${chunk.index} of ${pageUrl}:`, embError);
+                // Store chunk without embedding
+                return {
+                  chatbotId,
+                  sourceType: "website" as const,
+                  sourceUrl: pageUrl,
+                  sourceTitle: pageTitle,
+                  chunkText: chunk.text,
+                  chunkIndex: chunk.index.toString(),
+                  contentHash: chunk.contentHash,
+                  metadata: chunk.metadata,
+                };
+              }
+            })
+          );
+          
+          allChunksWithEmbeddings.push(...batchResults);
         }
+        
+        perfMonitor.end('embed-page-chunks', { chunks: pageChunks.length, embeddings: totalEmbeddings });
       }
       
+      perfMonitor.end('chunking-and-embedding', { totalChunks, totalEmbeddings });
+      
       // Store all chunks in database
+      perfMonitor.start('database-storage');
       if (allChunksWithEmbeddings.length > 0) {
         await storage.createKnowledgeChunks(allChunksWithEmbeddings);
         console.log(`[WORKER] ✓ Stored ${allChunksWithEmbeddings.length} chunks from ${validPages.length} pages`);
       }
+      perfMonitor.end('database-storage', { chunks: allChunksWithEmbeddings.length });
       
       // Mark task as completed
+      perfMonitor.end('task-total', { totalChunks: allChunksWithEmbeddings.length, totalPages: validPages.length });
+      console.log(perfMonitor.getSummary());
+      
       await storage.updateIndexingTaskStatus(taskId, "completed", undefined, allChunksWithEmbeddings.length);
       return; // Exit early since we've already processed everything
     } else if (sourceType === "document") {
@@ -436,7 +476,14 @@ async function processIndexingTask(taskId: string, jobId: string, chatbotId: str
 
 // Process a single indexing job
 async function processIndexingJob(jobId: string): Promise<void> {
+  const perfMonitor = new PerformanceMonitor(jobId);
+  const config = getEnvironmentConfig();
+  
   console.log(`[WORKER] Processing indexing job ${jobId}`);
+  console.log(`[WORKER] Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`[WORKER] Production config applied:`, JSON.stringify(config, null, 2));
+  
+  perfMonitor.start('job-total');
   
   // Create cancellation monitor for this job
   const monitor = new CancellationMonitor(jobId);
@@ -455,6 +502,7 @@ async function processIndexingJob(jobId: string): Promise<void> {
     // Get all tasks for this job
     const tasks = await storage.getIndexingTasksForJob(jobId);
     console.log(`[WORKER] Job has ${tasks.length} tasks`);
+    perfMonitor.track('total-tasks', tasks.length, ' tasks');
     
     // Process each task sequentially
     let completedCount = 0;
@@ -503,12 +551,15 @@ async function processIndexingJob(jobId: string): Promise<void> {
     }
     
     // Complete the job
+    perfMonitor.start('job-completion');
     await storage.completeIndexingJob(jobId);
+    perfMonitor.end('job-completion');
     
     // Generate and store suggested questions if job completed successfully
     const finalJob = await storage.getIndexingJob(jobId);
     if (finalJob && (finalJob.status === "completed" || finalJob.status === "partial")) {
       try {
+        perfMonitor.start('suggested-questions');
         console.log(`[WORKER] Generating suggested questions for chatbot ${job.chatbotId}...`);
         const suggestedQuestions = await generateSuggestedQuestions(job.chatbotId);
         
@@ -518,16 +569,26 @@ async function processIndexingJob(jobId: string): Promise<void> {
         } else {
           console.log(`[WORKER] No suggested questions generated for chatbot ${job.chatbotId}`);
         }
+        perfMonitor.end('suggested-questions', { questionsGenerated: suggestedQuestions.length });
       } catch (questionError) {
         // Don't fail the job if question generation fails - it's a nice-to-have feature
         console.error(`[WORKER] Failed to generate suggested questions (non-critical):`, questionError);
+        perfMonitor.end('suggested-questions', { error: true });
       }
     }
     
     // Update chatbot indexing status based on final job status
     if (finalJob) {
       await storage.updateChatbotIndexingStatus(job.chatbotId, finalJob.status);
+      perfMonitor.end('job-total', { 
+        status: finalJob.status,
+        completedTasks: completedCount,
+        failedTasks: failedCount,
+        cancelledTasks: cancelledCount
+      });
+      
       console.log(`[WORKER] ✓ Job ${jobId} completed with status: ${finalJob.status}`);
+      console.log(perfMonitor.getSummary());
       totalJobsProcessed++;
     }
     
