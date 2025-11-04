@@ -39,16 +39,28 @@ export function StepComplete({ chatbotId, indexingStatus }: StepCompleteProps) {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  // Determine if background indexing is happening
+  const isIndexing = indexingStatus && (indexingStatus.status === 'pending' || indexingStatus.status === 'processing');
+
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-6">
       <div className="max-w-4xl w-full space-y-8">
         <div className="text-center space-y-4">
           <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
-            <Check className="w-10 h-10 text-primary" />
+            {isIndexing ? (
+              <Loader2 className="w-10 h-10 text-primary animate-spin" />
+            ) : (
+              <Check className="w-10 h-10 text-primary" />
+            )}
           </div>
-          <h1 className="text-4xl font-bold">Chatbot Created Successfully!</h1>
+          <h1 className="text-4xl font-bold">
+            {isIndexing ? "Chatbot Created - Indexing in Progress!" : "Chatbot Created Successfully!"}
+          </h1>
           <p className="text-xl text-muted-foreground">
-            Your AI assistant is ready to deploy on your website
+            {isIndexing 
+              ? "Your chatbot is being prepared. Knowledge base crawling is happening in the background and may take 15-30 minutes to complete."
+              : "Your AI assistant is ready to deploy on your website"
+            }
           </p>
         </div>
 
@@ -60,13 +72,13 @@ export function StepComplete({ chatbotId, indexingStatus }: StepCompleteProps) {
                 <Loader2 className="w-6 h-6 text-blue-600 dark:text-blue-400 animate-spin" />
                 <div className="flex-1">
                   <h3 className="font-semibold text-blue-900 dark:text-blue-100">
-                    Currently Being Indexed
+                    Background Indexing Progress
                   </h3>
                   <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
                     {indexingStatus.progress.processedUrls} of {indexingStatus.progress.totalUrls} URLs processed
                   </p>
                   <p className="text-sm text-blue-600 dark:text-blue-400 mt-2">
-                    Your chatbot is ready to use now. Check the status badge on your dashboard card to monitor indexing progress. The knowledge base will expand as URLs are indexed.
+                    You can deploy your chatbot now. Monitor progress via the status badge on your dashboard. The knowledge base will expand as indexing completes.
                   </p>
                 </div>
               </div>
