@@ -10,14 +10,6 @@ BuildMyChatbot.Ai is a SaaS web application that enables non-technical business 
 
 ## Recent Updates (Nov 3, 2025)
 
-**Graceful Shutdown with Job Retry (Nov 3, 2025)**: Implemented comprehensive SIGTERM handling for Autoscale deployments to ensure jobs aren't lost when worker shuts down after inactivity. When SIGTERM received, worker:
-- Sets `isShuttingDown` flag to stop accepting new jobs
-- Throws `ShutdownError` at next processing checkpoint (checked every 5 chunks during embedding, between pages during crawling, and before each task)
-- Marks in-progress job and all "processing" tasks back to "pending" for automatic retry after restart
-- Gracefully closes active Playwright browser instance to prevent zombie processes
-- Exits with 10-second timeout failsafe to prevent hanging
-This ensures jobs interrupted by Autoscale's 15-minute inactivity shutdown are automatically resumed when worker restarts, preventing data loss and user frustration.
-
 **Job Cancellation System**: Implemented fast cancellation for running indexing jobs with dual-layer detection (in-memory flags + 5s throttled DB checks) and strategic checkpoints throughout task processing. Achieves sub-second to 5-second cancellation response time.
 
 **UI Improvements**:

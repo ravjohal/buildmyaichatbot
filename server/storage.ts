@@ -92,9 +92,8 @@ export interface IStorage {
   getKnowledgeChunksForChatbot(chatbotId: string): Promise<Array<{
     id: string;
     chunkText: string;
-    sourceUrl: string;
-    sourceTitle: string | null;
-    sourceType: string;
+    sourceUrl: string | null;
+    sourceDocument: string | null;
   }>>;
 }
 
@@ -1080,21 +1079,19 @@ export class DbStorage implements IStorage {
   async getKnowledgeChunksForChatbot(chatbotId: string): Promise<Array<{
     id: string;
     chunkText: string;
-    sourceUrl: string;
-    sourceTitle: string | null;
-    sourceType: string;
+    sourceUrl: string | null;
+    sourceDocument: string | null;
   }>> {
     const result = await db
       .select({
         id: knowledgeChunks.id,
         chunkText: knowledgeChunks.chunkText,
         sourceUrl: knowledgeChunks.sourceUrl,
-        sourceTitle: knowledgeChunks.sourceTitle,
-        sourceType: knowledgeChunks.sourceType,
+        sourceDocument: knowledgeChunks.sourceDocument,
       })
       .from(knowledgeChunks)
       .where(eq(knowledgeChunks.chatbotId, chatbotId))
-      .orderBy(knowledgeChunks.sourceUrl);
+      .orderBy(knowledgeChunks.sourceUrl, knowledgeChunks.sourceDocument);
     
     return result;
   }

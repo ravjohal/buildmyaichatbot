@@ -2,9 +2,6 @@ import * as cheerio from 'cheerio';
 import crypto from 'crypto';
 import { CheerioRenderer, PlaywrightRenderer, PageRenderer } from './renderers';
 
-// Track active Playwright renderer for graceful shutdown
-let activePlaywrightRenderer: PlaywrightRenderer | null = null;
-
 export interface CrawlResult {
   url: string;
   content: string;
@@ -339,7 +336,6 @@ export async function crawlWebsiteRecursive(
       } else if (mode === 'javascript') {
         if (!jsRenderer) {
           jsRenderer = new PlaywrightRenderer();
-          activePlaywrightRenderer = jsRenderer;
         }
         result = await crawlWithRenderer(url, jsRenderer);
         renderedWith = 'javascript';
@@ -366,7 +362,6 @@ export async function crawlWebsiteRecursive(
             if (!jsRenderer) {
               console.log(`[Auto-detect] Creating new PlaywrightRenderer...`);
               jsRenderer = new PlaywrightRenderer();
-              activePlaywrightRenderer = jsRenderer;
               console.log(`[Auto-detect] PlaywrightRenderer created successfully`);
             }
             
@@ -413,9 +408,6 @@ export async function crawlWebsiteRecursive(
   } finally {
     if (jsRenderer) {
       await jsRenderer.close();
-      if (activePlaywrightRenderer === jsRenderer) {
-        activePlaywrightRenderer = null;
-      }
     }
   }
 
@@ -544,18 +536,4 @@ export async function refreshWebsites(
   }
   
   return results;
-}
-
-// Gracefully close active Playwright renderer (for SIGTERM handling)
-export async function closeActiveRenderer(): Promise<void> {
-  if (activePlaywrightRenderer) {
-    console.log('[Crawler] Closing active Playwright renderer...');
-    try {
-      await activePlaywrightRenderer.close();
-      console.log('[Crawler] ✓ Active Playwright renderer closed');
-    } catch (error) {
-      console.error('[Crawler] Error closing active Playwright renderer:', error);
-    }
-    activePlaywrightRenderer = null;
-  }
 }

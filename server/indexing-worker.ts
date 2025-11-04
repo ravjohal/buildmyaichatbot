@@ -1,5 +1,5 @@
 import { storage } from "./storage";
-import { crawlWebsite, crawlMultipleWebsitesRecursive, calculateContentHash, normalizeUrl, closeActiveRenderer } from "./crawler";
+import { crawlWebsite, crawlMultipleWebsitesRecursive, calculateContentHash, normalizeUrl } from "./crawler";
 import { chunkContent } from "./chunker";
 import { embeddingService } from "./embedding";
 import type { InsertKnowledgeChunk } from "@shared/schema";
@@ -18,8 +18,6 @@ let isWorkerRunning = false;
 let lastHeartbeat = Date.now();
 let heartbeatInterval: NodeJS.Timeout | null = null;
 let totalJobsProcessed = 0;
-let isShuttingDown = false; // Flag for graceful shutdown
-let currentJobId: string | null = null; // Track currently processing job for shutdown handling
 
 // In-memory map of cancelled jobs for immediate notification
 const cancelledJobs = new Map<string, boolean>();
@@ -29,14 +27,6 @@ class CancelledError extends Error {
   constructor(jobId: string) {
     super(`Job ${jobId} was cancelled`);
     this.name = 'CancelledError';
-  }
-}
-
-// Custom error for shutdown
-class ShutdownError extends Error {
-  constructor() {
-    super('Worker is shutting down');
-    this.name = 'ShutdownError';
   }
 }
 
@@ -52,15 +42,9 @@ class CancellationMonitor {
     this.checkInterval = checkInterval;
   }
   
-  // Check if job has been cancelled or shutdown is in progress (with throttling to reduce DB queries)
+  // Check if job has been cancelled (with throttling to reduce DB queries)
   async check(): Promise<void> {
     const now = Date.now();
-    
-    // Check for shutdown first (highest priority)
-    if (isShuttingDown) {
-      console.log(`[WORKER] Shutdown detected, stopping job ${this.jobId}`);
-      throw new ShutdownError();
-    }
     
     // First check in-memory flag for immediate notification
     if (cancelledJobs.has(this.jobId)) {
@@ -453,9 +437,6 @@ async function processIndexingJob(jobId: string): Promise<void> {
       return;
     }
     
-    // Track current job for shutdown handling
-    currentJobId = jobId;
-    
     // Update job status to processing
     await storage.updateIndexingJobStatus(jobId, "processing");
     await storage.updateChatbotIndexingStatus(job.chatbotId, "processing", jobId);
@@ -540,25 +521,8 @@ async function processIndexingJob(jobId: string): Promise<void> {
     }
     
   } catch (error) {
-    // Handle shutdown - mark job as pending so it can be retried after restart
-    if (error instanceof ShutdownError) {
-      console.log(`[WORKER] Job ${jobId} interrupted by shutdown, marking as pending for retry`);
-      // Mark all processing tasks back to pending
-      const tasks = await storage.getIndexingTasksForJob(jobId);
-      for (const task of tasks) {
-        if (task.status === "processing") {
-          await storage.updateIndexingTaskStatus(task.id, "pending", "Worker shutdown during processing");
-        }
-      }
-      // Mark job as pending
-      await storage.updateIndexingJobStatus(jobId, "pending", "Worker shutdown during processing");
-      const job = await storage.getIndexingJob(jobId);
-      if (job) {
-        await storage.updateChatbotIndexingStatus(job.chatbotId, "pending");
-      }
-    } 
     // Handle cancellation differently from other errors
-    else if (error instanceof CancelledError) {
+    if (error instanceof CancelledError) {
       console.log(`[WORKER] ✓ Job ${jobId} cancelled by user`);
       // Job status is already set to cancelled by the cancellation endpoint
       // Just update the chatbot status
@@ -579,8 +543,6 @@ async function processIndexingJob(jobId: string): Promise<void> {
   } finally {
     // Clean up in-memory cancellation flag
     clearCancellationFlag(jobId);
-    // Clear current job tracking
-    currentJobId = null;
   }
 }
 
@@ -723,22 +685,13 @@ export async function startIndexingWorker(): Promise<void> {
 }
 
 // Stop the background worker (for graceful shutdown)
-export async function stopIndexingWorker(): Promise<void> {
+export function stopIndexingWorker(): void {
   console.log("[WORKER] Stopping indexing worker...");
   isWorkerRunning = false;
-  isShuttingDown = true;
   
   if (heartbeatInterval) {
     clearInterval(heartbeatInterval);
     heartbeatInterval = null;
-  }
-  
-  // Gracefully close active Playwright renderer
-  console.log("[WORKER] Closing active Playwright browser...");
-  try {
-    await closeActiveRenderer();
-  } catch (error) {
-    console.error("[WORKER] Error closing Playwright browser:", error);
   }
   
   console.log("[WORKER] ✓ Indexing worker stopped");
@@ -754,31 +707,3 @@ export function notifyJobCancellation(jobId: string): void {
 function clearCancellationFlag(jobId: string): void {
   cancelledJobs.delete(jobId);
 }
-
-// Handle SIGTERM for graceful shutdown (Autoscale deployments)
-process.on('SIGTERM', async () => {
-  console.log('[WORKER] ========================================');
-  console.log('[WORKER] Received SIGTERM signal');
-  console.log('[WORKER] Initiating graceful shutdown...');
-  if (currentJobId) {
-    console.log(`[WORKER] Will mark in-progress job ${currentJobId} as pending for retry`);
-  }
-  console.log('[WORKER] ========================================');
-  
-  // Set shutdown timeout (10 seconds max for cleanup)
-  const shutdownTimeout = setTimeout(() => {
-    console.error('[WORKER] Shutdown timeout exceeded, forcing exit');
-    process.exit(1);
-  }, 10000);
-  
-  try {
-    await stopIndexingWorker();
-    clearTimeout(shutdownTimeout);
-    console.log('[WORKER] Graceful shutdown complete');
-    process.exit(0);
-  } catch (error) {
-    clearTimeout(shutdownTimeout);
-    console.error('[WORKER] Error during graceful shutdown:', error);
-    process.exit(1);
-  }
-});
