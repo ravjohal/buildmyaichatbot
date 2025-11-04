@@ -765,12 +765,12 @@ export class DbStorage implements IStorage {
     chatbotId: string,
     question: string,
     questionEmbedding: number[],
-    k: number = 6
+    k: number = 20
   ): Promise<KnowledgeChunk[]> {
     const embeddingStr = `[${questionEmbedding.join(',')}]`;
     
     // Hybrid retrieval: Combine semantic (vector) + lexical (full-text) search
-    // Get top-k from each method, merge and deduplicate, return best k results
+    // Get top-k*2 from each method, merge and deduplicate, return best k results
     const result = await db.execute(
       sql`
         WITH semantic_results AS (
@@ -788,12 +788,12 @@ export class DbStorage implements IStorage {
             created_at as "createdAt",
             updated_at as "updatedAt",
             (embedding <=> ${embeddingStr}::vector) as semantic_score,
-            0 as lexical_score
+            0.0 as lexical_score
           FROM ${knowledgeChunks}
           WHERE chatbot_id = ${chatbotId}
             AND embedding IS NOT NULL
           ORDER BY embedding <=> ${embeddingStr}::vector
-          LIMIT 12
+          LIMIT ${k * 2}
         ),
         lexical_results AS (
           SELECT 
@@ -809,21 +809,41 @@ export class DbStorage implements IStorage {
             metadata,
             created_at as "createdAt",
             updated_at as "updatedAt",
-            1.0 as semantic_score,
+            0.5 as semantic_score,
             ts_rank(search_vector, plainto_tsquery('english', ${question})) as lexical_score
           FROM ${knowledgeChunks}
           WHERE chatbot_id = ${chatbotId}
             AND search_vector IS NOT NULL
             AND search_vector @@ plainto_tsquery('english', ${question})
           ORDER BY ts_rank(search_vector, plainto_tsquery('english', ${question})) DESC
-          LIMIT 12
+          LIMIT ${k * 2}
         ),
         combined AS (
           SELECT * FROM semantic_results
           UNION
           SELECT * FROM lexical_results
+        ),
+        scored AS (
+          SELECT DISTINCT ON (id)
+            id,
+            "chatbotId",
+            "sourceType",
+            "sourceUrl",
+            "sourceTitle",
+            "chunkText",
+            "chunkIndex",
+            "contentHash",
+            embedding,
+            metadata,
+            "createdAt",
+            "updatedAt",
+            semantic_score,
+            lexical_score,
+            ((1.0 - LEAST(semantic_score, 1.0)) * 0.6 + lexical_score * 0.4) as combined_score
+          FROM combined
+          ORDER BY id, ((1.0 - LEAST(semantic_score, 1.0)) * 0.6 + lexical_score * 0.4) DESC
         )
-        SELECT DISTINCT ON (id)
+        SELECT 
           id,
           "chatbotId",
           "sourceType",
@@ -836,24 +856,19 @@ export class DbStorage implements IStorage {
           metadata,
           "createdAt",
           "updatedAt",
-          -- Normalize and combine scores (lower semantic_score is better, higher lexical_score is better)
-          ((1.0 - semantic_score) * 0.6 + lexical_score * 0.4) as combined_score
-        FROM combined
-        ORDER BY id, combined_score DESC
-        LIMIT ${k * 4}
+          combined_score
+        FROM scored
+        ORDER BY combined_score DESC
+        LIMIT ${k}
       `
     );
     
-    // Take top k by combined score
-    const rankedChunks = (result.rows as any[])
-      .sort((a, b) => b.combined_score - a.combined_score)
-      .slice(0, k)
-      .map(row => {
-        // Remove the combined_score before returning
-        const { combined_score, ...chunk } = row;
-        console.log(`[HYBRID] Chunk ${chunk.id.substring(0, 8)}: combined_score=${combined_score.toFixed(3)}`);
-        return chunk as KnowledgeChunk;
-      });
+    // Log the results
+    const rankedChunks = (result.rows as any[]).map(row => {
+      const { combined_score, ...chunk } = row;
+      console.log(`[HYBRID] Chunk ${chunk.id.substring(0, 8)}: combined_score=${combined_score.toFixed(3)}`);
+      return chunk as KnowledgeChunk;
+    });
     
     return rankedChunks;
   }
@@ -1178,18 +1193,18 @@ export class DbStorage implements IStorage {
     id: string;
     chunkText: string;
     sourceUrl: string | null;
-    sourceDocument: string | null;
+    sourceType: string | null;
   }>> {
     const result = await db
       .select({
         id: knowledgeChunks.id,
         chunkText: knowledgeChunks.chunkText,
         sourceUrl: knowledgeChunks.sourceUrl,
-        sourceDocument: knowledgeChunks.sourceDocument,
+        sourceType: knowledgeChunks.sourceType,
       })
       .from(knowledgeChunks)
       .where(eq(knowledgeChunks.chatbotId, chatbotId))
-      .orderBy(knowledgeChunks.sourceUrl, knowledgeChunks.sourceDocument);
+      .orderBy(knowledgeChunks.sourceUrl, knowledgeChunks.sourceType);
     
     return result;
   }

@@ -1693,7 +1693,9 @@ Generate 3 short, natural questions that would help the user learn more. Return 
       if (usingChunks && questionEmbedding) {
         try {
           // Use hybrid retrieval (semantic + lexical) for better accuracy on specific terms
-          const relevantChunks = await storage.getHybridRelevantChunks(chatbotId, message, questionEmbedding, 6);
+          // Dynamically scale chunks: use more chunks for comprehensive coverage
+          const targetChunks = Math.min(chunkCount, 30);
+          const relevantChunks = await storage.getHybridRelevantChunks(chatbotId, message, questionEmbedding, targetChunks);
           
           if (relevantChunks.length > 0) {
             console.log(`[STREAMING] Hybrid retrieval found ${relevantChunks.length} relevant chunks`);
