@@ -1,14 +1,14 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertChatbotSchema, insertLeadSchema, type ChatRequest, type ChatResponse, chatbots, conversations, conversationMessages, users, leads, urlCrawlMetadata, manualQaOverrides, conversationRatings, knowledgeChunks } from "@shared/schema";
+import { insertChatbotSchema, insertLeadSchema, type ChatRequest, type ChatResponse, chatbots, conversations, conversationMessages, users, leads, urlCrawlMetadata, manualQaOverrides, conversationRatings, knowledgeChunks, liveAgentHandoffs, agentMessages, insertLiveAgentHandoffSchema, insertAgentMessageSchema } from "@shared/schema";
 import { ZodError } from "zod";
 import { GoogleGenAI } from "@google/genai";
 import multer from "multer";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import { isAuthenticated } from "./auth";
 import { db } from "./db";
-import { eq, sql, and, gte } from "drizzle-orm";
+import { eq, sql, and, gte, desc, or } from "drizzle-orm";
 import { crawlMultipleWebsitesRecursive, refreshWebsites, calculateContentHash, normalizeUrl } from "./crawler";
 import Stripe from "stripe";
 import crypto from "crypto";
@@ -16,6 +16,7 @@ import { embeddingService } from "./embedding";
 import { notificationService } from "./emails/notification-service";
 import { TIER_LIMITS, canSendMessage } from "@shared/pricing";
 import { notifyJobCancellation } from "./indexing-worker";
+import { setupWebSocket, getLiveChatWS } from "./websocket";
 
 const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
 const upload = multer({ 
@@ -3838,7 +3839,224 @@ INCORRECT citation examples (NEVER do this):
     }
   });
 
+  // Live Agent Handoff Routes
+  
+  // Create a handoff request from visitor
+  app.post("/api/handoffs", async (req, res) => {
+    try {
+      const validatedData = insertLiveAgentHandoffSchema.parse(req.body);
+      
+      // Verify conversation exists
+      const conversationResult = await db.select().from(conversations).where(eq(conversations.id, validatedData.conversationId)).limit(1);
+      if (!conversationResult[0]) {
+        return res.status(404).json({ error: "Conversation not found" });
+      }
+
+      // Create handoff request
+      const newHandoff = await db.insert(liveAgentHandoffs).values(validatedData).returning();
+      
+      // Send email notification to chatbot owner
+      try {
+        const chatbot = await db.select().from(chatbots).where(eq(chatbots.id, validatedData.chatbotId)).limit(1);
+        if (chatbot[0]) {
+          const user = await storage.getUser(chatbot[0].userId);
+          if (user) {
+            const settings = await storage.getEmailNotificationSettings(user.id);
+            const emailAddress = settings?.emailAddress || user.email;
+            
+            const { getUncachableResendClient } = await import('./emails/resend-client');
+            const { client, fromEmail } = await getUncachableResendClient();
+            
+            await client.emails.send({
+              from: fromEmail,
+              to: emailAddress,
+              subject: `Live Chat Request for ${chatbot[0].name}`,
+              html: `
+                <h2>New Live Chat Request</h2>
+                <p>A visitor has requested to speak with a human agent for your chatbot: <strong>${chatbot[0].name}</strong></p>
+                ${validatedData.visitorName ? `<p>Visitor: ${validatedData.visitorName}</p>` : ''}
+                ${validatedData.visitorEmail ? `<p>Email: ${validatedData.visitorEmail}</p>` : ''}
+                <p><a href="${process.env.REPL_SLUG ? `https://${process.env.REPL_SLUG}.${process.env.REPLIT_DEV_DOMAIN}` : 'http://localhost:5000'}/live-chats">View Live Chats Dashboard</a></p>
+              `
+            });
+          }
+        }
+      } catch (emailError) {
+        console.error("Failed to send handoff notification email:", emailError);
+      }
+      
+      res.status(201).json(newHandoff[0]);
+    } catch (error) {
+      if (error instanceof ZodError) {
+        return res.status(400).json({ error: "Invalid data", details: error.errors });
+      }
+      console.error("Error creating handoff:", error);
+      res.status(500).json({ error: "Failed to create handoff" });
+    }
+  });
+
+  // Get all pending/active handoffs for authenticated user's chatbots
+  app.get("/api/handoffs", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      
+      // Get all chatbots owned by the user
+      const userChatbots = await db.select().from(chatbots).where(eq(chatbots.userId, userId));
+      const chatbotIds = userChatbots.map(c => c.id);
+      
+      if (chatbotIds.length === 0) {
+        return res.json([]);
+      }
+      
+      // Get all pending and active handoffs for user's chatbots
+      const handoffs = await db.select({
+        handoff: liveAgentHandoffs,
+        chatbot: {
+          id: chatbots.id,
+          name: chatbots.name,
+        },
+        conversation: {
+          id: conversations.id,
+          sessionId: conversations.sessionId,
+          messageCount: conversations.messageCount,
+        }
+      })
+      .from(liveAgentHandoffs)
+      .leftJoin(chatbots, eq(liveAgentHandoffs.chatbotId, chatbots.id))
+      .leftJoin(conversations, eq(liveAgentHandoffs.conversationId, conversations.id))
+      .where(
+        and(
+          or(
+            eq(liveAgentHandoffs.status, 'pending'),
+            eq(liveAgentHandoffs.status, 'active')
+          ),
+          sql`${liveAgentHandoffs.chatbotId} = ANY(${chatbotIds})`
+        )
+      )
+      .orderBy(desc(liveAgentHandoffs.requestedAt));
+      
+      res.json(handoffs);
+    } catch (error) {
+      console.error("Error fetching handoffs:", error);
+      res.status(500).json({ error: "Failed to fetch handoffs" });
+    }
+  });
+
+  // Get conversation messages including agent messages
+  app.get("/api/handoffs/:id/messages", isAuthenticated, async (req: any, res) => {
+    try {
+      const handoffId = req.params.id;
+      const userId = req.user.id;
+      
+      // Verify handoff exists and belongs to user's chatbot
+      const handoffResult = await db.select({
+        handoff: liveAgentHandoffs,
+        chatbot: chatbots,
+      })
+      .from(liveAgentHandoffs)
+      .leftJoin(chatbots, eq(liveAgentHandoffs.chatbotId, chatbots.id))
+      .where(eq(liveAgentHandoffs.id, handoffId))
+      .limit(1);
+      
+      if (!handoffResult[0] || handoffResult[0].chatbot?.userId !== userId) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
+      
+      const conversationId = handoffResult[0].handoff.conversationId;
+      
+      // Get all conversation messages
+      const messages = await db.select()
+        .from(conversationMessages)
+        .where(eq(conversationMessages.conversationId, conversationId))
+        .orderBy(conversationMessages.createdAt);
+      
+      res.json(messages);
+    } catch (error) {
+      console.error("Error fetching conversation messages:", error);
+      res.status(500).json({ error: "Failed to fetch messages" });
+    }
+  });
+
+  // Accept a handoff request (agent starts handling conversation)
+  app.post("/api/handoffs/:id/accept", isAuthenticated, async (req: any, res) => {
+    try {
+      const handoffId = req.params.id;
+      const userId = req.user.id;
+      
+      // Verify handoff exists and belongs to user's chatbot
+      const handoffResult = await db.select({
+        handoff: liveAgentHandoffs,
+        chatbot: chatbots,
+      })
+      .from(liveAgentHandoffs)
+      .leftJoin(chatbots, eq(liveAgentHandoffs.chatbotId, chatbots.id))
+      .where(eq(liveAgentHandoffs.id, handoffId))
+      .limit(1);
+      
+      if (!handoffResult[0] || handoffResult[0].chatbot?.userId !== userId) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
+      
+      // Update handoff status to active
+      const updated = await db.update(liveAgentHandoffs)
+        .set({
+          status: 'active',
+          agentId: userId,
+          acceptedAt: new Date(),
+        })
+        .where(eq(liveAgentHandoffs.id, handoffId))
+        .returning();
+      
+      res.json(updated[0]);
+    } catch (error) {
+      console.error("Error accepting handoff:", error);
+      res.status(500).json({ error: "Failed to accept handoff" });
+    }
+  });
+
+  // Resolve a handoff (mark conversation as complete)
+  app.post("/api/handoffs/:id/resolve", isAuthenticated, async (req: any, res) => {
+    try {
+      const handoffId = req.params.id;
+      const userId = req.user.id;
+      const { notes } = req.body;
+      
+      // Verify handoff exists and belongs to user's chatbot
+      const handoffResult = await db.select({
+        handoff: liveAgentHandoffs,
+        chatbot: chatbots,
+      })
+      .from(liveAgentHandoffs)
+      .leftJoin(chatbots, eq(liveAgentHandoffs.chatbotId, chatbots.id))
+      .where(eq(liveAgentHandoffs.id, handoffId))
+      .limit(1);
+      
+      if (!handoffResult[0] || handoffResult[0].chatbot?.userId !== userId) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
+      
+      // Update handoff status to resolved
+      const updated = await db.update(liveAgentHandoffs)
+        .set({
+          status: 'resolved',
+          resolvedAt: new Date(),
+          resolutionNotes: notes || null,
+        })
+        .where(eq(liveAgentHandoffs.id, handoffId))
+        .returning();
+      
+      res.json(updated[0]);
+    } catch (error) {
+      console.error("Error resolving handoff:", error);
+      res.status(500).json({ error: "Failed to resolve handoff" });
+    }
+  });
+
   const httpServer = createServer(app);
+
+  // Initialize WebSocket server for live agent handoff
+  setupWebSocket(httpServer);
+  console.log('[Server] WebSocket server initialized for live agent handoff');
 
   return httpServer;
 }

@@ -397,3 +397,45 @@ export const passwordResetTokens = pgTable("password_reset_tokens", {
 
 export type PasswordResetToken = typeof passwordResetTokens.$inferSelect;
 export type InsertPasswordResetToken = typeof passwordResetTokens.$inferInsert;
+
+// Live Agent Handoffs - tracks when visitors request human help
+export const liveAgentHandoffs = pgTable("live_agent_handoffs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  conversationId: varchar("conversation_id").notNull().references(() => conversations.id, { onDelete: "cascade" }),
+  chatbotId: varchar("chatbot_id").notNull().references(() => chatbots.id, { onDelete: "cascade" }),
+  sessionId: varchar("session_id").notNull(),
+  status: varchar("status", { enum: ["pending", "active", "resolved", "missed"] }).notNull().default("pending"),
+  agentId: varchar("agent_id").references(() => users.id, { onDelete: "set null" }),
+  visitorName: text("visitor_name"),
+  visitorEmail: text("visitor_email"),
+  requestedAt: timestamp("requested_at").defaultNow().notNull(),
+  acceptedAt: timestamp("accepted_at"),
+  resolvedAt: timestamp("resolved_at"),
+  resolutionNotes: text("resolution_notes"),
+});
+
+export const insertLiveAgentHandoffSchema = createInsertSchema(liveAgentHandoffs).omit({
+  id: true,
+  requestedAt: true,
+});
+
+export type LiveAgentHandoff = typeof liveAgentHandoffs.$inferSelect;
+export type InsertLiveAgentHandoff = z.infer<typeof insertLiveAgentHandoffSchema>;
+
+// Agent Messages - messages sent by agents during live chat
+export const agentMessages = pgTable("agent_messages", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  handoffId: varchar("handoff_id").notNull().references(() => liveAgentHandoffs.id, { onDelete: "cascade" }),
+  conversationId: varchar("conversation_id").notNull().references(() => conversations.id, { onDelete: "cascade" }),
+  agentId: varchar("agent_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  content: text("content").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertAgentMessageSchema = createInsertSchema(agentMessages).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type AgentMessage = typeof agentMessages.$inferSelect;
+export type InsertAgentMessage = z.infer<typeof insertAgentMessageSchema>;
