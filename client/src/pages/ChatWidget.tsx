@@ -348,7 +348,20 @@ export default function ChatWidget() {
                     setMessages((prev) =>
                       prev.map((msg) =>
                         msg.id === messageId
-                          ? { ...msg, content: fullResponse }
+                          ? { 
+                              ...msg, 
+                              content: fullResponse,
+                              images: data.images,
+                            }
+                          : msg
+                      )
+                    );
+                  } else if (data.images) {
+                    // Only images, no message (update images)
+                    setMessages((prev) =>
+                      prev.map((msg) =>
+                        msg.id === messageId
+                          ? { ...msg, images: data.images }
                           : msg
                       )
                     );
@@ -941,6 +954,25 @@ export default function ChatWidget() {
                   <p className="text-sm whitespace-pre-wrap" data-testid={`message-${message.id}`}>
                     {linkifyText(message.content || "")}
                   </p>
+                  {message.images && message.images.length > 0 && (
+                    <div className="mt-3 space-y-2">
+                      {message.images.map((img, idx) => (
+                        <div key={idx} className="rounded-lg overflow-hidden border border-border" data-testid={`image-${message.id}-${idx}`}>
+                          <img
+                            src={img.url}
+                            alt={img.altText || img.caption || "Image"}
+                            className="w-full h-auto max-h-64 object-contain"
+                            loading="lazy"
+                          />
+                          {(img.caption || img.altText) && (
+                            <div className="p-2 bg-muted/50 text-xs text-muted-foreground">
+                              {img.caption || img.altText}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                   {message.content && chatbot.supportPhoneNumber && 
                     message.content.includes(chatbot.supportPhoneNumber) && (
                       <Button
@@ -1172,6 +1204,25 @@ export default function ChatWidget() {
                     <p className="text-sm whitespace-pre-wrap" data-testid={`message-${message.id}`}>
                       {linkifyText(message.content || "")}
                     </p>
+                    {message.images && message.images.length > 0 && (
+                      <div className="mt-3 space-y-2">
+                        {message.images.map((img, idx) => (
+                          <div key={idx} className="rounded-lg overflow-hidden border border-border" data-testid={`image-${message.id}-${idx}`}>
+                            <img
+                              src={img.url}
+                              alt={img.altText || img.caption || "Image"}
+                              className="w-full h-auto max-h-64 object-contain"
+                              loading="lazy"
+                            />
+                            {(img.caption || img.altText) && (
+                              <div className="p-2 bg-muted/50 text-xs text-muted-foreground">
+                                {img.caption || img.altText}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
                     {message.content && chatbot.supportPhoneNumber && 
                       message.content.includes(chatbot.supportPhoneNumber) && (
                         <Button

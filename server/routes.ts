@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertChatbotSchema, insertLeadSchema, type ChatRequest, type ChatResponse, chatbots, conversations, conversationMessages, users, leads, urlCrawlMetadata, manualQaOverrides, conversationRatings, knowledgeChunks, liveAgentHandoffs, agentMessages, insertLiveAgentHandoffSchema, insertAgentMessageSchema, teamInvitations, insertTeamInvitationSchema } from "@shared/schema";
+import { insertChatbotSchema, insertLeadSchema, type ChatRequest, type ChatResponse, chatbots, conversations, conversationMessages, users, leads, urlCrawlMetadata, manualQaOverrides, conversationRatings, knowledgeChunks, liveAgentHandoffs, agentMessages, insertLiveAgentHandoffSchema, insertAgentMessageSchema, teamInvitations, insertTeamInvitationSchema, scrapedImages } from "@shared/schema";
 import { ZodError } from "zod";
 import { GoogleGenAI } from "@google/genai";
 import multer from "multer";
@@ -1790,6 +1790,41 @@ Generate 3 short, natural questions that would help the user learn more. Return 
         console.log(`[STREAMING] Fallback context size: ${knowledgeContext.length} characters`);
       }
       
+      // Retrieve relevant images based on query
+      let relevantImages: Array<{ url: string; altText?: string; caption?: string }> = [];
+      if (questionEmbedding) {
+        const imageRetrievalStart = performance.now();
+        try {
+          const imageResults = await db
+            .select({
+              imageUrl: scrapedImages.imageUrl,
+              altText: scrapedImages.altText,
+              caption: scrapedImages.caption,
+              similarity: sql<number>`1 - (${scrapedImages.embedding} <=> ${JSON.stringify(questionEmbedding)}::vector)`,
+            })
+            .from(scrapedImages)
+            .where(eq(scrapedImages.chatbotId, chatbotId))
+            .orderBy(sql`${scrapedImages.embedding} <=> ${JSON.stringify(questionEmbedding)}::vector`)
+            .limit(3);
+          
+          // Filter images with similarity > 0.7
+          relevantImages = imageResults
+            .filter(img => img.similarity && img.similarity > 0.7)
+            .map(img => ({
+              url: img.imageUrl,
+              altText: img.altText || undefined,
+              caption: img.caption || undefined,
+            }));
+          
+          if (relevantImages.length > 0) {
+            console.log(`[STREAMING] Found ${relevantImages.length} relevant images`);
+          }
+        } catch (imgError) {
+          console.error("[STREAMING] Error retrieving images:", imgError);
+        }
+        perfTimings.imageRetrieval = performance.now() - imageRetrievalStart;
+      }
+      
       // Check manual override first
       const cacheStart = performance.now();
       let manualOverride = await storage.getManualOverride(chatbotId, questionHash);
@@ -1810,6 +1845,7 @@ Generate 3 short, natural questions that would help the user learn more. Return 
           type: "complete",
           message: aiMessage,
           shouldEscalate: false,
+          images: relevantImages.length > 0 ? relevantImages : undefined,
         })}\n\n`);
         
         storage.incrementOverrideUseCount(manualOverride.id).catch(() => {});
@@ -1833,6 +1869,7 @@ Generate 3 short, natural questions that would help the user learn more. Return 
             message: aiMessage,
             shouldEscalate: false,
             suggestedQuestions,
+            images: relevantImages.length > 0 ? relevantImages : undefined,
           })}\n\n`);
           
           storage.updateCacheHitCount(cachedAnswer.id).catch(() => {});
@@ -1914,6 +1951,7 @@ INCORRECT citation examples (NEVER do this):
             res.write(`data: ${JSON.stringify({ 
               type: "complete",
               suggestedQuestions,
+              images: relevantImages.length > 0 ? relevantImages : undefined,
             })}\n\n`);
             
             // Store in cache

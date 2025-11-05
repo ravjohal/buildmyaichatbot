@@ -25,6 +25,7 @@ The backend is built with Express.js, Node.js, and TypeScript, following a RESTf
 *   **Smart Suggested Questions:** AI (Gemini) generates FAQ-style questions from website content during indexing, stored and randomly displayed in the chat widget.
 *   **Streaming LLM Responses:** Implements Server-Sent Events (SSE) for real-time, word-by-word response display.
 *   **Chunk-Based Knowledge Retrieval:** Content is split into semantic chunks with vector embeddings, and top-k similarity search retrieves the 5 most relevant chunks.
+*   **Visual Content Display:** Chatbots automatically scrape and index images from website knowledge sources during crawling. Images are retrieved via semantic similarity search and displayed inline within chat responses, enabling visual communication for floor plans, product images, diagrams, and other visual content.
 *   **Q&A Caching System:** Reduces LLM API costs by caching question-answer pairs with hybrid exact and semantic matching using pgvector embeddings.
 *   **Manual Answer Training:** Enables chatbot owners to improve accuracy by manually correcting AI responses via the Analytics interface.
 *   **Lead Capture System:** Collects visitor contact information via configurable forms, with a management dashboard and CSV export.
