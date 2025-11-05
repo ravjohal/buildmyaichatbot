@@ -13,7 +13,8 @@ interface WebSocketClient extends WebSocket {
 }
 
 interface WSMessage {
-  type: 'visitor_message' | 'agent_message' | 'agent_joined' | 'agent_left' | 'handoff_request' | 'typing' | 'error';
+  type: 'message' | 'visitor_message' | 'agent_message' | 'agent_joined' | 'agent_left' | 'handoff_request' | 'typing' | 'error' | 'join';
+  role?: 'visitor' | 'agent';
   content?: string;
   sessionId?: string;
   conversationId?: string;
@@ -64,6 +65,9 @@ export class LiveChatWebSocket {
 
   private async handleMessage(ws: WebSocketClient, message: WSMessage) {
     switch (message.type) {
+      case 'join':
+        await this.handleJoin(ws, message);
+        break;
       case 'visitor_message':
         await this.handleVisitorMessage(ws, message);
         break;
@@ -79,6 +83,19 @@ export class LiveChatWebSocket {
       default:
         console.warn('[WebSocket] Unknown message type:', message.type);
     }
+  }
+
+  private async handleJoin(ws: WebSocketClient, message: WSMessage) {
+    if (!message.conversationId) {
+      ws.send(JSON.stringify({ type: 'error', content: 'Missing conversation ID' }));
+      return;
+    }
+
+    ws.conversationId = message.conversationId;
+    ws.isAgent = message.role === 'agent';
+
+    this.addClient(message.conversationId, ws);
+    console.log(`[WebSocket] ${message.role} joined conversation:`, message.conversationId);
   }
 
   private async handleVisitorMessage(ws: WebSocketClient, message: WSMessage) {
@@ -102,7 +119,8 @@ export class LiveChatWebSocket {
       });
 
       this.broadcastToConversation(message.conversationId, {
-        type: 'visitor_message',
+        type: 'message',
+        role: 'visitor',
         content: message.content,
         timestamp: Date.now(),
       }, ws);
@@ -113,7 +131,7 @@ export class LiveChatWebSocket {
   }
 
   private async handleAgentMessage(ws: WebSocketClient, message: WSMessage) {
-    if (!message.handoffId || !message.conversationId || !ws.userId) {
+    if (!message.handoffId || !message.conversationId) {
       ws.send(JSON.stringify({ type: 'error', content: 'Missing required fields' }));
       return;
     }
@@ -125,10 +143,22 @@ export class LiveChatWebSocket {
     this.addClient(message.conversationId, ws);
 
     try {
+      // Get the agent ID from the handoff record
+      const handoff = await db.select().from(liveAgentHandoffs)
+        .where(eq(liveAgentHandoffs.id, message.handoffId))
+        .limit(1);
+      
+      if (!handoff[0] || !handoff[0].agentId) {
+        ws.send(JSON.stringify({ type: 'error', content: 'Handoff not found or not accepted by an agent' }));
+        return;
+      }
+
+      const agentId = handoff[0].agentId;
+
       await db.insert(agentMessages).values({
         handoffId: message.handoffId,
         conversationId: message.conversationId,
-        agentId: ws.userId,
+        agentId,
         content: message.content!,
       });
 
@@ -140,7 +170,8 @@ export class LiveChatWebSocket {
       });
 
       this.broadcastToConversation(message.conversationId, {
-        type: 'agent_message',
+        type: 'message',
+        role: 'agent',
         content: message.content,
         agentName: message.agentName,
         timestamp: Date.now(),

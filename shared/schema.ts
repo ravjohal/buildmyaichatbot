@@ -35,6 +35,8 @@ export const users = pgTable("users", {
   stripeSubscriptionId: varchar("stripe_subscription_id"),
   stripePriceId: varchar("stripe_price_id"), // Track which price plan they're on
   isAdmin: text("is_admin").notNull().default("false"),
+  role: varchar("role", { enum: ["owner", "team_member"] }).notNull().default("owner"),
+  parentUserId: varchar("parent_user_id").references((): any => users.id, { onDelete: "cascade" }),
   monthlyConversationCount: text("monthly_conversation_count").notNull().default("0"),
   conversationCountResetDate: timestamp("conversation_count_reset_date").defaultNow(),
   totalKnowledgeBaseSizeMB: text("total_knowledge_base_size_mb").notNull().default("0"),
@@ -439,3 +441,25 @@ export const insertAgentMessageSchema = createInsertSchema(agentMessages).omit({
 
 export type AgentMessage = typeof agentMessages.$inferSelect;
 export type InsertAgentMessage = z.infer<typeof insertAgentMessageSchema>;
+
+// Team Invitations - for inviting team members to act as agents
+export const teamInvitations = pgTable("team_invitations", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  invitedBy: varchar("invited_by").notNull().references(() => users.id, { onDelete: "cascade" }),
+  email: varchar("email").notNull(),
+  role: varchar("role", { enum: ["team_member"] }).notNull().default("team_member"),
+  token: varchar("token").notNull().unique(),
+  status: varchar("status", { enum: ["pending", "accepted", "expired"] }).notNull().default("pending"),
+  expiresAt: timestamp("expires_at").notNull(),
+  acceptedAt: timestamp("accepted_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertTeamInvitationSchema = createInsertSchema(teamInvitations).omit({
+  id: true,
+  createdAt: true,
+  token: true,
+});
+
+export type TeamInvitation = typeof teamInvitations.$inferSelect;
+export type InsertTeamInvitation = z.infer<typeof insertTeamInvitationSchema>;

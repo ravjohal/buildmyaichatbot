@@ -39,6 +39,8 @@ The backend is built with Express.js, Node.js, and TypeScript, following a RESTf
 *   **Proactive Chat Popup:** Automatically displays a customizable popup notification to website visitors after a configurable delay.
 *   **Email Notifications:** Sends automated email alerts via Resend for new lead submissions, unanswered questions, and weekly performance reports.
 *   **Async Indexing Pipeline:** Non-blocking chatbot creation with background processing for website crawling. Frontend displays real-time indexing status with polling. Worker processes jobs sequentially with automatic error recovery and progress tracking.
+*   **Live Agent Handoff:** When chatbot detects it cannot help, visitors can request live human support. Real-time WebSocket-based chat connects visitors with support agents. Includes pending/active handoff queue, agent dashboard, and email notifications.
+*   **Team Management System:** Account owners can invite team members to act as live chat agents. Features role-based access (owner/team_member), email invitations with expiry, and team member management dashboard.
 
 ### System Design Choices
 

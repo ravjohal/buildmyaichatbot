@@ -18,6 +18,8 @@ import Account from "@/pages/Account";
 import Admin from "@/pages/Admin";
 import AdminJobs from "@/pages/AdminJobs";
 import NotificationSettings from "@/pages/NotificationSettings";
+import TeamManagement from "@/pages/TeamManagement";
+import LiveChats from "@/pages/LiveChats";
 import Landing from "@/pages/Landing";
 import Login from "@/pages/Login";
 import Register from "@/pages/Register";
@@ -82,6 +84,8 @@ function ProtectedRouter() {
       <Route path="/subscribe" component={Subscribe} />
       <Route path="/account" component={Account} />
       <Route path="/notifications" component={NotificationSettings} />
+      <Route path="/team" component={TeamManagement} />
+      <Route path="/live-chats" component={LiveChats} />
       <Route path="/admin" component={Admin} />
       <Route path="/admin/jobs" component={AdminJobs} />
       <Route component={NotFound} />

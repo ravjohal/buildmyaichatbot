@@ -183,6 +183,11 @@ export default function ChatWidget() {
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamingMessageId, setStreamingMessageId] = useState<string | null>(null);
   
+  // State for live agent handoff
+  const [handoffStatus, setHandoffStatus] = useState<"none" | "requested" | "connected">("none");
+  const [showHandoffButton, setShowHandoffButton] = useState(false);
+  const [handoffWs, setHandoffWs] = useState<WebSocket | null>(null);
+  
   // Streaming chat handler
   const handleStreamingChat = async (message: string) => {
     setIsStreaming(true);
@@ -307,6 +312,11 @@ export default function ChatWidget() {
         )
       );
 
+      // Show handoff button if escalation is needed
+      if (shouldEscalate) {
+        setShowHandoffButton(true);
+      }
+
     } catch (error) {
       console.error("Streaming error:", error);
       setMessages((prev) =>
@@ -362,6 +372,72 @@ export default function ChatWidget() {
       setShowRating(false);
     },
   });
+
+  const handoffMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("POST", "/api/handoffs", {
+        conversationId: conversationId || "",
+        chatbotId,
+        visitorName: leadFormData.name || null,
+        visitorEmail: leadFormData.email || null,
+      });
+      return response.json();
+    },
+    onSuccess: () => {
+      setHandoffStatus("requested");
+      setShowHandoffButton(false);
+    },
+  });
+
+  const handleRequestHandoff = () => {
+    if (!conversationId) {
+      console.error("Cannot request handoff without conversation ID");
+      return;
+    }
+    handoffMutation.mutate();
+  };
+
+  // WebSocket connection for agent messages
+  useEffect(() => {
+    if (handoffStatus === "requested" && conversationId) {
+      const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+      const wsUrl = `${protocol}//${window.location.host}/ws/live-chat`;
+      const websocket = new WebSocket(wsUrl);
+
+      websocket.onopen = () => {
+        websocket.send(JSON.stringify({
+          type: "join",
+          conversationId,
+          role: "visitor",
+        }));
+      };
+
+      websocket.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+
+        if (data.type === "message" && data.role === "agent") {
+          setHandoffStatus("connected");
+          const agentMessage: ChatMessage = {
+            id: data.messageId || Date.now().toString(),
+            role: "assistant",
+            content: data.content,
+            timestamp: Date.now(),
+          };
+          setMessages((prev) => [...prev, agentMessage]);
+        }
+      };
+
+      websocket.onerror = (error) => {
+        console.error("WebSocket error:", error);
+      };
+
+      setHandoffWs(websocket);
+
+      return () => {
+        websocket.close();
+      };
+    }
+  }, [handoffStatus, conversationId]);
 
   // Track mutation pending state changes (must be after chatMutation declaration)
   useEffect(() => {
@@ -835,6 +911,40 @@ export default function ChatWidget() {
         </ScrollArea>
 
         {renderLeadForm()}
+
+        {showHandoffButton && handoffStatus === "none" && (
+          <div className="p-4 border-t bg-muted/30">
+            <Button
+              variant="default"
+              className="w-full"
+              style={{ backgroundColor: chatbot.accentColor }}
+              onClick={handleRequestHandoff}
+              disabled={handoffMutation.isPending}
+              data-testid="button-request-handoff"
+            >
+              <UserPlus className="w-4 h-4 mr-2" />
+              {handoffMutation.isPending ? "Connecting..." : "Talk to a Human Agent"}
+            </Button>
+          </div>
+        )}
+
+        {handoffStatus === "requested" && (
+          <div className="p-4 border-t bg-muted/30">
+            <div className="flex items-center gap-2 text-sm">
+              <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+              <span>Connecting you with an agent...</span>
+            </div>
+          </div>
+        )}
+
+        {handoffStatus === "connected" && (
+          <div className="p-4 border-t bg-green-50 dark:bg-green-950">
+            <div className="flex items-center gap-2 text-sm text-green-700 dark:text-green-300">
+              <div className="w-2 h-2 rounded-full bg-green-500" />
+              <span>Connected to live agent</span>
+            </div>
+          </div>
+        )}
 
         {showRating && !hasRated && (
           <div className="p-4 border-t bg-muted/30">

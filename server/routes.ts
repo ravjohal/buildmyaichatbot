@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertChatbotSchema, insertLeadSchema, type ChatRequest, type ChatResponse, chatbots, conversations, conversationMessages, users, leads, urlCrawlMetadata, manualQaOverrides, conversationRatings, knowledgeChunks, liveAgentHandoffs, agentMessages, insertLiveAgentHandoffSchema, insertAgentMessageSchema } from "@shared/schema";
+import { insertChatbotSchema, insertLeadSchema, type ChatRequest, type ChatResponse, chatbots, conversations, conversationMessages, users, leads, urlCrawlMetadata, manualQaOverrides, conversationRatings, knowledgeChunks, liveAgentHandoffs, agentMessages, insertLiveAgentHandoffSchema, insertAgentMessageSchema, teamInvitations, insertTeamInvitationSchema } from "@shared/schema";
 import { ZodError } from "zod";
 import { GoogleGenAI } from "@google/genai";
 import multer from "multer";
@@ -3839,6 +3839,267 @@ INCORRECT citation examples (NEVER do this):
     }
   });
 
+  // Team Management Routes
+  
+  // Invite a team member
+  app.post("/api/team/invite", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { email } = req.body;
+      
+      if (!email) {
+        return res.status(400).json({ error: "Email is required" });
+      }
+      
+      // Check if user is an owner (not a team member)
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      if (user.role === 'team_member') {
+        return res.status(403).json({ error: "Only account owners can invite team members" });
+      }
+      
+      // Check if email is already invited or is an existing team member
+      const existingInvite = await db.select().from(teamInvitations)
+        .where(and(
+          eq(teamInvitations.invitedBy, userId),
+          eq(teamInvitations.email, email),
+          eq(teamInvitations.status, 'pending')
+        ))
+        .limit(1);
+      
+      if (existingInvite.length > 0) {
+        return res.status(400).json({ error: "Invitation already sent to this email" });
+      }
+      
+      // Generate unique token
+      const token = crypto.randomBytes(32).toString('hex');
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + 7); // 7 days expiry
+      
+      // Create invitation
+      const invitation = await db.insert(teamInvitations).values({
+        invitedBy: userId,
+        email,
+        role: 'team_member',
+        token,
+        status: 'pending',
+        expiresAt,
+      }).returning();
+      
+      // Send invitation email
+      try {
+        const { getUncachableResendClient } = await import('./emails/resend-client');
+        const { client, fromEmail } = await getUncachableResendClient();
+        
+        const inviteUrl = `${process.env.REPL_SLUG ? `https://${process.env.REPL_SLUG}.${process.env.REPLIT_DEV_DOMAIN}` : 'http://localhost:5000'}/team/accept?token=${token}`;
+        
+        await client.emails.send({
+          from: fromEmail,
+          to: email,
+          subject: `${user.firstName || 'Someone'} invited you to join their team`,
+          html: `
+            <h2>You've been invited to join a team!</h2>
+            <p>${user.firstName || ''} ${user.lastName || ''} (${user.email}) has invited you to join their team as an agent.</p>
+            <p>As a team member, you'll be able to:</p>
+            <ul>
+              <li>Respond to live chat requests</li>
+              <li>View conversation analytics</li>
+              <li>Help customers in real-time</li>
+            </ul>
+            <p><a href="${inviteUrl}" style="background-color: #0EA5E9; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">Accept Invitation</a></p>
+            <p style="color: #666; font-size: 14px;">This invitation expires in 7 days.</p>
+            <p style="color: #666; font-size: 12px;">If the button doesn't work, copy and paste this link: ${inviteUrl}</p>
+          `
+        });
+      } catch (emailError) {
+        console.error("Failed to send invitation email:", emailError);
+      }
+      
+      res.status(201).json(invitation[0]);
+    } catch (error) {
+      console.error("Error inviting team member:", error);
+      res.status(500).json({ error: "Failed to send invitation" });
+    }
+  });
+  
+  // Get all team members and pending invitations
+  app.get("/api/team/members", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      // Get the owner ID (either current user if owner, or parent if team member)
+      const ownerId = user.role === 'owner' ? userId : user.parentUserId;
+      
+      if (!ownerId) {
+        return res.json({ members: [], invitations: [] });
+      }
+      
+      // Get all team members
+      const members = await db.select({
+        id: users.id,
+        email: users.email,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        role: users.role,
+        createdAt: users.createdAt,
+      }).from(users).where(eq(users.parentUserId, ownerId));
+      
+      // Get pending invitations
+      const invitations = await db.select().from(teamInvitations)
+        .where(and(
+          eq(teamInvitations.invitedBy, ownerId),
+          eq(teamInvitations.status, 'pending')
+        ));
+      
+      res.json({ members, invitations });
+    } catch (error) {
+      console.error("Error fetching team members:", error);
+      res.status(500).json({ error: "Failed to fetch team members" });
+    }
+  });
+  
+  // Accept team invitation
+  app.post("/api/team/accept", async (req, res) => {
+    try {
+      const { token, password, firstName, lastName } = req.body;
+      
+      if (!token) {
+        return res.status(400).json({ error: "Token is required" });
+      }
+      
+      // Find invitation
+      const invitationResult = await db.select().from(teamInvitations)
+        .where(and(
+          eq(teamInvitations.token, token),
+          eq(teamInvitations.status, 'pending')
+        ))
+        .limit(1);
+      
+      if (!invitationResult[0]) {
+        return res.status(404).json({ error: "Invitation not found or already accepted" });
+      }
+      
+      const invitation = invitationResult[0];
+      
+      // Check if expired
+      if (new Date() > new Date(invitation.expiresAt)) {
+        await db.update(teamInvitations)
+          .set({ status: 'expired' })
+          .where(eq(teamInvitations.id, invitation.id));
+        return res.status(400).json({ error: "Invitation has expired" });
+      }
+      
+      // Check if user already exists
+      const existingUser = await db.select().from(users).where(eq(users.email, invitation.email)).limit(1);
+      
+      if (existingUser.length > 0) {
+        // User exists, just update their role and parent
+        await db.update(users)
+          .set({
+            role: 'team_member',
+            parentUserId: invitation.invitedBy,
+          })
+          .where(eq(users.id, existingUser[0].id));
+        
+        // Mark invitation as accepted
+        await db.update(teamInvitations)
+          .set({
+            status: 'accepted',
+            acceptedAt: new Date(),
+          })
+          .where(eq(teamInvitations.id, invitation.id));
+        
+        res.json({ message: "Invitation accepted", userId: existingUser[0].id });
+      } else {
+        // Create new user
+        const bcrypt = await import('bcrypt');
+        const hashedPassword = password ? await bcrypt.hash(password, 10) : null;
+        
+        const newUser = await db.insert(users).values({
+          email: invitation.email,
+          password: hashedPassword,
+          firstName: firstName || null,
+          lastName: lastName || null,
+          role: 'team_member',
+          parentUserId: invitation.invitedBy,
+        }).returning();
+        
+        // Mark invitation as accepted
+        await db.update(teamInvitations)
+          .set({
+            status: 'accepted',
+            acceptedAt: new Date(),
+          })
+          .where(eq(teamInvitations.id, invitation.id));
+        
+        res.status(201).json({ message: "Account created and invitation accepted", userId: newUser[0].id });
+      }
+    } catch (error) {
+      console.error("Error accepting invitation:", error);
+      res.status(500).json({ error: "Failed to accept invitation" });
+    }
+  });
+  
+  // Remove team member
+  app.delete("/api/team/members/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const memberId = req.params.id;
+      
+      const user = await storage.getUser(userId);
+      if (!user || user.role !== 'owner') {
+        return res.status(403).json({ error: "Only account owners can remove team members" });
+      }
+      
+      // Verify the member belongs to this owner
+      const member = await db.select().from(users).where(eq(users.id, memberId)).limit(1);
+      if (!member[0] || member[0].parentUserId !== userId) {
+        return res.status(404).json({ error: "Team member not found" });
+      }
+      
+      // Delete the team member
+      await db.delete(users).where(eq(users.id, memberId));
+      
+      res.json({ message: "Team member removed" });
+    } catch (error) {
+      console.error("Error removing team member:", error);
+      res.status(500).json({ error: "Failed to remove team member" });
+    }
+  });
+  
+  // Cancel invitation
+  app.delete("/api/team/invitations/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const invitationId = req.params.id;
+      
+      const user = await storage.getUser(userId);
+      if (!user || user.role !== 'owner') {
+        return res.status(403).json({ error: "Only account owners can cancel invitations" });
+      }
+      
+      // Verify the invitation belongs to this owner
+      await db.delete(teamInvitations)
+        .where(and(
+          eq(teamInvitations.id, invitationId),
+          eq(teamInvitations.invitedBy, userId)
+        ));
+      
+      res.json({ message: "Invitation cancelled" });
+    } catch (error) {
+      console.error("Error cancelling invitation:", error);
+      res.status(500).json({ error: "Failed to cancel invitation" });
+    }
+  });
+
   // Live Agent Handoff Routes
   
   // Create a handoff request from visitor
@@ -3899,16 +4160,28 @@ INCORRECT citation examples (NEVER do this):
   app.get("/api/handoffs", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id;
+      const user = await storage.getUser(userId);
       
-      // Get all chatbots owned by the user
-      const userChatbots = await db.select().from(chatbots).where(eq(chatbots.userId, userId));
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      // Get the owner ID (either current user if owner, or parent if team member)
+      const ownerId = user.role === 'owner' ? userId : user.parentUserId;
+      
+      if (!ownerId) {
+        return res.json([]);
+      }
+      
+      // Get all chatbots owned by the owner (accessible to team members too)
+      const userChatbots = await db.select().from(chatbots).where(eq(chatbots.userId, ownerId));
       const chatbotIds = userChatbots.map(c => c.id);
       
       if (chatbotIds.length === 0) {
         return res.json([]);
       }
       
-      // Get all pending and active handoffs for user's chatbots
+      // Get all pending and active handoffs for owner's chatbots
       const handoffs = await db.select({
         handoff: liveAgentHandoffs,
         chatbot: {
