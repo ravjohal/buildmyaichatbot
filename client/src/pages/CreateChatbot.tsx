@@ -61,6 +61,7 @@ export default function CreateChatbot() {
     websiteUrls: [],
     documents: [],
     systemPrompt: "",
+    customInstructions: "",
     primaryColor: "#0EA5E9",
     accentColor: "#0284C7",
     logoUrl: "",

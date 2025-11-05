@@ -60,6 +60,7 @@ export const chatbots = pgTable("chatbots", {
   documentContent: text("document_content"),
   documentMetadata: jsonb("document_metadata"),
   systemPrompt: text("system_prompt").notNull(),
+  customInstructions: text("custom_instructions"), // User-defined rules and guidelines for AI behavior
   primaryColor: text("primary_color").notNull().default("#0EA5E9"),
   accentColor: text("accent_color").notNull().default("#0284C7"),
   logoUrl: text("logo_url"),
@@ -98,6 +99,7 @@ export const insertChatbotSchema = createInsertSchema(chatbots).omit({
   documents: z.array(z.string()).optional(),
   documentContent: z.string().optional(),
   systemPrompt: z.string().min(1, "System prompt is required"),
+  customInstructions: z.string().optional(),
   primaryColor: z.string().regex(/^#[0-9A-F]{6}$/i, "Invalid color format"),
   accentColor: z.string().regex(/^#[0-9A-F]{6}$/i, "Invalid color format"),
   logoUrl: z.string().optional(),

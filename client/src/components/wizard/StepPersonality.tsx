@@ -66,6 +66,24 @@ export function StepPersonality({ formData, updateFormData }: StepPersonalityPro
             <li>Include any specific policies or guidelines</li>
           </ul>
         </div>
+
+        <div className="space-y-3">
+          <Label htmlFor="customInstructions" className="text-base">
+            Custom Instructions (Optional)
+          </Label>
+          <Textarea
+            id="customInstructions"
+            placeholder="Add specific rules for how the AI should behave in certain situations..."
+            value={formData.customInstructions || ""}
+            onChange={(e) => updateFormData({ customInstructions: e.target.value })}
+            rows={6}
+            className="font-mono text-sm"
+            data-testid="input-custom-instructions"
+          />
+          <p className="text-sm text-muted-foreground">
+            Add specific behavioral rules. For example: "When discussing floor plans, focus only on layouts and room dimensions. Do not mention pricing." or "When asked about pricing, always highlight the lowest price available."
+          </p>
+        </div>
       </div>
 
       <div className="border-t pt-6 space-y-4">

@@ -85,6 +85,7 @@ export default function EditChatbot() {
         documents: chatbot.documents || [],
         documentMetadata: (chatbot.documentMetadata as DocumentMetadata[]) || [],
         systemPrompt: chatbot.systemPrompt,
+        customInstructions: chatbot.customInstructions || undefined,
         primaryColor: chatbot.primaryColor,
         accentColor: chatbot.accentColor,
         logoUrl: chatbot.logoUrl || undefined,

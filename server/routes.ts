@@ -1878,7 +1878,7 @@ Generate 3 short, natural questions that would help the user learn more. Return 
           console.log(`[STREAMING] Cache miss - streaming from LLM`);
           
           const fullPrompt = `${chatbot.systemPrompt}
-
+${chatbot.customInstructions ? `\nCUSTOM GUIDELINES:\n${chatbot.customInstructions}\n` : ''}
 Knowledge Base:
 ${knowledgeContext || "No specific knowledge base provided."}
 
