@@ -11,6 +11,90 @@ import { Textarea } from "@/components/ui/textarea";
 import type { PublicChatbot, ChatMessage } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 
+// Utility function to convert URLs in text to clickable links
+function linkifyText(text: string) {
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  const parts = text.split(urlRegex);
+  
+  return parts.map((part, index) => {
+    if (part.match(urlRegex)) {
+      let url = part;
+      let trailing = '';
+      
+      // Strip trailing punctuation that's clearly not part of the URL
+      // Be conservative: only strip periods, commas, semicolons, colons, exclamation marks, question marks
+      // Keep parentheses, brackets, quotes if they might be part of the URL structure
+      while (url.length > 0) {
+        const lastChar = url[url.length - 1];
+        
+        // Always strip these characters (never part of URLs)
+        if ('.,:;!?'.includes(lastChar)) {
+          trailing = lastChar + trailing;
+          url = url.slice(0, -1);
+          continue;
+        }
+        
+        // For closing brackets/parens: only strip if unbalanced (more closing than opening)
+        if (lastChar === ')') {
+          const openCount = (url.match(/\(/g) || []).length;
+          const closeCount = (url.match(/\)/g) || []).length;
+          if (closeCount > openCount) {
+            trailing = lastChar + trailing;
+            url = url.slice(0, -1);
+            continue;
+          }
+        }
+        
+        if (lastChar === ']') {
+          const openCount = (url.match(/\[/g) || []).length;
+          const closeCount = (url.match(/\]/g) || []).length;
+          if (closeCount > openCount) {
+            trailing = lastChar + trailing;
+            url = url.slice(0, -1);
+            continue;
+          }
+        }
+        
+        if (lastChar === '}') {
+          const openCount = (url.match(/\{/g) || []).length;
+          const closeCount = (url.match(/\}/g) || []).length;
+          if (closeCount > openCount) {
+            trailing = lastChar + trailing;
+            url = url.slice(0, -1);
+            continue;
+          }
+        }
+        
+        // For quotes: strip if they appear at the end (likely wrapping)
+        if (lastChar === '"' || lastChar === "'") {
+          trailing = lastChar + trailing;
+          url = url.slice(0, -1);
+          continue;
+        }
+        
+        // Nothing more to strip
+        break;
+      }
+      
+      return (
+        <span key={index}>
+          <a
+            href={url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-primary hover:underline break-all"
+            data-testid={`link-source-${index}`}
+          >
+            {url}
+          </a>
+          {trailing}
+        </span>
+      );
+    }
+    return part;
+  });
+}
+
 export default function ChatWidget() {
   console.log('[ChatWidget] Function called');
   const [, widgetParams] = useRoute("/widget/:id");
@@ -855,7 +939,7 @@ export default function ChatWidget() {
                   }
                 >
                   <p className="text-sm whitespace-pre-wrap" data-testid={`message-${message.id}`}>
-                    {message.content || ""}
+                    {linkifyText(message.content || "")}
                   </p>
                   {message.content && chatbot.supportPhoneNumber && 
                     message.content.includes(chatbot.supportPhoneNumber) && (
@@ -1086,7 +1170,7 @@ export default function ChatWidget() {
                     }
                   >
                     <p className="text-sm whitespace-pre-wrap" data-testid={`message-${message.id}`}>
-                      {message.content || ""}
+                      {linkifyText(message.content || "")}
                     </p>
                     {message.content && chatbot.supportPhoneNumber && 
                       message.content.includes(chatbot.supportPhoneNumber) && (
