@@ -1791,10 +1791,13 @@ Generate 3 short, natural questions that would help the user learn more. Return 
       }
       
       // Retrieve relevant images based on query
+      console.log(`[IMAGE-DEBUG] About to check image retrieval. questionEmbedding exists: ${!!questionEmbedding}`);
       let relevantImages: Array<{ url: string; altText?: string; caption?: string }> = [];
       if (questionEmbedding) {
+        console.log(`[IMAGE-DEBUG] Starting image retrieval for chatbot ${chatbotId}`);
         const imageRetrievalStart = performance.now();
         try {
+          console.log(`[IMAGE-DEBUG] Querying scraped_images table...`);
           const imageResults = await db
             .select({
               imageUrl: scrapedImages.imageUrl,
@@ -1807,6 +1810,11 @@ Generate 3 short, natural questions that would help the user learn more. Return 
             .orderBy(sql`${scrapedImages.embedding} <=> ${JSON.stringify(questionEmbedding)}::vector`)
             .limit(3);
           
+          console.log(`[IMAGE-DEBUG] Query returned ${imageResults.length} images`);
+          imageResults.forEach((img, idx) => {
+            console.log(`[IMAGE-DEBUG] Image ${idx + 1}: similarity=${img.similarity?.toFixed(3)}, url=${img.imageUrl.substring(0, 60)}...`);
+          });
+          
           // Filter images with similarity > 0.7
           relevantImages = imageResults
             .filter(img => img.similarity && img.similarity > 0.7)
@@ -1816,8 +1824,11 @@ Generate 3 short, natural questions that would help the user learn more. Return 
               caption: img.caption || undefined,
             }));
           
+          console.log(`[IMAGE-DEBUG] After filtering (similarity > 0.7): ${relevantImages.length} images`);
           if (relevantImages.length > 0) {
             console.log(`[STREAMING] Found ${relevantImages.length} relevant images`);
+          } else {
+            console.log(`[IMAGE-DEBUG] No images met the 0.7 similarity threshold`);
           }
         } catch (imgError) {
           console.error("[STREAMING] Error retrieving images:", imgError);
