@@ -1995,6 +1995,11 @@ INCORRECT citation examples (NEVER do this):
         aiMessage.toLowerCase().includes("don't know") ||
         aiMessage.toLowerCase().includes("cannot find");
 
+      if (shouldEscalate) {
+        console.log(`[ESCALATION] Detected escalation trigger in AI response. shouldEscalate=true`);
+        console.log(`[ESCALATION] Response preview: ${aiMessage.substring(0, 200)}...`);
+      }
+
       let finalMessage = aiMessage;
       
       if (shouldEscalate && chatbot.supportPhoneNumber && chatbot.escalationMessage) {
