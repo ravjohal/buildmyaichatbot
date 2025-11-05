@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
-import { Plus, Bot, Trash2, ExternalLink, Copy, Pencil, MessageSquare, FileText, BarChart3, Globe, Crown, Share2, QrCode, UserPlus, RefreshCw, Loader2, CheckCircle, XCircle } from "lucide-react";
+import { Plus, Bot, Trash2, ExternalLink, Copy, Pencil, MessageSquare, FileText, BarChart3, Globe, Crown, Share2, QrCode, UserPlus, RefreshCw, Loader2, CheckCircle, XCircle, Workflow } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
@@ -745,6 +745,17 @@ export default function Dashboard() {
                       </TooltipContent>
                     )}
                   </Tooltip>
+                  <Link href={`/chatbot/${chatbot.id}/crm`}>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      data-testid={`button-crm-${chatbot.id}`}
+                      className="flex-1"
+                    >
+                      <Workflow className="w-4 h-4 mr-2" />
+                      CRM
+                    </Button>
+                  </Link>
                   <Button
                     variant="outline"
                     size="sm"

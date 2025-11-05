@@ -1,7 +1,8 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertChatbotSchema, insertLeadSchema, type ChatRequest, type ChatResponse, chatbots, conversations, conversationMessages, users, leads, urlCrawlMetadata, manualQaOverrides, conversationRatings, knowledgeChunks, liveAgentHandoffs, agentMessages, insertLiveAgentHandoffSchema, insertAgentMessageSchema, teamInvitations, insertTeamInvitationSchema, scrapedImages } from "@shared/schema";
+import { insertChatbotSchema, insertLeadSchema, type ChatRequest, type ChatResponse, chatbots, conversations, conversationMessages, users, leads, urlCrawlMetadata, manualQaOverrides, conversationRatings, knowledgeChunks, liveAgentHandoffs, agentMessages, insertLiveAgentHandoffSchema, insertAgentMessageSchema, teamInvitations, insertTeamInvitationSchema, scrapedImages, crmIntegrations, insertCrmIntegrationSchema } from "@shared/schema";
+import { crmWebhookService } from "./crm-webhook";
 import { ZodError } from "zod";
 import { GoogleGenAI } from "@google/genai";
 import multer from "multer";
@@ -2599,6 +2600,47 @@ INCORRECT citation examples (NEVER do this):
         console.error("Failed to send lead notification email:", emailError);
       }
       
+      // Send lead to CRM via webhook if integration is configured
+      try {
+        const integrationResult = await db.select()
+          .from(crmIntegrations)
+          .where(eq(crmIntegrations.chatbotId, chatbot.id))
+          .limit(1);
+        
+        if (integrationResult[0] && integrationResult[0].enabled === "true") {
+          console.log(`[CRM] Found active CRM integration for chatbot ${chatbot.id}`);
+          
+          // Send to CRM asynchronously (don't block response)
+          crmWebhookService.sendLeadToWebhook(newLead[0], integrationResult[0])
+            .then(async (result) => {
+              if (result.success) {
+                // Update success counter
+                await db.update(crmIntegrations)
+                  .set({ 
+                    successCount: sql`(${crmIntegrations.successCount}::int + 1)::text`,
+                    lastSyncedAt: new Date(),
+                    lastError: null,
+                  })
+                  .where(eq(crmIntegrations.id, integrationResult[0].id));
+              } else {
+                // Update error counter and store error
+                await db.update(crmIntegrations)
+                  .set({ 
+                    errorCount: sql`(${crmIntegrations.errorCount}::int + 1)::text`,
+                    lastError: result.error,
+                  })
+                  .where(eq(crmIntegrations.id, integrationResult[0].id));
+              }
+            })
+            .catch(err => {
+              console.error(`[CRM] Failed to send lead to CRM:`, err);
+            });
+        }
+      } catch (crmError) {
+        // Don't fail lead submission if CRM integration fails
+        console.error("Failed to process CRM integration:", crmError);
+      }
+      
       res.status(201).json(newLead[0]);
     } catch (error) {
       if (error instanceof ZodError) {
@@ -2687,6 +2729,134 @@ INCORRECT citation examples (NEVER do this):
     } catch (error) {
       console.error("Error exporting leads:", error);
       res.status(500).json({ error: "Failed to export leads" });
+    }
+  });
+
+  // CRM Integration Management Routes
+  
+  // Get CRM integration for a chatbot (protected)
+  app.get("/api/chatbots/:id/crm-integration", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const chatbotId = req.params.id;
+
+      // Verify user owns this chatbot
+      const chatbot = await storage.getChatbot(chatbotId, userId);
+      if (!chatbot) {
+        return res.status(404).json({ error: "Chatbot not found" });
+      }
+
+      // Get CRM integration
+      const integration = await db.select()
+        .from(crmIntegrations)
+        .where(eq(crmIntegrations.chatbotId, chatbotId))
+        .limit(1);
+
+      res.json(integration[0] || null);
+    } catch (error) {
+      console.error("Error fetching CRM integration:", error);
+      res.status(500).json({ error: "Failed to fetch CRM integration" });
+    }
+  });
+
+  // Create or update CRM integration (protected)
+  app.put("/api/chatbots/:id/crm-integration", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const chatbotId = req.params.id;
+
+      // Verify user owns this chatbot
+      const chatbot = await storage.getChatbot(chatbotId, userId);
+      if (!chatbot) {
+        return res.status(404).json({ error: "Chatbot not found" });
+      }
+
+      // Validate request body
+      const validatedData = insertCrmIntegrationSchema.parse({
+        ...req.body,
+        chatbotId,
+      });
+
+      // Check if integration already exists
+      const existing = await db.select()
+        .from(crmIntegrations)
+        .where(eq(crmIntegrations.chatbotId, chatbotId))
+        .limit(1);
+
+      let integration;
+      if (existing[0]) {
+        // Update existing
+        const updated = await db.update(crmIntegrations)
+          .set({
+            ...validatedData,
+            updatedAt: new Date(),
+          })
+          .where(eq(crmIntegrations.id, existing[0].id))
+          .returning();
+        integration = updated[0];
+      } else {
+        // Create new
+        const created = await db.insert(crmIntegrations)
+          .values(validatedData)
+          .returning();
+        integration = created[0];
+      }
+
+      res.json(integration);
+    } catch (error) {
+      if (error instanceof ZodError) {
+        return res.status(400).json({ error: "Invalid data", details: error.errors });
+      }
+      console.error("Error saving CRM integration:", error);
+      res.status(500).json({ error: "Failed to save CRM integration" });
+    }
+  });
+
+  // Test CRM webhook connection (protected)
+  app.post("/api/chatbots/:id/crm-integration/test", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const chatbotId = req.params.id;
+
+      // Verify user owns this chatbot
+      const chatbot = await storage.getChatbot(chatbotId, userId);
+      if (!chatbot) {
+        return res.status(404).json({ error: "Chatbot not found" });
+      }
+
+      // Get test configuration from request body (not yet saved)
+      const testConfig = req.body;
+
+      // Test the webhook
+      const result = await crmWebhookService.testWebhook(testConfig);
+
+      res.json(result);
+    } catch (error) {
+      console.error("Error testing CRM webhook:", error);
+      res.status(500).json({ error: "Failed to test webhook" });
+    }
+  });
+
+  // Delete CRM integration (protected)
+  app.delete("/api/chatbots/:id/crm-integration", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const chatbotId = req.params.id;
+
+      // Verify user owns this chatbot
+      const chatbot = await storage.getChatbot(chatbotId, userId);
+      if (!chatbot) {
+        return res.status(404).json({ error: "Chatbot not found" });
+      }
+
+      // Delete integration
+      await db.delete(crmIntegrations)
+        .where(eq(crmIntegrations.chatbotId, chatbotId));
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting CRM integration:", error);
+      res.status(500).json({ error: "Failed to delete CRM integration" });
     }
   });
 

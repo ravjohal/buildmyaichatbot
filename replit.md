@@ -42,6 +42,7 @@ The backend is built with Express.js, Node.js, and TypeScript, following a RESTf
 *   **Async Indexing Pipeline:** Non-blocking chatbot creation with background processing for website crawling. Frontend displays real-time indexing status with polling. Worker processes jobs sequentially with automatic error recovery and progress tracking.
 *   **Live Agent Handoff:** When chatbot detects it cannot help, visitors can request live human support. Real-time WebSocket-based chat connects visitors with support agents. Includes pending/active handoff queue, agent dashboard, and email notifications.
 *   **Team Management System:** Account owners can invite team members to act as live chat agents. Features role-based access (owner/team_member), email invitations with expiry, and team member management dashboard.
+*   **CRM Integration:** Generic webhook-based system for automatically sending captured leads to any CRM platform (Salesforce, HubSpot, Pipedrive, etc.). Supports multiple authentication types (Bearer, API Key, Basic), custom headers, flexible field mapping, automatic retry with exponential backoff, test connection capability, and real-time sync tracking with success/error monitoring.
 
 ### System Design Choices
 

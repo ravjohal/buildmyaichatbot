@@ -12,6 +12,7 @@ import TestChatbot from "@/pages/TestChatbot";
 import Analytics from "@/pages/Analytics";
 import AnalyticsDashboard from "@/pages/AnalyticsDashboard";
 import Leads from "@/pages/Leads";
+import CrmSettings from "@/pages/CrmSettings";
 import Pricing from "@/pages/Pricing";
 import Subscribe from "@/pages/Subscribe";
 import Account from "@/pages/Account";
@@ -80,6 +81,7 @@ function ProtectedRouter() {
       <Route path="/analytics" component={AnalyticsDashboard} />
       <Route path="/analytics/:id" component={Analytics} />
       <Route path="/leads" component={Leads} />
+      <Route path="/chatbot/:id/crm" component={CrmSettings} />
       <Route path="/pricing" component={Pricing} />
       <Route path="/subscribe" component={Subscribe} />
       <Route path="/account" component={Account} />

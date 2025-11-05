@@ -209,6 +209,59 @@ export const insertLeadSchema = createInsertSchema(leads).omit({
 export type InsertLead = z.infer<typeof insertLeadSchema>;
 export type Lead = typeof leads.$inferSelect;
 
+// CRM Integrations - stores webhook configurations for sending leads to external CRMs
+export const crmIntegrations = pgTable("crm_integrations", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  chatbotId: varchar("chatbot_id").notNull().references(() => chatbots.id, { onDelete: "cascade" }).unique(),
+  enabled: text("enabled").notNull().default("false"), // "true" or "false"
+  webhookUrl: text("webhook_url").notNull(),
+  webhookMethod: text("webhook_method").notNull().default("POST"), // POST, PUT, PATCH
+  authType: text("auth_type").notNull().default("none"), // none, bearer, api_key, basic
+  authValue: text("auth_value"), // Encrypted auth token/key
+  customHeaders: jsonb("custom_headers"), // Additional headers as JSON object
+  fieldMapping: jsonb("field_mapping").notNull().default(sql`'{}'::jsonb`), // Maps lead fields to CRM fields
+  retryEnabled: text("retry_enabled").notNull().default("true"),
+  maxRetries: text("max_retries").notNull().default("3"),
+  lastSyncedAt: timestamp("last_synced_at"),
+  lastError: text("last_error"),
+  successCount: text("success_count").notNull().default("0"),
+  errorCount: text("error_count").notNull().default("0"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertCrmIntegrationSchema = createInsertSchema(crmIntegrations).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  lastSyncedAt: true,
+  lastError: true,
+  successCount: true,
+  errorCount: true,
+}).refine(
+  (data) => {
+    // Strict numeric validation: must be all digits, no extra characters
+    const isNumeric = /^\d+$/.test(data.maxRetries);
+    if (!isNumeric) return false;
+    const num = Number(data.maxRetries);
+    return num >= 0 && num <= 10;
+  },
+  { message: "maxRetries must be a valid number between 0 and 10", path: ["maxRetries"] }
+).refine(
+  (data) => {
+    try {
+      new URL(data.webhookUrl);
+      return true;
+    } catch {
+      return false;
+    }
+  },
+  { message: "webhookUrl must be a valid URL", path: ["webhookUrl"] }
+);
+
+export type CrmIntegration = typeof crmIntegrations.$inferSelect;
+export type InsertCrmIntegration = z.infer<typeof insertCrmIntegrationSchema>;
+
 // URL Crawl Metadata - tracks when URLs were last crawled and their content hash for change detection
 export const urlCrawlMetadata = pgTable("url_crawl_metadata", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
