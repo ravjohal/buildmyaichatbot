@@ -4,7 +4,7 @@ import { chunkContent } from "./chunker";
 import { embeddingService } from "./embedding";
 import type { InsertKnowledgeChunk } from "@shared/schema";
 import { db } from "./db";
-import { urlCrawlMetadata, indexingJobs, indexingTasks, knowledgeChunks } from "@shared/schema";
+import { urlCrawlMetadata, indexingJobs, indexingTasks, knowledgeChunks, scrapedImages } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { GoogleGenAI } from "@google/genai";
 import { PerformanceMonitor, getEnvironmentConfig } from "./performance-monitor";
@@ -347,6 +347,56 @@ async function processIndexingTask(taskId: string, jobId: string, chatbotId: str
         console.error(`[WORKER] Failed to store crawl metadata:`, metaError);
         // Don't fail the task if metadata storage fails
       }
+      
+      // Process images from crawled pages
+      perfMonitor.start('image-processing');
+      const allImages: any[] = [];
+      let totalImages = 0;
+      
+      for (const page of validPages) {
+        if (page.images && page.images.length > 0) {
+          console.log(`[WORKER] Found ${page.images.length} images on ${page.url}`);
+          
+          for (const img of page.images) {
+            // Generate embedding from alt text and caption combined
+            const imageText = [img.altText, img.caption].filter(Boolean).join(' ');
+            let embedding = null;
+            
+            if (imageText) {
+              try {
+                embedding = await embeddingService.generateEmbedding(imageText);
+              } catch (embError) {
+                console.error(`[WORKER] Failed to generate embedding for image:`, embError);
+              }
+            }
+            
+            allImages.push({
+              chatbotId,
+              sourceUrl: page.url,
+              imageUrl: img.url,
+              altText: img.altText,
+              caption: img.caption,
+              embedding,
+              metadata: {
+                pageTitle: page.title,
+              },
+            });
+            totalImages++;
+          }
+        }
+      }
+      
+      // Store images in database
+      if (allImages.length > 0) {
+        try {
+          await db.insert(scrapedImages).values(allImages);
+          console.log(`[WORKER] ✓ Stored ${allImages.length} images from ${validPages.length} pages`);
+        } catch (imgError) {
+          console.error(`[WORKER] Failed to store images:`, imgError);
+          // Don't fail the task if image storage fails
+        }
+      }
+      perfMonitor.end('image-processing', { totalImages });
       
       // Process each page individually to preserve specific URLs
       // We'll collect all chunks first, then store them together

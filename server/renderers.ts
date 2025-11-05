@@ -6,6 +6,11 @@ export interface RenderResult {
   html: string;
   textContent: string;
   title: string;
+  images?: Array<{
+    url: string;
+    altText?: string;
+    caption?: string;
+  }>;
   error?: string;
 }
 
@@ -112,10 +117,58 @@ export class CheerioRenderer implements PageRenderer {
           .trim()
           .substring(0, 100000);
 
+        // Extract images from the page
+        const images: Array<{ url: string; altText?: string; caption?: string }> = [];
+        $('img').each((_, img) => {
+          const src = $(img).attr('src');
+          if (!src) return;
+          
+          // Convert relative URLs to absolute
+          let absoluteUrl;
+          try {
+            absoluteUrl = new URL(src, currentUrl).toString();
+          } catch {
+            return; // Skip invalid URLs
+          }
+          
+          const altText = $(img).attr('alt') || '';
+          
+          // Try to find caption from surrounding elements
+          let caption = '';
+          const parent = $(img).parent();
+          const figcaption = parent.find('figcaption').first().text().trim();
+          if (figcaption) {
+            caption = figcaption;
+          } else {
+            // Try aria-label or title
+            caption = $(img).attr('aria-label') || $(img).attr('title') || '';
+          }
+          
+          // Filter out small images, tracking pixels, icons (likely not useful content images)
+          const width = $(img).attr('width');
+          const height = $(img).attr('height');
+          if (width && height && (parseInt(width) < 100 || parseInt(height) < 100)) {
+            return; // Skip small images
+          }
+          
+          // Skip common icon/logo patterns
+          const srcLower = src.toLowerCase();
+          if (srcLower.includes('icon') || srcLower.includes('logo') || srcLower.includes('pixel') || srcLower.includes('tracking')) {
+            return;
+          }
+          
+          images.push({
+            url: absoluteUrl,
+            altText: altText || undefined,
+            caption: caption || undefined,
+          });
+        });
+
         return {
           html: trimmedHtml,
           textContent: content,
           title,
+          images: images.length > 0 ? images : undefined,
         };
       } catch (fetchError) {
         clearTimeout(timeout);
@@ -330,6 +383,61 @@ export class PlaywrightRenderer implements PageRenderer {
         }
       }
 
+      // Extract images from the page
+      const images = await page.evaluate((pageUrl) => {
+        const imageElements = Array.from(document.querySelectorAll('img'));
+        const extractedImages: Array<{ url: string; altText?: string; caption?: string }> = [];
+        
+        imageElements.forEach((img) => {
+          const src = img.getAttribute('src');
+          if (!src) return;
+          
+          // Convert relative URLs to absolute
+          let absoluteUrl;
+          try {
+            absoluteUrl = new URL(src, pageUrl).toString();
+          } catch {
+            return; // Skip invalid URLs
+          }
+          
+          const altText = img.getAttribute('alt') || '';
+          
+          // Try to find caption from surrounding elements
+          let caption = '';
+          const parent = img.parentElement;
+          if (parent) {
+            const figcaption = parent.querySelector('figcaption');
+            if (figcaption) {
+              caption = figcaption.textContent?.trim() || '';
+            } else {
+              // Try aria-label or title
+              caption = img.getAttribute('aria-label') || img.getAttribute('title') || '';
+            }
+          }
+          
+          // Filter out small images (likely icons/logos)
+          const width = img.width || parseInt(img.getAttribute('width') || '0');
+          const height = img.height || parseInt(img.getAttribute('height') || '0');
+          if (width > 0 && height > 0 && (width < 100 || height < 100)) {
+            return; // Skip small images
+          }
+          
+          // Skip common icon/logo patterns
+          const srcLower = src.toLowerCase();
+          if (srcLower.includes('icon') || srcLower.includes('logo') || srcLower.includes('pixel') || srcLower.includes('tracking')) {
+            return;
+          }
+          
+          extractedImages.push({
+            url: absoluteUrl,
+            altText: altText || undefined,
+            caption: caption || undefined,
+          });
+        });
+        
+        return extractedImages;
+      }, url);
+
       await context.close();
       this.activePage = null;
 
@@ -344,6 +452,7 @@ export class PlaywrightRenderer implements PageRenderer {
           html,
           textContent: textContent || '',
           title: title || url,
+          images: images.length > 0 ? images : undefined,
         };
       } else {
         // Not enough content extracted

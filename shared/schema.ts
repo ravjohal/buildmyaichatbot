@@ -162,6 +162,11 @@ export interface ChatMessage {
   content: string;
   timestamp: number;
   suggestedQuestions?: string[];
+  images?: Array<{
+    url: string;
+    altText?: string;
+    caption?: string;
+  }>;
 }
 
 export interface ChatRequest {
@@ -463,3 +468,24 @@ export const insertTeamInvitationSchema = createInsertSchema(teamInvitations).om
 
 export type TeamInvitation = typeof teamInvitations.$inferSelect;
 export type InsertTeamInvitation = z.infer<typeof insertTeamInvitationSchema>;
+
+// Scraped Images - stores images extracted from knowledge base sources
+export const scrapedImages = pgTable("scraped_images", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  chatbotId: varchar("chatbot_id").notNull().references(() => chatbots.id, { onDelete: "cascade" }),
+  sourceUrl: text("source_url").notNull(), // The page URL where image was found
+  imageUrl: text("image_url").notNull(), // The actual image URL (absolute)
+  altText: text("alt_text"), // Alt attribute from img tag
+  caption: text("caption"), // Caption or surrounding text context
+  embedding: vector("embedding", { dimensions: 384 }), // Semantic embedding for alt text/caption
+  metadata: jsonb("metadata"), // Additional info: { width, height, format, etc. }
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertScrapedImageSchema = createInsertSchema(scrapedImages).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type ScrapedImage = typeof scrapedImages.$inferSelect;
+export type InsertScrapedImage = z.infer<typeof insertScrapedImageSchema>;

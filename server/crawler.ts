@@ -6,6 +6,11 @@ export interface CrawlResult {
   url: string;
   content: string;
   title?: string;
+  images?: Array<{
+    url: string;
+    altText?: string;
+    caption?: string;
+  }>;
   error?: string;
   renderedWith?: 'static' | 'javascript';
 }
@@ -21,7 +26,7 @@ export interface RecursiveCrawlOptions {
 async function crawlWithRenderer(
   url: string,
   renderer: PageRenderer
-): Promise<{ content: string; title: string; html: string; error?: string }> {
+): Promise<{ content: string; title: string; html: string; images?: Array<{ url: string; altText?: string; caption?: string }>; error?: string }> {
   const result = await renderer.render(url);
   
   if (result.error) {
@@ -38,6 +43,7 @@ async function crawlWithRenderer(
       content: '',
       title: result.title,
       html: result.html,
+      images: result.images,
       error: 'No content could be extracted from the page',
     };
   }
@@ -46,6 +52,7 @@ async function crawlWithRenderer(
     content: result.textContent,
     title: result.title,
     html: result.html,
+    images: result.images,
   };
 }
 
@@ -58,6 +65,7 @@ export async function crawlWebsite(url: string): Promise<CrawlResult & { html?: 
     content: result.content,
     title: result.title,
     html: result.html,
+    images: result.images,
     error: result.error,
     renderedWith: 'static',
   };
