@@ -2810,12 +2810,20 @@ INCORRECT citation examples (NEVER do this):
 
       let integration;
       if (existing[0]) {
-        // Update existing
+        // Update existing - merge with existing data to preserve fields from other integration type
+        // Only update fields that are explicitly provided (not undefined)
+        const updateData: any = { updatedAt: new Date() };
+        
+        for (const key in validatedData) {
+          const value = (validatedData as any)[key];
+          // Only include defined values (skip undefined to preserve existing values)
+          if (value !== undefined) {
+            updateData[key] = value;
+          }
+        }
+        
         const updated = await db.update(crmIntegrations)
-          .set({
-            ...validatedData,
-            updatedAt: new Date(),
-          })
+          .set(updateData)
           .where(eq(crmIntegrations.id, existing[0].id))
           .returning();
         integration = updated[0];
