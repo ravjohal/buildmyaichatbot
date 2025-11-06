@@ -142,7 +142,9 @@ export class HyphenCRMService {
         body: JSON.stringify(payload),
       });
 
-      const responseData = await response.json();
+      // Handle empty/204 responses gracefully
+      const responseText = await response.text();
+      const responseData = responseText ? JSON.parse(responseText) : null;
 
       if (!response.ok) {
         // Check if token expired (401) and retry once with fresh token
@@ -161,15 +163,18 @@ export class HyphenCRMService {
             body: JSON.stringify(payload),
           });
 
-          const retryData = await retryResponse.json();
+          // Handle empty/204 responses gracefully on retry
+          const retryText = await retryResponse.text();
+          const retryData = retryText ? JSON.parse(retryText) : null;
           
           if (!retryResponse.ok) {
             return {
               success: false,
-              error: `Hyphen API error (retry): ${retryResponse.status} ${JSON.stringify(retryData)}`,
+              error: `Hyphen API error (retry): ${retryResponse.status} ${retryData ? JSON.stringify(retryData) : 'No response body'}`,
             };
           }
 
+          console.log('[Hyphen] Lead submitted successfully (after token refresh)');
           return {
             success: true,
             response: retryData,
@@ -178,7 +183,7 @@ export class HyphenCRMService {
 
         return {
           success: false,
-          error: `Hyphen API error: ${response.status} ${JSON.stringify(responseData)}`,
+          error: `Hyphen API error: ${response.status} ${responseData ? JSON.stringify(responseData) : 'No response body'}`,
         };
       }
 
