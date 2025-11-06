@@ -3,8 +3,12 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Info, UserPlus, Mail, Phone, Building2, MessageSquare } from "lucide-react";
-import type { InsertChatbot } from "@shared/schema";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Info, UserPlus, Mail, Phone, Building2, MessageSquare, Crown } from "lucide-react";
+import type { InsertChatbot, SubscriptionTier } from "@shared/schema";
+import { hasFeatureAccess } from "@shared/pricing";
+import { Link } from "wouter";
 import {
   Select,
   SelectContent,
@@ -16,9 +20,12 @@ import {
 interface StepLeadCaptureProps {
   formData: Partial<InsertChatbot>;
   updateFormData: (updates: Partial<InsertChatbot>) => void;
+  userTier: SubscriptionTier;
+  isAdmin: boolean;
 }
 
-export function StepLeadCapture({ formData, updateFormData }: StepLeadCaptureProps) {
+export function StepLeadCapture({ formData, updateFormData, userTier, isAdmin }: StepLeadCaptureProps) {
+  const hasLeadCapture = isAdmin || hasFeatureAccess(userTier, "leadExport");
   const leadCaptureEnabled = formData.leadCaptureEnabled === "true";
   const leadCaptureFields = formData.leadCaptureFields || ["name", "email"];
 
@@ -37,30 +44,58 @@ export function StepLeadCapture({ formData, updateFormData }: StepLeadCapturePro
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-semibold">Lead Capture</h2>
+        <div className="flex items-center gap-2">
+          <h2 className="text-2xl font-semibold">Lead Capture</h2>
+          {!hasLeadCapture && (
+            <Badge variant="secondary" className="ml-2" data-testid="badge-lead-premium">
+              <Crown className="w-3 h-3 mr-1" />
+              Starter+
+            </Badge>
+          )}
+        </div>
         <p className="text-muted-foreground mt-2">
           Turn conversations into qualified leads by collecting contact information from your visitors.
         </p>
       </div>
 
-      <div className="flex items-center justify-between rounded-lg border p-4">
-        <div className="space-y-0.5">
-          <Label htmlFor="leadCaptureEnabled" className="text-base font-medium">
-            Enable Lead Capture
-          </Label>
-          <p className="text-sm text-muted-foreground">
-            Show a contact form during chat conversations
-          </p>
+      {!hasLeadCapture ? (
+        <div className="rounded-lg border border-muted bg-muted/30 p-6 space-y-4">
+          <div className="flex items-start gap-3">
+            <Crown className="w-5 h-5 text-primary mt-0.5" />
+            <div className="space-y-2 flex-1">
+              <h4 className="font-medium">Upgrade to capture leads</h4>
+              <p className="text-sm text-muted-foreground">
+                Unlock the ability to collect visitor contact information directly through your chatbot. Export leads to CSV or sync them automatically to your CRM. Available on Starter, Business, and Scale plans.
+              </p>
+              <Button asChild variant="default" size="sm" className="mt-2" data-testid="button-upgrade-lead-capture">
+                <Link href="/pricing">
+                  <Crown className="w-4 h-4 mr-2" />
+                  Upgrade Plan
+                </Link>
+              </Button>
+            </div>
+          </div>
         </div>
-        <Switch
-          id="leadCaptureEnabled"
-          checked={leadCaptureEnabled}
-          onCheckedChange={(checked) => 
-            updateFormData({ leadCaptureEnabled: checked ? "true" : "false" })
-          }
-          data-testid="switch-lead-capture"
-        />
-      </div>
+      ) : (
+        <>
+          <div className="flex items-center justify-between rounded-lg border p-4">
+            <div className="space-y-0.5">
+              <Label htmlFor="leadCaptureEnabled" className="text-base font-medium">
+                Enable Lead Capture
+              </Label>
+              <p className="text-sm text-muted-foreground">
+                Show a contact form during chat conversations
+              </p>
+            </div>
+            <Switch
+              id="leadCaptureEnabled"
+              checked={leadCaptureEnabled}
+              onCheckedChange={(checked) => 
+                updateFormData({ leadCaptureEnabled: checked ? "true" : "false" })
+              }
+              data-testid="switch-lead-capture"
+            />
+          </div>
 
       {leadCaptureEnabled && (
         <div className="space-y-6">
@@ -226,6 +261,8 @@ export function StepLeadCapture({ formData, updateFormData }: StepLeadCapturePro
             </div>
           </div>
         </div>
+      )}
+        </>
       )}
     </div>
   );

@@ -56,7 +56,7 @@ export default function CreateChatbot() {
     queryKey: ["/api/auth/user"],
   });
 
-  const isAdmin = user?.isAdmin === true || user?.isAdmin === "true";
+  const isAdmin = user?.isAdmin === "true" || (typeof user?.isAdmin === "boolean" && user?.isAdmin === true);
   const isFreeTier = user?.subscriptionTier === "free" && !isAdmin;
   
   const [formData, setFormData] = useState<Partial<InsertChatbot> & {
@@ -392,7 +392,12 @@ export default function CreateChatbot() {
               <StepKnowledgeBase formData={formData} updateFormData={updateFormData} />
             )}
             {currentStep === 3 && (
-              <StepPersonality formData={formData} updateFormData={updateFormData} />
+              <StepPersonality 
+                formData={formData} 
+                updateFormData={updateFormData} 
+                userTier={user?.subscriptionTier || "free"}
+                isAdmin={isAdmin}
+              />
             )}
             {currentStep === 4 && (
               <StepCustomization formData={formData} updateFormData={updateFormData} isFreeTier={isFreeTier} />
@@ -401,7 +406,12 @@ export default function CreateChatbot() {
               <StepEscalation formData={formData} updateFormData={updateFormData} />
             )}
             {currentStep === 6 && (
-              <StepLeadCapture formData={formData} updateFormData={updateFormData} />
+              <StepLeadCapture 
+                formData={formData} 
+                updateFormData={updateFormData} 
+                userTier={user?.subscriptionTier || "free"}
+                isAdmin={isAdmin}
+              />
             )}
             {currentStep === 7 && (
               <StepCrm formData={formData} updateFormData={updateFormData} />
