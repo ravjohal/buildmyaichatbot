@@ -1159,20 +1159,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Could not extract any text from the document" });
       }
 
-      // Upload file to object storage
+      // Upload file to object storage (server-side)
       const objectStorageService = new ObjectStorageService();
       const uploadURL = await objectStorageService.getObjectEntityUploadURL();
-      const objectPath = objectStorageService.extractObjectPath(uploadURL);
-
-      // Upload the file buffer directly to object storage
-      const objectFile = objectStorageService.getObjectEntityFile(objectPath);
-      await objectFile.save(file.buffer, {
-        contentType: file.mimetype,
-        metadata: {
-          originalName: file.originalname,
-          uploadedAt: new Date().toISOString(),
+      
+      // Upload the file buffer to the signed URL
+      const uploadResponse = await fetch(uploadURL, {
+        method: 'PUT',
+        body: file.buffer,
+        headers: {
+          'Content-Type': file.mimetype,
         },
       });
+
+      if (!uploadResponse.ok) {
+        throw new Error(`Failed to upload file to storage: ${uploadResponse.statusText}`);
+      }
+
+      // Normalize the upload URL to get the object path
+      const objectPath = objectStorageService.normalizeObjectEntityPath(uploadURL);
 
       console.log(`[Document Upload] Uploaded to object storage: ${objectPath}`);
 
