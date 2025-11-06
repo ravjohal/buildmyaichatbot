@@ -510,6 +510,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log("[INDEXING] No URLs to index, chatbot ready");
       }
       
+      // Save CRM integration if configured in wizard
+      if (req.body.crmEnabled === "true" && req.body.crmWebhookUrl) {
+        try {
+          console.log(`[CRM] Saving CRM integration for chatbot ${chatbot.id}`);
+          const crmData = {
+            chatbotId: chatbot.id,
+            enabled: req.body.crmEnabled,
+            webhookUrl: req.body.crmWebhookUrl,
+            webhookMethod: req.body.crmWebhookMethod || "POST",
+            authType: req.body.crmAuthType || "none",
+            authValue: req.body.crmAuthValue || null,
+            customHeaders: req.body.crmCustomHeaders || {},
+            fieldMapping: req.body.crmFieldMapping || {},
+            retryEnabled: req.body.crmRetryEnabled !== "false" ? "true" : "false",
+            maxRetries: req.body.crmMaxRetries || "3",
+          };
+          
+          await db.insert(crmIntegrations).values(crmData);
+          console.log(`[CRM] ✓ CRM integration saved for chatbot ${chatbot.id}`);
+        } catch (crmError) {
+          console.error(`[CRM] Failed to save CRM integration:`, crmError);
+          // Don't fail chatbot creation if CRM setup fails
+        }
+      }
+      
       console.log("✓ Chatbot created successfully:", chatbot.id);
       console.log("=== CHATBOT CREATION REQUEST COMPLETED ===");
       res.status(201).json(chatbot);

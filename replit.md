@@ -20,7 +20,7 @@ The backend is built with Express.js, Node.js, and TypeScript, following a RESTf
 
 ### Feature Specifications
 
-*   **Chatbot Creation Wizard:** A guided multi-step process for configuring chatbot name, knowledge base (website URLs, document uploads), personality, visual customization, suggested questions, support escalation, and lead capture.
+*   **Chatbot Creation Wizard:** A guided 7-step process for configuring chatbot name, knowledge base (website URLs, document uploads), personality, visual customization, support escalation, lead capture, and CRM integration.
 *   **Chat Widget:** An embeddable, customizable, and mobile-responsive AI chat interface with real-time streaming responses, suggested questions, conversation history, escalation detection, and configurable lead capture forms.
 *   **Smart Suggested Questions:** AI (Gemini) generates FAQ-style questions from website content during indexing, stored and randomly displayed in the chat widget.
 *   **Streaming LLM Responses:** Implements Server-Sent Events (SSE) for real-time, word-by-word response display.

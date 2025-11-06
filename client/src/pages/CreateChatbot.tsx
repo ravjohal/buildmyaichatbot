@@ -10,6 +10,7 @@ import { StepPersonality } from "@/components/wizard/StepPersonality";
 import { StepCustomization } from "@/components/wizard/StepCustomization";
 import { StepEscalation } from "@/components/wizard/StepEscalation";
 import { StepLeadCapture } from "@/components/wizard/StepLeadCapture";
+import { StepCrm } from "@/components/wizard/StepCrm";
 import { StepComplete } from "@/components/wizard/StepComplete";
 import type { InsertChatbot, User } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -24,6 +25,7 @@ const STEPS = [
   { number: 4, title: "Customization", description: "Brand your widget" },
   { number: 5, title: "Escalation", description: "Set up support" },
   { number: 6, title: "Lead Capture", description: "Collect contact info" },
+  { number: 7, title: "CRM Integration", description: "Sync leads to CRM" },
 ];
 
 interface IndexingStatus {
@@ -56,7 +58,17 @@ export default function CreateChatbot() {
 
   const isFreeTier = user?.subscriptionTier === "free";
   
-  const [formData, setFormData] = useState<Partial<InsertChatbot>>({
+  const [formData, setFormData] = useState<Partial<InsertChatbot> & {
+    crmEnabled?: string;
+    crmWebhookUrl?: string;
+    crmWebhookMethod?: string;
+    crmAuthType?: string;
+    crmAuthValue?: string;
+    crmCustomHeaders?: Record<string, string>;
+    crmFieldMapping?: Record<string, string>;
+    crmRetryEnabled?: string;
+    crmMaxRetries?: string;
+  }>({
     name: "",
     websiteUrls: [],
     documents: [],
@@ -79,6 +91,15 @@ export default function CreateChatbot() {
     proactiveChatEnabled: "false",
     proactiveChatDelay: "5",
     proactiveChatMessage: "Hi! Need any help?",
+    crmEnabled: "false",
+    crmWebhookUrl: "",
+    crmWebhookMethod: "POST",
+    crmAuthType: "none",
+    crmAuthValue: "",
+    crmCustomHeaders: {},
+    crmFieldMapping: {},
+    crmRetryEnabled: "true",
+    crmMaxRetries: "3",
   });
 
   const updateFormData = (updates: Partial<InsertChatbot>) => {
@@ -162,13 +183,19 @@ export default function CreateChatbot() {
         return true; // Escalation is optional
       case 6:
         return true; // Lead capture is optional
+      case 7:
+        // CRM integration is optional, but if enabled must have webhook URL
+        if (formData.crmEnabled === "true") {
+          return formData.crmWebhookUrl && formData.crmWebhookUrl.trim().length > 0;
+        }
+        return true;
       default:
         return false;
     }
   };
 
   const handleNext = async () => {
-    if (currentStep < 6) {
+    if (currentStep < 7) {
       setCurrentStep(currentStep + 1);
     }
   };
@@ -267,7 +294,7 @@ export default function CreateChatbot() {
               </div>
               <div>
                 <h1 className="text-2xl font-bold">Create Chatbot</h1>
-                <p className="text-sm text-muted-foreground">Step {currentStep} of 6</p>
+                <p className="text-sm text-muted-foreground">Step {currentStep} of 7</p>
               </div>
             </div>
           </div>
@@ -371,6 +398,9 @@ export default function CreateChatbot() {
             {currentStep === 6 && (
               <StepLeadCapture formData={formData} updateFormData={updateFormData} />
             )}
+            {currentStep === 7 && (
+              <StepCrm formData={formData} updateFormData={updateFormData} />
+            )}
           </CardContent>
         </Card>
 
@@ -384,7 +414,7 @@ export default function CreateChatbot() {
             Back
           </Button>
 
-          {currentStep < 6 ? (
+          {currentStep < 7 ? (
             <Button
               onClick={handleNext}
               disabled={!canProceed()}
