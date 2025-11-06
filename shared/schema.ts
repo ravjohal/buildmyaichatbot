@@ -258,7 +258,7 @@ export const insertCrmIntegrationSchema = createInsertSchema(crmIntegrations).om
 }).refine(
   (data) => {
     // Strict numeric validation: must be all digits, no extra characters
-    const isNumeric = /^\d+$/.test(data.maxRetries);
+    const isNumeric = /^\d+$/.test(data.maxRetries || "");
     if (!isNumeric) return false;
     const num = Number(data.maxRetries);
     return num >= 0 && num <= 10;

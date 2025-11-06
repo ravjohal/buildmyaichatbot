@@ -108,8 +108,8 @@ export class HyphenCRMService {
       const payload: HyphenCustomerPayload = {
         home_builder_id: this.config.builderId,
         name: lead.name || 'Unknown',
-        email: lead.email,
-        phone: lead.phone,
+        email: lead.email ?? undefined,
+        phone: lead.phone ?? undefined,
       };
 
       // Add optional Hyphen-specific fields if configured
@@ -127,7 +127,7 @@ export class HyphenCRMService {
 
       // Add company if present
       if (lead.company) {
-        payload.company = lead.company;
+        payload.company_name = lead.company;
       }
 
       console.log('[Hyphen] Submitting lead to Create Customer v2 endpoint');

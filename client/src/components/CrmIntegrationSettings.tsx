@@ -25,8 +25,15 @@ export function CrmIntegrationSettings({ chatbotId }: CrmIntegrationSettingsProp
     queryKey: [`/api/chatbots/${chatbotId}/crm-integration`],
   });
 
-  // Form state
+  // Form state - common fields
   const [enabled, setEnabled] = useState(integration?.enabled === "true");
+  const [integrationType, setIntegrationType] = useState<"generic" | "hyphen">(
+    (integration?.integrationType as "generic" | "hyphen") || "generic"
+  );
+  const [retryEnabled, setRetryEnabled] = useState(integration?.retryEnabled === "true");
+  const [maxRetries, setMaxRetries] = useState(integration?.maxRetries || "3");
+  
+  // Generic webhook fields
   const [webhookUrl, setWebhookUrl] = useState(integration?.webhookUrl || "");
   const [webhookMethod, setWebhookMethod] = useState(integration?.webhookMethod || "POST");
   const [authType, setAuthType] = useState(integration?.authType || "none");
@@ -43,16 +50,31 @@ export function CrmIntegrationSettings({ chatbotId }: CrmIntegrationSettingsProp
       message: "message",
     }
   );
-  const [retryEnabled, setRetryEnabled] = useState(integration?.retryEnabled === "true");
-  const [maxRetries, setMaxRetries] = useState(integration?.maxRetries || "3");
   const [newHeaderKey, setNewHeaderKey] = useState("");
   const [newHeaderValue, setNewHeaderValue] = useState("");
+  
+  // Hyphen CRM fields
+  const [hyphenEndpoint, setHyphenEndpoint] = useState(integration?.hyphenEndpoint || "");
+  const [hyphenBuilderId, setHyphenBuilderId] = useState(integration?.hyphenBuilderId || "");
+  const [hyphenUsername, setHyphenUsername] = useState(integration?.hyphenUsername || "");
+  const [hyphenApiKey, setHyphenApiKey] = useState(integration?.hyphenApiKey || "");
+  const [hyphenCommunityId, setHyphenCommunityId] = useState(integration?.hyphenCommunityId || "");
+  const [hyphenSourceId, setHyphenSourceId] = useState(integration?.hyphenSourceId || "");
+  const [hyphenGradeId, setHyphenGradeId] = useState(integration?.hyphenGradeId || "");
+  const [hyphenInfluenceId, setHyphenInfluenceId] = useState(integration?.hyphenInfluenceId || "");
+  const [hyphenContactMethodId, setHyphenContactMethodId] = useState(integration?.hyphenContactMethodId || "");
+  const [hyphenReference, setHyphenReference] = useState(integration?.hyphenReference || "");
 
   // Update form state when integration loads
   useEffect(() => {
     if (integration) {
       setEnabled(integration.enabled === "true");
-      setWebhookUrl(integration.webhookUrl);
+      setIntegrationType((integration.integrationType as "generic" | "hyphen") || "generic");
+      setRetryEnabled(integration.retryEnabled === "true");
+      setMaxRetries(integration.maxRetries);
+      
+      // Generic fields
+      setWebhookUrl(integration.webhookUrl || "");
       setWebhookMethod(integration.webhookMethod);
       setAuthType(integration.authType);
       setAuthValue(integration.authValue || "");
@@ -64,8 +86,18 @@ export function CrmIntegrationSettings({ chatbotId }: CrmIntegrationSettingsProp
         company: "company",
         message: "message",
       });
-      setRetryEnabled(integration.retryEnabled === "true");
-      setMaxRetries(integration.maxRetries);
+      
+      // Hyphen fields
+      setHyphenEndpoint(integration.hyphenEndpoint || "");
+      setHyphenBuilderId(integration.hyphenBuilderId || "");
+      setHyphenUsername(integration.hyphenUsername || "");
+      setHyphenApiKey(integration.hyphenApiKey || "");
+      setHyphenCommunityId(integration.hyphenCommunityId || "");
+      setHyphenSourceId(integration.hyphenSourceId || "");
+      setHyphenGradeId(integration.hyphenGradeId || "");
+      setHyphenInfluenceId(integration.hyphenInfluenceId || "");
+      setHyphenContactMethodId(integration.hyphenContactMethodId || "");
+      setHyphenReference(integration.hyphenReference || "");
     }
   }, [integration]);
 
@@ -133,29 +165,55 @@ export function CrmIntegrationSettings({ chatbotId }: CrmIntegrationSettingsProp
   });
 
   const handleSave = () => {
-    const data = {
+    const data: any = {
       enabled: enabled ? "true" : "false",
-      webhookUrl,
-      webhookMethod,
-      authType,
-      authValue: authValue || null,
-      customHeaders,
-      fieldMapping,
+      integrationType,
       retryEnabled: retryEnabled ? "true" : "false",
       maxRetries,
     };
+
+    if (integrationType === "generic") {
+      data.webhookUrl = webhookUrl;
+      data.webhookMethod = webhookMethod;
+      data.authType = authType;
+      data.authValue = authValue || null;
+      data.customHeaders = customHeaders;
+      data.fieldMapping = fieldMapping;
+    } else if (integrationType === "hyphen") {
+      data.hyphenEndpoint = hyphenEndpoint;
+      data.hyphenBuilderId = hyphenBuilderId;
+      data.hyphenUsername = hyphenUsername;
+      data.hyphenApiKey = hyphenApiKey;
+      data.hyphenCommunityId = hyphenCommunityId || null;
+      data.hyphenSourceId = hyphenSourceId || null;
+      data.hyphenGradeId = hyphenGradeId || null;
+      data.hyphenInfluenceId = hyphenInfluenceId || null;
+      data.hyphenContactMethodId = hyphenContactMethodId || null;
+      data.hyphenReference = hyphenReference || null;
+    }
+
     saveMutation.mutate(data);
   };
 
   const handleTest = () => {
-    const data = {
-      webhookUrl,
-      webhookMethod,
-      authType,
-      authValue: authValue || null,
-      customHeaders,
-      fieldMapping,
+    const data: any = {
+      integrationType,
     };
+
+    if (integrationType === "generic") {
+      data.webhookUrl = webhookUrl;
+      data.webhookMethod = webhookMethod;
+      data.authType = authType;
+      data.authValue = authValue || null;
+      data.customHeaders = customHeaders;
+      data.fieldMapping = fieldMapping;
+    } else if (integrationType === "hyphen") {
+      data.hyphenEndpoint = hyphenEndpoint;
+      data.hyphenBuilderId = hyphenBuilderId;
+      data.hyphenUsername = hyphenUsername;
+      data.hyphenApiKey = hyphenApiKey;
+    }
+
     testMutation.mutate(data);
   };
 
@@ -231,69 +289,112 @@ export function CrmIntegrationSettings({ chatbotId }: CrmIntegrationSettingsProp
 
         <Separator />
 
-        {/* Webhook Configuration */}
+        {/* Integration Type Selector */}
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="webhook-url">Webhook URL</Label>
-            <Input
-              id="webhook-url"
-              type="url"
-              placeholder="https://api.yourcrm.com/webhooks/leads"
-              value={webhookUrl}
-              onChange={(e) => setWebhookUrl(e.target.value)}
-              disabled={!enabled}
-              data-testid="input-webhook-url"
-            />
-            <p className="text-xs text-muted-foreground">
-              The endpoint where lead data will be sent
-            </p>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="webhook-method">HTTP Method</Label>
-            <Select value={webhookMethod} onValueChange={setWebhookMethod} disabled={!enabled}>
-              <SelectTrigger id="webhook-method" data-testid="select-webhook-method">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="POST">POST</SelectItem>
-                <SelectItem value="PUT">PUT</SelectItem>
-                <SelectItem value="PATCH">PATCH</SelectItem>
-              </SelectContent>
-            </Select>
+            <Label>Integration Type</Label>
+            <div className="flex gap-4">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="integration-type"
+                  value="generic"
+                  checked={integrationType === "generic"}
+                  onChange={() => setIntegrationType("generic")}
+                  disabled={!enabled}
+                  className="w-4 h-4"
+                />
+                <div>
+                  <div className="font-medium">Generic Webhook</div>
+                  <div className="text-xs text-muted-foreground">Works with any CRM via webhook</div>
+                </div>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="integration-type"
+                  value="hyphen"
+                  checked={integrationType === "hyphen"}
+                  onChange={() => setIntegrationType("hyphen")}
+                  disabled={!enabled}
+                  className="w-4 h-4"
+                />
+                <div>
+                  <div className="font-medium">Hyphen CRM</div>
+                  <div className="text-xs text-muted-foreground">Native Hyphen CRM integration</div>
+                </div>
+              </label>
+            </div>
           </div>
         </div>
 
         <Separator />
 
-        {/* Authentication */}
-        <div className="space-y-4">
-          <h3 className="text-sm font-medium">Authentication</h3>
-          
-          <div className="space-y-2">
-            <Label htmlFor="auth-type">Authentication Type</Label>
-            <Select value={authType} onValueChange={setAuthType} disabled={!enabled}>
-              <SelectTrigger id="auth-type" data-testid="select-auth-type">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">None</SelectItem>
-                <SelectItem value="bearer">Bearer Token</SelectItem>
-                <SelectItem value="api_key">API Key</SelectItem>
-                <SelectItem value="basic">Basic Auth (Base64)</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+        {/* Generic Webhook Configuration */}
+        {integrationType === "generic" && (
+          <>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="webhook-url">Webhook URL</Label>
+                <Input
+                  id="webhook-url"
+                  type="url"
+                  placeholder="https://api.yourcrm.com/webhooks/leads"
+                  value={webhookUrl}
+                  onChange={(e) => setWebhookUrl(e.target.value)}
+                  disabled={!enabled}
+                  data-testid="input-webhook-url"
+                />
+                <p className="text-xs text-muted-foreground">
+                  The endpoint where lead data will be sent
+                </p>
+              </div>
 
-          {authType !== "none" && (
-            <div className="space-y-2">
-              <Label htmlFor="auth-value">
-                {authType === "bearer" && "Bearer Token"}
-                {authType === "api_key" && "API Key"}
-                {authType === "basic" && "Base64 Encoded Credentials"}
-              </Label>
-              <Input
-                id="auth-value"
+              <div className="space-y-2">
+                <Label htmlFor="webhook-method">HTTP Method</Label>
+                <Select value={webhookMethod} onValueChange={setWebhookMethod} disabled={!enabled}>
+                  <SelectTrigger id="webhook-method" data-testid="select-webhook-method">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="POST">POST</SelectItem>
+                    <SelectItem value="PUT">PUT</SelectItem>
+                    <SelectItem value="PATCH">PATCH</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* Authentication */}
+            <div className="space-y-4">
+              <h3 className="text-sm font-medium">Authentication</h3>
+              
+              <div className="space-y-2">
+                <Label htmlFor="auth-type">Authentication Type</Label>
+                <Select value={authType} onValueChange={setAuthType} disabled={!enabled}>
+                  <SelectTrigger id="auth-type" data-testid="select-auth-type">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">None</SelectItem>
+                    <SelectItem value="bearer">Bearer Token</SelectItem>
+                    <SelectItem value="api_key">API Key</SelectItem>
+                    <SelectItem value="basic">Basic Auth (Base64)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {authType !== "none" && (
+                <div className="space-y-2">
+                  <Label htmlFor="auth-value">
+                    {authType === "bearer" && "Bearer Token"}
+                    {authType === "api_key" && "API Key"}
+                    {authType === "basic" && "Base64 Encoded Credentials"}
+                  </Label>
+                  <Input
+                    id="auth-value"
                 type="password"
                 placeholder={
                   authType === "basic"
@@ -360,37 +461,182 @@ export function CrmIntegrationSettings({ chatbotId }: CrmIntegrationSettingsProp
           </div>
         </div>
 
-        <Separator />
+            <Separator />
 
-        {/* Field Mapping */}
-        <div className="space-y-4">
-          <div>
-            <h3 className="text-sm font-medium">Field Mapping</h3>
-            <p className="text-xs text-muted-foreground mt-1">
-              Map lead fields to your CRM's expected field names
-            </p>
-          </div>
-          
-          <div className="grid grid-cols-2 gap-4">
-            {Object.entries(fieldMapping).map(([leadField, crmField]) => (
-              <div key={leadField} className="space-y-2">
-                <Label htmlFor={`field-${leadField}`} className="text-xs text-muted-foreground">
-                  {leadField.charAt(0).toUpperCase() + leadField.slice(1)}
-                </Label>
+            {/* Field Mapping */}
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-sm font-medium">Field Mapping</h3>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Map lead fields to your CRM's expected field names
+                </p>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                {Object.entries(fieldMapping).map(([leadField, crmField]) => (
+                  <div key={leadField} className="space-y-2">
+                    <Label htmlFor={`field-${leadField}`} className="text-xs text-muted-foreground">
+                      {leadField.charAt(0).toUpperCase() + leadField.slice(1)}
+                    </Label>
+                    <Input
+                      id={`field-${leadField}`}
+                      placeholder={crmField}
+                      value={crmField}
+                      onChange={(e) =>
+                        setFieldMapping({ ...fieldMapping, [leadField]: e.target.value })
+                      }
+                      disabled={!enabled}
+                      data-testid={`input-field-${leadField}`}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* Hyphen CRM Configuration */}
+        {integrationType === "hyphen" && (
+          <div className="space-y-6">
+            <div className="bg-muted/50 p-4 rounded-lg space-y-3">
+              <h3 className="text-sm font-medium">Hyphen CRM Credentials</h3>
+              <p className="text-xs text-muted-foreground">
+                Find these values in your Hyphen CRM Settings → APIs screen
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="hyphen-endpoint">API Endpoint</Label>
                 <Input
-                  id={`field-${leadField}`}
-                  placeholder={crmField}
-                  value={crmField}
-                  onChange={(e) =>
-                    setFieldMapping({ ...fieldMapping, [leadField]: e.target.value })
-                  }
+                  id="hyphen-endpoint"
+                  type="url"
+                  placeholder="https://api.hyphensolutions.com"
+                  value={hyphenEndpoint}
+                  onChange={(e) => setHyphenEndpoint(e.target.value)}
                   disabled={!enabled}
-                  data-testid={`input-field-${leadField}`}
+                  data-testid="input-hyphen-endpoint"
                 />
               </div>
-            ))}
+
+              <div className="space-y-2">
+                <Label htmlFor="hyphen-builder-id">Home Builder ID</Label>
+                <Input
+                  id="hyphen-builder-id"
+                  placeholder="your-builder-id"
+                  value={hyphenBuilderId}
+                  onChange={(e) => setHyphenBuilderId(e.target.value)}
+                  disabled={!enabled}
+                  data-testid="input-hyphen-builder-id"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="hyphen-username">API Username</Label>
+                <Input
+                  id="hyphen-username"
+                  placeholder="api-username"
+                  value={hyphenUsername}
+                  onChange={(e) => setHyphenUsername(e.target.value)}
+                  disabled={!enabled}
+                  data-testid="input-hyphen-username"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="hyphen-api-key">API Key</Label>
+                <Input
+                  id="hyphen-api-key"
+                  type="password"
+                  placeholder="••••••••"
+                  value={hyphenApiKey}
+                  onChange={(e) => setHyphenApiKey(e.target.value)}
+                  disabled={!enabled}
+                  data-testid="input-hyphen-api-key"
+                />
+              </div>
+            </div>
+
+            <Separator />
+
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-sm font-medium">Optional Fields</h3>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Configure default values for Hyphen-specific fields
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="hyphen-community-id">Community ID</Label>
+                  <Input
+                    id="hyphen-community-id"
+                    placeholder="Optional"
+                    value={hyphenCommunityId}
+                    onChange={(e) => setHyphenCommunityId(e.target.value)}
+                    disabled={!enabled}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="hyphen-source-id">Source ID</Label>
+                  <Input
+                    id="hyphen-source-id"
+                    placeholder="Optional"
+                    value={hyphenSourceId}
+                    onChange={(e) => setHyphenSourceId(e.target.value)}
+                    disabled={!enabled}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="hyphen-grade-id">Grade ID</Label>
+                  <Input
+                    id="hyphen-grade-id"
+                    placeholder="Optional"
+                    value={hyphenGradeId}
+                    onChange={(e) => setHyphenGradeId(e.target.value)}
+                    disabled={!enabled}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="hyphen-influence-id">Influence ID</Label>
+                  <Input
+                    id="hyphen-influence-id"
+                    placeholder="Optional"
+                    value={hyphenInfluenceId}
+                    onChange={(e) => setHyphenInfluenceId(e.target.value)}
+                    disabled={!enabled}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="hyphen-contact-method-id">Contact Method ID</Label>
+                  <Input
+                    id="hyphen-contact-method-id"
+                    placeholder="Optional"
+                    value={hyphenContactMethodId}
+                    onChange={(e) => setHyphenContactMethodId(e.target.value)}
+                    disabled={!enabled}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="hyphen-reference">Reference (Ad Campaign)</Label>
+                  <Input
+                    id="hyphen-reference"
+                    placeholder="Optional"
+                    value={hyphenReference}
+                    onChange={(e) => setHyphenReference(e.target.value)}
+                    disabled={!enabled}
+                  />
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
+        )}
 
         <Separator />
 
@@ -433,7 +679,11 @@ export function CrmIntegrationSettings({ chatbotId }: CrmIntegrationSettingsProp
         <div className="flex gap-2">
           <Button
             onClick={handleSave}
-            disabled={!webhookUrl || saveMutation.isPending}
+            disabled={
+              saveMutation.isPending ||
+              (integrationType === "generic" && !webhookUrl) ||
+              (integrationType === "hyphen" && (!hyphenEndpoint || !hyphenBuilderId || !hyphenUsername || !hyphenApiKey))
+            }
             data-testid="button-save-crm"
           >
             {saveMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -442,7 +692,11 @@ export function CrmIntegrationSettings({ chatbotId }: CrmIntegrationSettingsProp
           <Button
             variant="outline"
             onClick={handleTest}
-            disabled={!webhookUrl || testMutation.isPending}
+            disabled={
+              testMutation.isPending ||
+              (integrationType === "generic" && !webhookUrl) ||
+              (integrationType === "hyphen" && (!hyphenEndpoint || !hyphenBuilderId || !hyphenUsername || !hyphenApiKey))
+            }
             data-testid="button-test-crm"
           >
             {testMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

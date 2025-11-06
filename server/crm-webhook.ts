@@ -49,12 +49,12 @@ export class CrmWebhookService {
         builderId: integration.hyphenBuilderId,
         username: integration.hyphenUsername,
         apiKey: integration.hyphenApiKey,
-        communityId: integration.hyphenCommunityId || undefined,
-        sourceId: integration.hyphenSourceId || undefined,
-        gradeId: integration.hyphenGradeId || undefined,
-        influenceId: integration.hyphenInfluenceId || undefined,
-        contactMethodId: integration.hyphenContactMethodId || undefined,
-        reference: integration.hyphenReference || undefined,
+        communityId: integration.hyphenCommunityId ?? undefined,
+        sourceId: integration.hyphenSourceId ?? undefined,
+        gradeId: integration.hyphenGradeId ?? undefined,
+        influenceId: integration.hyphenInfluenceId ?? undefined,
+        contactMethodId: integration.hyphenContactMethodId ?? undefined,
+        reference: integration.hyphenReference ?? undefined,
       });
 
       const result = await hyphenService.submitLead(lead);
@@ -253,6 +253,10 @@ export class CrmWebhookService {
    * Test webhook connection (doesn't count towards retry limits)
    */
   async testWebhook(integration: Pick<CrmIntegration, 'webhookUrl' | 'webhookMethod' | 'authType' | 'authValue' | 'customHeaders' | 'fieldMapping'>): Promise<{ success: boolean; error?: string }> {
+    if (!integration.webhookUrl) {
+      return { success: false, error: "Webhook URL is required" };
+    }
+
     const testPayload = {
       name: "Test Lead",
       email: "test@example.com",
