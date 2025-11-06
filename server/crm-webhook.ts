@@ -1,4 +1,5 @@
 import type { Lead, CrmIntegration } from "@shared/schema";
+import { HyphenCRMService } from "./hyphen-crm";
 
 interface WebhookRetryConfig {
   maxRetries: number;
@@ -7,8 +8,8 @@ interface WebhookRetryConfig {
 
 export class CrmWebhookService {
   /**
-   * Sends a lead to the configured CRM webhook endpoint
-   * Implements retry logic with exponential backoff
+   * Sends a lead to the configured CRM (generic webhook or Hyphen CRM)
+   * Routes to appropriate service based on integration type
    */
   async sendLeadToWebhook(
     lead: Lead,
@@ -17,6 +18,66 @@ export class CrmWebhookService {
     if (integration.enabled !== "true") {
       console.log(`[CRM] Integration disabled for chatbot ${integration.chatbotId}`);
       return { success: false, error: "Integration is disabled" };
+    }
+
+    // Route to Hyphen CRM service if integration type is "hyphen"
+    if (integration.integrationType === "hyphen") {
+      return this.sendToHyphen(lead, integration);
+    }
+
+    // Otherwise use generic webhook service
+    return this.sendToGenericWebhook(lead, integration);
+  }
+
+  /**
+   * Sends a lead to Hyphen CRM using native API integration
+   */
+  private async sendToHyphen(
+    lead: Lead,
+    integration: CrmIntegration
+  ): Promise<{ success: boolean; error?: string }> {
+    console.log(`[CRM] Sending lead ${lead.id} to Hyphen CRM`);
+
+    if (!integration.hyphenEndpoint || !integration.hyphenBuilderId || 
+        !integration.hyphenUsername || !integration.hyphenApiKey) {
+      return { success: false, error: "Missing Hyphen CRM credentials" };
+    }
+
+    try {
+      const hyphenService = new HyphenCRMService({
+        endpoint: integration.hyphenEndpoint,
+        builderId: integration.hyphenBuilderId,
+        username: integration.hyphenUsername,
+        apiKey: integration.hyphenApiKey,
+        communityId: integration.hyphenCommunityId || undefined,
+        sourceId: integration.hyphenSourceId || undefined,
+        gradeId: integration.hyphenGradeId || undefined,
+        influenceId: integration.hyphenInfluenceId || undefined,
+        contactMethodId: integration.hyphenContactMethodId || undefined,
+        reference: integration.hyphenReference || undefined,
+      });
+
+      const result = await hyphenService.submitLead(lead);
+      return result;
+    } catch (error) {
+      console.error(`[CRM] Hyphen error for lead ${lead.id}:`, error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown Hyphen error",
+      };
+    }
+  }
+
+  /**
+   * Sends a lead to a generic webhook endpoint
+   * Implements retry logic with exponential backoff
+   */
+  private async sendToGenericWebhook(
+    lead: Lead,
+    integration: CrmIntegration
+  ): Promise<{ success: boolean; error?: string }> {
+    if (!integration.webhookUrl) {
+      return { success: false, error: "Missing webhook URL" };
     }
 
     const retryConfig: WebhookRetryConfig = {

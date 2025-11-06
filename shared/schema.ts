@@ -214,12 +214,29 @@ export const crmIntegrations = pgTable("crm_integrations", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   chatbotId: varchar("chatbot_id").notNull().references(() => chatbots.id, { onDelete: "cascade" }).unique(),
   enabled: text("enabled").notNull().default("false"), // "true" or "false"
-  webhookUrl: text("webhook_url").notNull(),
+  integrationType: text("integration_type").notNull().default("generic"), // "generic" or "hyphen"
+  
+  // Generic webhook fields (for any CRM via middleware)
+  webhookUrl: text("webhook_url"),
   webhookMethod: text("webhook_method").notNull().default("POST"), // POST, PUT, PATCH
   authType: text("auth_type").notNull().default("none"), // none, bearer, api_key, basic
   authValue: text("auth_value"), // Encrypted auth token/key
   customHeaders: jsonb("custom_headers"), // Additional headers as JSON object
   fieldMapping: jsonb("field_mapping").notNull().default(sql`'{}'::jsonb`), // Maps lead fields to CRM fields
+  
+  // Hyphen CRM specific fields (for native integration)
+  hyphenEndpoint: text("hyphen_endpoint"), // API_ENDPOINT from Hyphen
+  hyphenBuilderId: text("hyphen_builder_id"), // HOMEBUILDER_ID
+  hyphenUsername: text("hyphen_username"), // API_USERNAME
+  hyphenApiKey: text("hyphen_api_key"), // API_KEY
+  hyphenCommunityId: text("hyphen_community_id"), // Optional: default community ID
+  hyphenSourceId: text("hyphen_source_id"), // Optional: default source ID
+  hyphenGradeId: text("hyphen_grade_id"), // Optional: default grade ID
+  hyphenInfluenceId: text("hyphen_influence_id"), // Optional: default influence ID
+  hyphenContactMethodId: text("hyphen_contact_method_id"), // Optional: preferred contact method
+  hyphenReference: text("hyphen_reference"), // Optional: reference field for ad tracking
+  
+  // Common fields
   retryEnabled: text("retry_enabled").notNull().default("true"),
   maxRetries: text("max_retries").notNull().default("3"),
   lastSyncedAt: timestamp("last_synced_at"),
@@ -249,14 +266,28 @@ export const insertCrmIntegrationSchema = createInsertSchema(crmIntegrations).om
   { message: "maxRetries must be a valid number between 0 and 10", path: ["maxRetries"] }
 ).refine(
   (data) => {
-    try {
-      new URL(data.webhookUrl);
-      return true;
-    } catch {
-      return false;
+    // Generic type requires webhookUrl
+    if (data.integrationType === "generic") {
+      if (!data.webhookUrl) return false;
+      try {
+        new URL(data.webhookUrl);
+        return true;
+      } catch {
+        return false;
+      }
     }
+    return true;
   },
-  { message: "webhookUrl must be a valid URL", path: ["webhookUrl"] }
+  { message: "webhookUrl is required and must be a valid URL for generic integration", path: ["webhookUrl"] }
+).refine(
+  (data) => {
+    // Hyphen type requires specific credentials
+    if (data.integrationType === "hyphen") {
+      return !!(data.hyphenEndpoint && data.hyphenBuilderId && data.hyphenUsername && data.hyphenApiKey);
+    }
+    return true;
+  },
+  { message: "Hyphen integration requires endpoint, builder ID, username, and API key", path: ["hyphenEndpoint"] }
 );
 
 export type CrmIntegration = typeof crmIntegrations.$inferSelect;
