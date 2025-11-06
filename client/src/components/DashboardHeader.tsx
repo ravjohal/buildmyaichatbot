@@ -12,7 +12,7 @@ export function DashboardHeader() {
     queryKey: ["/api/auth/user"],
   });
 
-  const isAdmin = user?.isAdmin === "true";
+  const isAdmin = user?.isAdmin === true || user?.isAdmin === "true";
   const isFreeTier = user?.subscriptionTier === "free" && !isAdmin;
 
   const getUserDisplay = () => {

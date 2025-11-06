@@ -56,7 +56,8 @@ export default function CreateChatbot() {
     queryKey: ["/api/auth/user"],
   });
 
-  const isFreeTier = user?.subscriptionTier === "free";
+  const isAdmin = user?.isAdmin === true || user?.isAdmin === "true";
+  const isFreeTier = user?.subscriptionTier === "free" && !isAdmin;
   
   const [formData, setFormData] = useState<Partial<InsertChatbot> & {
     crmEnabled?: string;
