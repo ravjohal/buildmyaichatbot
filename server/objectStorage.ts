@@ -112,16 +112,56 @@ export class ObjectStorageService {
     const objectId = randomUUID();
     const fullPath = [...pathParts, objectId].join("/");
     
-    const bucket = objectStorageClient.bucket(bucketName);
-    const file = bucket.file(fullPath);
-    
-    const [url] = await file.getSignedUrl({
-      version: "v4",
-      action: "write",
-      expires: Date.now() + 15 * 60 * 1000, // 15 minutes
+    // Use Replit's sidecar endpoint to sign URLs instead of GCS getSignedUrl
+    const signedURL = await this.signObjectURL({
+      bucketName,
+      objectName: fullPath,
+      method: "PUT",
+      ttlSec: 900, // 15 minutes
     });
     
-    return url;
+    return signedURL;
+  }
+
+  // Sign object URL using Replit's sidecar endpoint
+  private async signObjectURL({
+    bucketName,
+    objectName,
+    method,
+    ttlSec,
+  }: {
+    bucketName: string;
+    objectName: string;
+    method: "GET" | "PUT" | "DELETE" | "HEAD";
+    ttlSec: number;
+  }): Promise<string> {
+    const request = {
+      bucket_name: bucketName,
+      object_name: objectName,
+      method,
+      expires_at: new Date(Date.now() + ttlSec * 1000).toISOString(),
+    };
+    
+    const response = await fetch(
+      `${REPLIT_SIDECAR_ENDPOINT}/object-storage/signed-object-url`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(request),
+      }
+    );
+    
+    if (!response.ok) {
+      throw new Error(
+        `Failed to sign object URL, status: ${response.status}. ` +
+        `Make sure you're running on Replit.`
+      );
+    }
+
+    const { signed_url: signedURL } = await response.json();
+    return signedURL;
   }
 
   normalizeObjectEntityPath(uploadURL: string): string {
