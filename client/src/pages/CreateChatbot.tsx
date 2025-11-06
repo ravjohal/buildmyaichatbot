@@ -195,8 +195,12 @@ export default function CreateChatbot() {
   };
 
   const handleNext = async () => {
+    console.log('[WIZARD] handleNext called', { currentStep, canProceed: canProceed() });
     if (currentStep < 7) {
+      console.log('[WIZARD] Advancing to step', currentStep + 1);
       setCurrentStep(currentStep + 1);
+    } else {
+      console.log('[WIZARD] Already at final step');
     }
   };
 
