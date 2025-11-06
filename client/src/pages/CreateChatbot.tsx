@@ -84,6 +84,8 @@ export default function CreateChatbot() {
     supportPhoneNumber: "",
     escalationMessage: "If you need more help, you can reach our team at {phone}.",
     leadCaptureEnabled: "false",
+    leadCaptureType: "form",
+    leadCaptureExternalUrl: "",
     leadCaptureFields: ["name", "email"],
     leadCaptureTitle: "Get in Touch",
     leadCaptureMessage: "Leave your contact information and we'll get back to you.",

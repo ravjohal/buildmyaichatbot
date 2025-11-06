@@ -5,7 +5,7 @@ import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Info, UserPlus, Mail, Phone, Building2, MessageSquare, Crown } from "lucide-react";
+import { Info, UserPlus, Mail, Phone, Building2, MessageSquare, Crown, ExternalLink } from "lucide-react";
 import type { InsertChatbot, SubscriptionTier } from "@shared/schema";
 import { hasFeatureAccess } from "@shared/pricing";
 import { Link } from "wouter";
@@ -27,6 +27,7 @@ interface StepLeadCaptureProps {
 export function StepLeadCapture({ formData, updateFormData, userTier, isAdmin }: StepLeadCaptureProps) {
   const hasLeadCapture = isAdmin || hasFeatureAccess(userTier, "leadExport");
   const leadCaptureEnabled = formData.leadCaptureEnabled === "true";
+  const leadCaptureType = formData.leadCaptureType || "form";
   const leadCaptureFields = formData.leadCaptureFields || ["name", "email"];
 
   const toggleField = (field: string) => {
@@ -100,10 +101,58 @@ export function StepLeadCapture({ formData, updateFormData, userTier, isAdmin }:
       {leadCaptureEnabled && (
         <div className="space-y-6">
           <div className="space-y-3">
-            <Label htmlFor="leadCaptureTitle" className="text-base flex items-center gap-2">
-              <UserPlus className="w-4 h-4" />
-              Form Title
+            <Label htmlFor="leadCaptureType" className="text-base">
+              Lead Capture Method
             </Label>
+            <Select
+              value={leadCaptureType}
+              onValueChange={(value) => updateFormData({ leadCaptureType: value })}
+            >
+              <SelectTrigger id="leadCaptureType" data-testid="select-lead-capture-type">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="form">Built-in Form</SelectItem>
+                <SelectItem value="external_link">External Link</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-sm text-muted-foreground">
+              {leadCaptureType === "form" 
+                ? "Collect leads using the built-in contact form with customizable fields" 
+                : "Direct visitors to your own external form or landing page"}
+            </p>
+          </div>
+
+          {leadCaptureType === "external_link" && (
+            <div className="space-y-3">
+              <Label htmlFor="leadCaptureExternalUrl" className="text-base flex items-center gap-2">
+                <ExternalLink className="w-4 h-4" />
+                External Form URL
+              </Label>
+              <Input
+                id="leadCaptureExternalUrl"
+                type="url"
+                placeholder="https://forms.example.com/contact"
+                value={formData.leadCaptureExternalUrl || ""}
+                onChange={(e) => updateFormData({ leadCaptureExternalUrl: e.target.value })}
+                className="h-11"
+                data-testid="input-external-url"
+                required={leadCaptureType === "external_link"}
+                pattern="https?://.*"
+              />
+              <p className="text-sm text-muted-foreground">
+                Must be a valid http:// or https:// URL. Visitors will be shown a button that opens this URL in a new tab.
+              </p>
+            </div>
+          )}
+
+          {leadCaptureType === "form" && (
+            <>
+              <div className="space-y-3">
+                <Label htmlFor="leadCaptureTitle" className="text-base flex items-center gap-2">
+                  <UserPlus className="w-4 h-4" />
+                  Form Title
+                </Label>
             <Input
               id="leadCaptureTitle"
               placeholder="Get in Touch"
@@ -200,10 +249,12 @@ export function StepLeadCapture({ formData, updateFormData, userTier, isAdmin }:
               </div>
             </div>
           </div>
+            </>
+          )}
 
           <div className="space-y-3">
             <Label htmlFor="leadCaptureTiming" className="text-base">
-              When to Show Form
+              {leadCaptureType === "form" ? "When to Show Form" : "When to Show Link"}
             </Label>
             <Select
               value={formData.leadCaptureTiming || "after_first_message"}

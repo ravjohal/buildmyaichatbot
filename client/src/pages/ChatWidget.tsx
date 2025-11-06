@@ -790,6 +790,41 @@ export default function ChatWidget() {
             </div>
           </div>
 
+          {/* External Link Type */}
+          {chatbot.leadCaptureType === "external_link" && chatbot.leadCaptureExternalUrl ? (
+            <div className="space-y-3">
+              <Button
+                type="button"
+                className="w-full"
+                style={{ backgroundColor: chatbot.primaryColor }}
+                onClick={() => {
+                  // Validate URL before opening (security: prevent javascript: or data: URLs)
+                  const url = chatbot.leadCaptureExternalUrl;
+                  if (url && (url.startsWith("http://") || url.startsWith("https://"))) {
+                    window.open(url, "_blank", "noopener,noreferrer");
+                  }
+                  setLeadFormSkipped(true);
+                  setShowLeadForm(false);
+                }}
+                data-testid="button-open-external-form"
+              >
+                Open Contact Form
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                className="w-full"
+                onClick={() => {
+                  setLeadFormSkipped(true);
+                  setShowLeadForm(false);
+                }}
+                data-testid="button-skip-external-lead"
+              >
+                Skip
+              </Button>
+            </div>
+          ) : (
+          /* Built-in Form Type (default) */
           <form onSubmit={handleLeadSubmit} className="space-y-3">
             {fields.includes("name") && (
               <div className="space-y-1">
@@ -888,6 +923,7 @@ export default function ChatWidget() {
               </Button>
             </div>
           </form>
+          )}
         </div>
       </div>
     );

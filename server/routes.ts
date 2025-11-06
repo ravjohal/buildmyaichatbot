@@ -360,6 +360,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         escalationMessage: chatbot.escalationMessage,
         systemPrompt: chatbot.systemPrompt,
         leadCaptureEnabled: chatbot.leadCaptureEnabled,
+        leadCaptureType: chatbot.leadCaptureType,
+        leadCaptureExternalUrl: chatbot.leadCaptureExternalUrl,
         leadCaptureFields: chatbot.leadCaptureFields,
         leadCaptureTitle: chatbot.leadCaptureTitle,
         leadCaptureMessage: chatbot.leadCaptureMessage,
@@ -1594,8 +1596,8 @@ Generate 3 short, natural questions that would help the user learn more. Return 
         storage.incrementChatbotQuestionCount(chatbotId)
       ]);
       
-      // Increment monthly conversation count for pro/scale tiers
-      if (owner && owner.isAdmin !== "true" && (owner.subscriptionTier === "pro" || owner.subscriptionTier === "scale")) {
+      // Increment monthly conversation count for all paid tiers (not free, and not admins)
+      if (owner && owner.isAdmin !== "true" && owner.subscriptionTier !== "free") {
         storage.incrementMonthlyConversationCount(owner.id).catch(err => {
           console.error("Error incrementing monthly conversation count:", err);
         });
@@ -2063,8 +2065,8 @@ INCORRECT citation examples (NEVER do this):
       ]);
       perfTimings.dbSaveMessages = performance.now() - dbSaveStart;
       
-      // Increment monthly conversation count for pro/scale tiers
-      if (owner && owner.isAdmin !== "true" && (owner.subscriptionTier === "pro" || owner.subscriptionTier === "scale")) {
+      // Increment monthly conversation count for all paid tiers (not free, and not admins)
+      if (owner && owner.isAdmin !== "true" && owner.subscriptionTier !== "free") {
         storage.incrementMonthlyConversationCount(owner.id).catch(err => {
           console.error("Error incrementing monthly conversation count:", err);
         });

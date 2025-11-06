@@ -70,7 +70,10 @@ export const chatbots = pgTable("chatbots", {
   supportPhoneNumber: text("support_phone_number"),
   escalationMessage: text("escalation_message").notNull().default("If you need more help, you can reach our team at {phone}."),
   questionCount: text("question_count").notNull().default("0"),
+  // Feature 8: Lead Capture
   leadCaptureEnabled: text("lead_capture_enabled").notNull().default("false"),
+  leadCaptureType: text("lead_capture_type").notNull().default("form"), // "form" or "external_link"
+  leadCaptureExternalUrl: text("lead_capture_external_url"),
   leadCaptureFields: text("lead_capture_fields").array().default(sql`ARRAY['name', 'email']::text[]`),
   leadCaptureTitle: text("lead_capture_title").notNull().default("Get in Touch"),
   leadCaptureMessage: text("lead_capture_message").notNull().default("Leave your contact information and we'll get back to you."),
@@ -109,6 +112,8 @@ export const insertChatbotSchema = createInsertSchema(chatbots).omit({
   supportPhoneNumber: z.string().optional(),
   escalationMessage: z.string().min(1, "Escalation message is required"),
   leadCaptureEnabled: z.string().optional(),
+  leadCaptureType: z.enum(["form", "external_link"]).optional(),
+  leadCaptureExternalUrl: z.string().url().regex(/^https?:\/\//, "URL must start with http:// or https://").optional().or(z.literal("")),
   leadCaptureFields: z.array(z.string()).optional(),
   leadCaptureTitle: z.string().optional(),
   leadCaptureMessage: z.string().optional(),
