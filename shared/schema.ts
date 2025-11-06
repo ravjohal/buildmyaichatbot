@@ -30,7 +30,7 @@ export const users = pgTable("users", {
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
-  subscriptionTier: varchar("subscription_tier", { enum: ["free", "pro", "scale"] }).notNull().default("free"),
+  subscriptionTier: varchar("subscription_tier", { enum: ["free", "starter", "business", "pro", "scale"] }).notNull().default("free"),
   stripeCustomerId: varchar("stripe_customer_id"),
   stripeSubscriptionId: varchar("stripe_subscription_id"),
   stripePriceId: varchar("stripe_price_id"), // Track which price plan they're on
@@ -48,7 +48,7 @@ export const users = pgTable("users", {
 
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
-export type SubscriptionTier = "free" | "pro" | "scale";
+export type SubscriptionTier = "free" | "starter" | "business" | "pro" | "scale";
 
 export const chatbots = pgTable("chatbots", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),

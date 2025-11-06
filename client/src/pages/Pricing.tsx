@@ -13,7 +13,7 @@ export default function Pricing() {
   const [, navigate] = useLocation();
   const [billingCycle, setBillingCycle] = useState<"monthly" | "annual">("monthly");
 
-  const handleSelectPlan = (tier: "free" | "pro" | "scale", cycle: "monthly" | "annual") => {
+  const handleSelectPlan = (tier: "free" | "starter" | "business" | "pro" | "scale", cycle: "monthly" | "annual") => {
     if (tier === "free") {
       if (user) {
         navigate("/");
@@ -73,7 +73,7 @@ export default function Pricing() {
           </div>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+        <div className="grid md:grid-cols-4 gap-6 max-w-7xl mx-auto">
           {PRICING_PLANS.map((plan) => {
             const isCurrentPlan = currentTier === plan.tier;
             const price = billingCycle === "monthly" ? plan.monthlyPrice : plan.annualPrice;
@@ -141,13 +141,13 @@ export default function Pricing() {
             <div>
               <h3 className="font-semibold mb-2">What happens when I hit the 3-question limit on the free plan?</h3>
               <p className="text-muted-foreground">
-                Your chatbot will stop responding to new questions until you upgrade to Pro. You'll still be able to test and demo your chatbot in the dashboard.
+                Your chatbot will stop responding to new questions until you upgrade to a paid plan. You'll still be able to test and demo your chatbot in the dashboard.
               </p>
             </div>
             <div>
-              <h3 className="font-semibold mb-2">What's the difference between Pro and Scale?</h3>
+              <h3 className="font-semibold mb-2">What's the difference between Starter, Business, and Scale?</h3>
               <p className="text-muted-foreground">
-                Pro is perfect for small to medium businesses with up to 5 chatbots and 5,000 conversations/month. Scale offers unlimited chatbots, 50,000 conversations/month, advanced analytics, and larger knowledge base capacity.
+                Starter ($24.99/mo) is perfect for individuals with 1 chatbot and basic features. Business ($49/mo) adds lead capture, CRM integration, live chat, and team collaboration for growing teams. Scale ($129/mo) offers unlimited chatbots, 50,000 conversations/month, advanced analytics, and dedicated support for high-volume businesses.
               </p>
             </div>
             <div>
