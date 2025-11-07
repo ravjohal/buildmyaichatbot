@@ -162,6 +162,76 @@ const isAdmin = async (req: any, res: any, next: any) => {
   }
 };
 
+// Middleware to check if user has a specific permission
+const hasPermission = (permission: 'view_analytics' | 'manage_chatbots' | 'respond_to_chats' | 'view_leads' | 'manage_team' | 'access_settings') => {
+  return async (req: any, res: any, next: any) => {
+    try {
+      if (!req.isAuthenticated() || !req.user?.id) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
+      
+      // Account owners (role: "owner") always have all permissions
+      if (user.role === "owner") {
+        // Owner account - full access to their own resources
+        // Subsequent route handlers will check ownership via storage helpers
+        return next();
+      }
+      
+      // Team member - check permissions
+      if (user.role === "team_member") {
+        const permissions = await storage.getTeamMemberPermissions(userId);
+        
+        if (!permissions) {
+          // Team member without permissions record - deny access
+          return res.status(403).json({ 
+            error: "Forbidden - No permissions configured for this team member" 
+          });
+        }
+        
+        // Check specific permission
+        const permissionMap: Record<string, keyof typeof permissions> = {
+          'view_analytics': 'canViewAnalytics',
+          'manage_chatbots': 'canManageChatbots',
+          'respond_to_chats': 'canRespondToChats',
+          'view_leads': 'canViewLeads',
+          'manage_team': 'canManageTeam',
+          'access_settings': 'canAccessSettings',
+        };
+        
+        const permissionField = permissionMap[permission];
+        if (permissions[permissionField] === "true") {
+          // Permission granted - ensure team member accesses their owner's resources
+          // Override req.user.id to be the owner's ID for resource access
+          // This makes all subsequent storage calls check against the owner's resources
+          if (user.parentUserId) {
+            req.user.originalUserId = userId;  // Preserve for audit logging
+            req.user.id = user.parentUserId;   // Use owner's ID for resource queries
+            req.user.isTeamMember = true;
+          }
+          return next();
+        }
+        
+        return res.status(403).json({ 
+          error: "Forbidden - You don't have permission to perform this action",
+          requiredPermission: permission 
+        });
+      }
+      
+      return res.status(403).json({ error: "Forbidden - Invalid user role" });
+    } catch (error) {
+      console.error(`Error checking permission ${permission}:`, error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  };
+};
+
 // Helper function to sanitize user data before sending to client
 // SECURITY: Never expose password hashes or sensitive internal fields
 const sanitizeUser = (user: any) => {
@@ -613,7 +683,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Update chatbot (protected)
-  app.put("/api/chatbots/:id", isAuthenticated, async (req: any, res) => {
+  app.put("/api/chatbots/:id", isAuthenticated, hasPermission('manage_chatbots'), async (req: any, res) => {
     try {
       const userId = req.user.id;
       const chatbotId = req.params.id;
@@ -891,7 +961,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Delete chatbot (protected)
-  app.delete("/api/chatbots/:id", isAuthenticated, async (req: any, res) => {
+  app.delete("/api/chatbots/:id", isAuthenticated, hasPermission('manage_chatbots'), async (req: any, res) => {
     try {
       const userId = req.user.id;
       const deleted = await storage.deleteChatbot(req.params.id, userId);
@@ -2448,7 +2518,7 @@ INCORRECT citation examples (NEVER do this):
   // Analytics routes (protected - only for chatbot owners with paid subscription)
   
   // Get analytics overview for a chatbot
-  app.get("/api/chatbots/:id/analytics", isAuthenticated, async (req: any, res) => {
+  app.get("/api/chatbots/:id/analytics", isAuthenticated, hasPermission('view_analytics'), async (req: any, res) => {
     try {
       const userId = req.user.id;
       const chatbotId = req.params.id;
@@ -2961,7 +3031,7 @@ INCORRECT citation examples (NEVER do this):
   });
 
   // Get all leads for a chatbot (protected - owner or admin only)
-  app.get("/api/chatbots/:id/leads", isAuthenticated, async (req: any, res) => {
+  app.get("/api/chatbots/:id/leads", isAuthenticated, hasPermission('view_leads'), async (req: any, res) => {
     try {
       const userId = req.user.id;
       const chatbotId = req.params.id;
@@ -2988,7 +3058,7 @@ INCORRECT citation examples (NEVER do this):
   });
 
   // Export leads to CSV (protected - owner or admin only)
-  app.get("/api/chatbots/:id/leads/export", isAuthenticated, async (req: any, res) => {
+  app.get("/api/chatbots/:id/leads/export", isAuthenticated, hasPermission('view_leads'), async (req: any, res) => {
     try {
       const userId = req.user.id;
       const chatbotId = req.params.id;
@@ -4385,7 +4455,7 @@ INCORRECT citation examples (NEVER do this):
   });
 
   // Get aggregate analytics overview (all chatbots)
-  app.get("/api/analytics/overview", isAuthenticated, async (req: any, res) => {
+  app.get("/api/analytics/overview", isAuthenticated, hasPermission('view_analytics'), async (req: any, res) => {
     try {
       const userId = req.user.id;
       const days = parseInt(req.query.days as string) || 7;
@@ -4568,7 +4638,7 @@ INCORRECT citation examples (NEVER do this):
   // Team Management Routes
   
   // Invite a team member
-  app.post("/api/team/invite", isAuthenticated, async (req: any, res) => {
+  app.post("/api/team/invite", isAuthenticated, hasPermission('manage_team'), async (req: any, res) => {
     try {
       const userId = req.user.id;
       const { email } = req.body;
@@ -4856,7 +4926,7 @@ INCORRECT citation examples (NEVER do this):
   });
   
   // Remove team member
-  app.delete("/api/team/members/:id", isAuthenticated, async (req: any, res) => {
+  app.delete("/api/team/members/:id", isAuthenticated, hasPermission('manage_team'), async (req: any, res) => {
     try {
       const userId = req.user.id;
       const memberId = req.params.id;
@@ -4883,7 +4953,7 @@ INCORRECT citation examples (NEVER do this):
   });
   
   // Cancel invitation
-  app.delete("/api/team/invitations/:id", isAuthenticated, async (req: any, res) => {
+  app.delete("/api/team/invitations/:id", isAuthenticated, hasPermission('manage_team'), async (req: any, res) => {
     try {
       const userId = req.user.id;
       const invitationId = req.params.id;
