@@ -1716,6 +1716,47 @@ Generate 3 short, natural questions that would help the user learn more. Return 
       }
       perfTimings.conversationLookup = performance.now() - conversationStart;
 
+      // Check if there's an active handoff for this conversation
+      const activeHandoff = await db.select()
+        .from(liveAgentHandoffs)
+        .where(
+          and(
+            eq(liveAgentHandoffs.conversationId, conversation.id),
+            eq(liveAgentHandoffs.status, "active")
+          )
+        )
+        .limit(1);
+
+      // If there's an active handoff, route to live agent instead of AI
+      if (activeHandoff.length > 0) {
+        console.log(`[HANDOFF] Active handoff found for conversation ${conversation.id}, routing to agent`);
+        
+        // Save the visitor message to the database
+        const messageId = Date.now().toString();
+        await db.insert(agentMessages).values({
+          handoffId: activeHandoff[0].id,
+          role: "visitor",
+          content: message,
+        });
+        
+        // Broadcast to agent via WebSocket
+        const wsModule = await import('./websocket.js');
+        wsModule.broadcastToConversation(conversation.id, {
+          type: "message",
+          role: "visitor",
+          content: message,
+          messageId,
+        });
+        
+        // Send acknowledgment to visitor (no bot message shown)
+        res.write(`data: ${JSON.stringify({ 
+          type: "handoff_message",
+          acknowledged: true,
+        })}\n\n`);
+        
+        return res.end();
+      }
+
       // Build knowledge base context - USE CHUNK-BASED RETRIEVAL if available
       let knowledgeContext = "";
       let usingChunks = false;

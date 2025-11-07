@@ -383,6 +383,11 @@ export default function ChatWidget() {
                   if (data.shouldEscalate !== undefined) {
                     shouldEscalate = data.shouldEscalate;
                   }
+                } else if (data.type === "handoff_message") {
+                  // Message routed to live agent - don't show bot response
+                  console.log("[ChatWidget] Message routed to live agent");
+                  // Remove the temporary assistant message since agent will respond via WebSocket
+                  setMessages((prev) => prev.filter((msg) => msg.id !== messageId));
                 } else if (data.type === "error") {
                   // Error from server
                   setMessages((prev) =>
