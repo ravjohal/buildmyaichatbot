@@ -10,9 +10,10 @@ interface Step {
 interface StepIndicatorProps {
   steps: Step[];
   currentStep: number;
+  onStepClick?: (stepNumber: number) => void;
 }
 
-export function StepIndicator({ steps, currentStep }: StepIndicatorProps) {
+export function StepIndicator({ steps, currentStep, onStepClick }: StepIndicatorProps) {
   return (
     <div className="flex items-center justify-between">
       {steps.map((step, index) => (
@@ -25,8 +26,10 @@ export function StepIndicator({ steps, currentStep }: StepIndicatorProps) {
                   ? "bg-primary text-primary-foreground"
                   : step.number === currentStep
                   ? "bg-primary text-primary-foreground"
-                  : "bg-muted text-muted-foreground"
+                  : "bg-muted text-muted-foreground",
+                onStepClick && "cursor-pointer hover-elevate"
               )}
+              onClick={() => onStepClick?.(step.number)}
               data-testid={`step-indicator-${step.number}`}
             >
               {step.number < currentStep ? (

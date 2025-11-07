@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -70,6 +70,36 @@ export function StepCrm({ formData, updateFormData }: StepCrmProps) {
   const [hyphenInfluenceId, setHyphenInfluenceId] = useState(formData.crmHyphenInfluenceId || "");
   const [hyphenContactMethodId, setHyphenContactMethodId] = useState(formData.crmHyphenContactMethodId || "");
   const [hyphenReference, setHyphenReference] = useState(formData.crmHyphenReference || "");
+
+  // Sync local state when formData changes (e.g., when loading from API in edit mode)
+  useEffect(() => {
+    setEnabled(formData.crmEnabled === "true");
+    setIntegrationType(formData.crmIntegrationType || "generic");
+    setWebhookUrl(formData.crmWebhookUrl || "");
+    setWebhookMethod(formData.crmWebhookMethod || "POST");
+    setAuthType(formData.crmAuthType || "none");
+    setAuthValue(formData.crmAuthValue || "");
+    setCustomHeaders(formData.crmCustomHeaders || {});
+    setFieldMapping(formData.crmFieldMapping || {
+      name: "name",
+      email: "email",
+      phone: "phone",
+      company: "company",
+      message: "message",
+    });
+    setRetryEnabled(formData.crmRetryEnabled !== "false");
+    setMaxRetries(formData.crmMaxRetries || "3");
+    setHyphenEndpoint(formData.crmHyphenEndpoint || "");
+    setHyphenBuilderId(formData.crmHyphenBuilderId || "");
+    setHyphenUsername(formData.crmHyphenUsername || "");
+    setHyphenApiKey(formData.crmHyphenApiKey || "");
+    setHyphenCommunityId(formData.crmHyphenCommunityId || "");
+    setHyphenSourceId(formData.crmHyphenSourceId || "");
+    setHyphenGradeId(formData.crmHyphenGradeId || "");
+    setHyphenInfluenceId(formData.crmHyphenInfluenceId || "");
+    setHyphenContactMethodId(formData.crmHyphenContactMethodId || "");
+    setHyphenReference(formData.crmHyphenReference || "");
+  }, [formData]);
 
   const handleEnabledChange = (checked: boolean) => {
     setEnabled(checked);

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import type { Chatbot, InsertChatbot } from "@shared/schema";
+import type { Chatbot, InsertChatbot, User } from "@shared/schema";
 
 import { StepName } from "@/components/wizard/StepName";
 import { StepKnowledgeBase } from "@/components/wizard/StepKnowledgeBase";
@@ -14,8 +14,10 @@ import { StepPersonality } from "@/components/wizard/StepPersonality";
 import { StepCustomization } from "@/components/wizard/StepCustomization";
 import { StepEscalation } from "@/components/wizard/StepEscalation";
 import { StepLeadCapture } from "@/components/wizard/StepLeadCapture";
+import { StepCrm } from "@/components/wizard/StepCrm";
 import { StepComplete } from "@/components/wizard/StepComplete";
 import { DashboardHeader } from "@/components/DashboardHeader";
+import { StepIndicator } from "@/components/StepIndicator";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,7 +30,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { RefreshCw } from "lucide-react";
 
-type WizardStep = "name" | "knowledge" | "personality" | "customization" | "escalation" | "leadcapture";
+type WizardStep = "name" | "knowledge" | "personality" | "customization" | "escalation" | "leadcapture" | "crm";
 
 interface DocumentMetadata {
   path: string;
@@ -41,7 +43,35 @@ interface DocumentMetadata {
 
 interface ExtendedFormData extends Partial<InsertChatbot> {
   documentMetadata?: DocumentMetadata[];
+  crmEnabled?: string;
+  crmIntegrationType?: string;
+  crmWebhookUrl?: string;
+  crmWebhookMethod?: string;
+  crmAuthType?: string;
+  crmAuthValue?: string;
+  crmCustomHeaders?: Record<string, string>;
+  crmFieldMapping?: Record<string, string>;
+  crmRetryEnabled?: string;
+  crmMaxRetries?: string;
+  crmHyphenEndpoint?: string;
+  crmHyphenBuilderId?: string;
+  crmHyphenUsername?: string;
+  crmHyphenApiKey?: string;
+  crmHyphenCommunityId?: string;
+  crmHyphenSourceId?: string;
+  crmHyphenGradeId?: string;
+  crmHyphenInfluenceId?: string;
+  crmHyphenContactMethodId?: string;
+  crmHyphenReference?: string;
 }
+
+type ChatbotWithCrm = Chatbot & Partial<Pick<ExtendedFormData, 
+  'crmEnabled' | 'crmIntegrationType' | 'crmWebhookUrl' | 'crmWebhookMethod' | 
+  'crmAuthType' | 'crmAuthValue' | 'crmCustomHeaders' | 'crmFieldMapping' | 
+  'crmRetryEnabled' | 'crmMaxRetries' | 'crmHyphenEndpoint' | 'crmHyphenBuilderId' | 
+  'crmHyphenUsername' | 'crmHyphenApiKey' | 'crmHyphenCommunityId' | 'crmHyphenSourceId' | 
+  'crmHyphenGradeId' | 'crmHyphenInfluenceId' | 'crmHyphenContactMethodId' | 'crmHyphenReference'
+>>;
 
 const steps: { id: WizardStep; label: string; number: number }[] = [
   { id: "name", label: "Name & Description", number: 1 },
@@ -50,6 +80,17 @@ const steps: { id: WizardStep; label: string; number: number }[] = [
   { id: "customization", label: "Customization", number: 4 },
   { id: "escalation", label: "Escalation", number: 5 },
   { id: "leadcapture", label: "Lead Capture", number: 6 },
+  { id: "crm", label: "CRM Integration", number: 7 },
+];
+
+const STEPS = [
+  { number: 1, title: "Name", description: "Identify your chatbot" },
+  { number: 2, title: "Knowledge Base", description: "Add your content" },
+  { number: 3, title: "Personality", description: "Define behavior" },
+  { number: 4, title: "Customization", description: "Brand your widget" },
+  { number: 5, title: "Escalation", description: "Set up support" },
+  { number: 6, title: "Lead Capture", description: "Collect contact info" },
+  { number: 7, title: "CRM Integration", description: "Sync leads to CRM" },
 ];
 
 export default function EditChatbot() {
@@ -60,6 +101,12 @@ export default function EditChatbot() {
 
   const [currentStep, setCurrentStep] = useState<WizardStep>("name");
   const [formData, setFormData] = useState<ExtendedFormData>({});
+  const [originalKnowledgeSources, setOriginalKnowledgeSources] = useState<{
+    websiteUrls: string[];
+    documents: string[];
+    documentMetadata: DocumentMetadata[];
+    websiteContent: string | null;
+  } | null>(null);
   const [showReindexDialog, setShowReindexDialog] = useState(false);
   const [isReindexing, setIsReindexing] = useState(false);
   const [showComplete, setShowComplete] = useState(false);
@@ -70,15 +117,41 @@ export default function EditChatbot() {
   } | null>(null);
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  const { data: chatbot, isLoading } = useQuery<Chatbot>({
+  const { data: user } = useQuery<User>({
+    queryKey: ["/api/auth/user"],
+  });
+
+  const isAdmin = user?.isAdmin === "true" || (typeof user?.isAdmin === "boolean" && user?.isAdmin === true);
+  const userTier = user?.subscriptionTier || "free";
+
+  const { data: chatbot, isLoading } = useQuery<ChatbotWithCrm>({
     queryKey: [`/api/chatbots/${chatbotId}`],
+    enabled: !!chatbotId,
+  });
+
+  const { data: crmIntegration } = useQuery<any>({
+    queryKey: [`/api/chatbots/${chatbotId}/crm-integration`],
     enabled: !!chatbotId,
   });
 
   useEffect(() => {
     if (chatbot) {
+      // Default values with proper typing for enums
+      const DEFAULT_DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday"] as ("monday" | "tuesday" | "wednesday" | "thursday" | "friday" | "saturday" | "sunday")[];
+      
+      // Capture baseline knowledge sources for comparison
+      if (!originalKnowledgeSources) {
+        setOriginalKnowledgeSources({
+          websiteUrls: chatbot.websiteUrls || [],
+          documents: chatbot.documents || [],
+          documentMetadata: (chatbot.documentMetadata as DocumentMetadata[]) || [],
+          websiteContent: chatbot.websiteContent || null,
+        });
+      }
+      
       // Normalize null values to undefined/arrays for InsertChatbot schema compatibility
-      setFormData({
+      setFormData(prev => ({
+        ...prev,
         name: chatbot.name,
         websiteUrls: chatbot.websiteUrls || [],
         websiteContent: chatbot.websiteContent || undefined,
@@ -94,15 +167,72 @@ export default function EditChatbot() {
         enableSuggestedQuestions: chatbot.enableSuggestedQuestions || "false",
         supportPhoneNumber: chatbot.supportPhoneNumber || undefined,
         escalationMessage: chatbot.escalationMessage || undefined,
+        liveAgentHoursEnabled: chatbot.liveAgentHoursEnabled || "false",
+        liveAgentStartTime: chatbot.liveAgentStartTime || "09:00",
+        liveAgentEndTime: chatbot.liveAgentEndTime || "17:00",
+        liveAgentTimezone: chatbot.liveAgentTimezone || "America/New_York",
+        liveAgentDaysOfWeek: (chatbot.liveAgentDaysOfWeek as ("monday" | "tuesday" | "wednesday" | "thursday" | "friday" | "saturday" | "sunday")[] | null) || DEFAULT_DAYS,
         leadCaptureEnabled: chatbot.leadCaptureEnabled || "false",
+        leadCaptureType: (chatbot.leadCaptureType || "form") as "form" | "external_link",
+        leadCaptureExternalUrl: chatbot.leadCaptureExternalUrl || undefined,
         leadCaptureFields: chatbot.leadCaptureFields || ["name", "email"],
         leadCaptureTitle: chatbot.leadCaptureTitle || "Get in Touch",
         leadCaptureMessage: chatbot.leadCaptureMessage || "Leave your contact information and we'll get back to you.",
         leadCaptureTiming: chatbot.leadCaptureTiming || "after_first_message",
         leadCaptureMessageCount: chatbot.leadCaptureMessageCount || "1",
-      });
+        // CRM fields populated separately from crmIntegration query
+        crmEnabled: "false",
+        crmIntegrationType: "generic",
+        crmWebhookUrl: undefined,
+        crmWebhookMethod: "POST",
+        crmAuthType: "none",
+        crmAuthValue: undefined,
+        crmCustomHeaders: {},
+        crmFieldMapping: {},
+        crmRetryEnabled: "true",
+        crmMaxRetries: "3",
+        crmHyphenEndpoint: undefined,
+        crmHyphenBuilderId: undefined,
+        crmHyphenUsername: undefined,
+        crmHyphenApiKey: undefined,
+        crmHyphenCommunityId: undefined,
+        crmHyphenSourceId: undefined,
+        crmHyphenGradeId: undefined,
+        crmHyphenInfluenceId: undefined,
+        crmHyphenContactMethodId: undefined,
+        crmHyphenReference: undefined,
+      }));
     }
   }, [chatbot]);
+
+  // Populate CRM fields from separate crmIntegration query
+  useEffect(() => {
+    if (crmIntegration) {
+      setFormData(prev => ({
+        ...prev,
+        crmEnabled: crmIntegration.enabled || "false",
+        crmIntegrationType: crmIntegration.integrationType || "generic",
+        crmWebhookUrl: crmIntegration.webhookUrl || undefined,
+        crmWebhookMethod: crmIntegration.webhookMethod || "POST",
+        crmAuthType: crmIntegration.authType || "none",
+        crmAuthValue: crmIntegration.authValue || undefined,
+        crmCustomHeaders: crmIntegration.customHeaders || {},
+        crmFieldMapping: crmIntegration.fieldMapping || {},
+        crmRetryEnabled: crmIntegration.retryEnabled || "true",
+        crmMaxRetries: crmIntegration.maxRetries || "3",
+        crmHyphenEndpoint: crmIntegration.hyphenEndpoint || undefined,
+        crmHyphenBuilderId: crmIntegration.hyphenBuilderId || undefined,
+        crmHyphenUsername: crmIntegration.hyphenUsername || undefined,
+        crmHyphenApiKey: crmIntegration.hyphenApiKey || undefined,
+        crmHyphenCommunityId: crmIntegration.hyphenCommunityId || undefined,
+        crmHyphenSourceId: crmIntegration.hyphenSourceId || undefined,
+        crmHyphenGradeId: crmIntegration.hyphenGradeId || undefined,
+        crmHyphenInfluenceId: crmIntegration.hyphenInfluenceId || undefined,
+        crmHyphenContactMethodId: crmIntegration.hyphenContactMethodId || undefined,
+        crmHyphenReference: crmIntegration.hyphenReference || undefined,
+      }));
+    }
+  }, [crmIntegration]);
 
   // Poll for indexing status when re-indexing after knowledge source changes
   useEffect(() => {
@@ -174,6 +304,42 @@ export default function EditChatbot() {
     onSuccess: async () => {
       queryClient.invalidateQueries({ queryKey: ["/api/chatbots"] });
       queryClient.invalidateQueries({ queryKey: [`/api/chatbots/${chatbotId}`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/chatbots/${chatbotId}/crm-integration`] });
+      
+      // Save CRM data separately (always call to support disabling)
+      try {
+        const crmData = {
+          enabled: formData.crmEnabled || "false",
+          integrationType: formData.crmIntegrationType || "generic",
+          webhookUrl: formData.crmWebhookUrl,
+          webhookMethod: formData.crmWebhookMethod || "POST",
+          authType: formData.crmAuthType || "none",
+          authValue: formData.crmAuthValue,
+          customHeaders: formData.crmCustomHeaders || {},
+          fieldMapping: formData.crmFieldMapping || {},
+          retryEnabled: formData.crmRetryEnabled !== "false" ? "true" : "false",
+          maxRetries: formData.crmMaxRetries || "3",
+          hyphenEndpoint: formData.crmHyphenEndpoint,
+          hyphenBuilderId: formData.crmHyphenBuilderId,
+          hyphenUsername: formData.crmHyphenUsername,
+          hyphenApiKey: formData.crmHyphenApiKey,
+          hyphenCommunityId: formData.crmHyphenCommunityId,
+          hyphenSourceId: formData.crmHyphenSourceId,
+          hyphenGradeId: formData.crmHyphenGradeId,
+          hyphenInfluenceId: formData.crmHyphenInfluenceId,
+          hyphenContactMethodId: formData.crmHyphenContactMethodId,
+          hyphenReference: formData.crmHyphenReference,
+        };
+        
+        await apiRequest("PUT", `/api/chatbots/${chatbotId}/crm-integration`, crmData);
+      } catch (error) {
+        console.error("Failed to save CRM integration:", error);
+        toast({
+          title: "Warning",
+          description: "Chatbot saved but CRM settings failed to update. Please check CRM configuration.",
+          variant: "destructive",
+        });
+      }
       
       // Check if knowledge sources were actually modified
       if (hasKnowledgeSourcesChanged()) {
@@ -190,6 +356,14 @@ export default function EditChatbot() {
               totalUrls: formData.websiteUrls?.length || 0,
               processedUrls: 0,
             },
+          });
+          
+          // Update baseline to current knowledge sources to prevent false positives on next edit
+          setOriginalKnowledgeSources({
+            websiteUrls: formData.websiteUrls || [],
+            documents: formData.documents || [],
+            documentMetadata: formData.documentMetadata || [],
+            websiteContent: formData.websiteContent || null,
           });
           
           // Show StepComplete component
@@ -259,22 +433,22 @@ export default function EditChatbot() {
     });
   };
 
-  // Check if knowledge sources have changed by comparing current form data to original chatbot
+  // Check if knowledge sources have changed by comparing current form data to original baseline
   const hasKnowledgeSourcesChanged = (): boolean => {
-    if (!chatbot) return false;
+    if (!originalKnowledgeSources) return false;
     
     // Normalize string values for comparison (treat null, undefined, and "" as equivalent)
     const normalizeString = (val: string | null | undefined) => (val || "").trim();
     
     // Compare website URLs
     const currentUrls = (formData.websiteUrls || []).filter(url => url.trim());
-    const originalUrls = (chatbot.websiteUrls || []).filter(url => url.trim());
-    const urlsChanged = JSON.stringify([...currentUrls].sort()) !== JSON.stringify([...originalUrls].sort());
+    const baselineUrls = originalKnowledgeSources.websiteUrls.filter(url => url.trim());
+    const urlsChanged = JSON.stringify([...currentUrls].sort()) !== JSON.stringify([...baselineUrls].sort());
     
     // Compare documents by checking array lengths and paths/names
     const currentDocs = formData.documents || [];
-    const originalDocs = chatbot.documents || [];
-    let docsChanged = currentDocs.length !== originalDocs.length;
+    const baselineDocs = originalKnowledgeSources.documents;
+    let docsChanged = currentDocs.length !== baselineDocs.length;
     
     // If lengths are the same, compare paths (for stored docs) or check for File objects (new uploads)
     if (!docsChanged && currentDocs.length > 0) {
@@ -284,24 +458,24 @@ export default function EditChatbot() {
         docsChanged = true;
       } else {
         // Compare document paths (clone arrays before sorting to avoid mutation)
-        docsChanged = JSON.stringify([...currentDocs].sort()) !== JSON.stringify([...originalDocs].sort());
+        docsChanged = JSON.stringify([...currentDocs].sort()) !== JSON.stringify([...baselineDocs].sort());
       }
     }
     
     // Compare document metadata
     const currentMetadata = formData.documentMetadata || [];
-    const originalMetadata = (chatbot.documentMetadata as DocumentMetadata[]) || [];
-    let metadataChanged = currentMetadata.length !== originalMetadata.length;
+    const baselineMetadata = originalKnowledgeSources.documentMetadata;
+    let metadataChanged = currentMetadata.length !== baselineMetadata.length;
     
     // If lengths are the same, compare metadata paths (map already creates new array, but sort in-place)
     if (!metadataChanged && currentMetadata.length > 0) {
       const currentPaths = [...currentMetadata.map(m => m.path)].sort();
-      const originalPaths = [...originalMetadata.map(m => m.path)].sort();
-      metadataChanged = JSON.stringify(currentPaths) !== JSON.stringify(originalPaths);
+      const baselinePaths = [...baselineMetadata.map(m => m.path)].sort();
+      metadataChanged = JSON.stringify(currentPaths) !== JSON.stringify(baselinePaths);
     }
     
     // Compare website content
-    const contentChanged = normalizeString(formData.websiteContent) !== normalizeString(chatbot.websiteContent);
+    const contentChanged = normalizeString(formData.websiteContent) !== normalizeString(originalKnowledgeSources.websiteContent);
     
     return urlsChanged || docsChanged || contentChanged || metadataChanged;
   };
@@ -331,6 +505,10 @@ export default function EditChatbot() {
         return formData.primaryColor && formData.accentColor;
       case "escalation":
         return true;
+      case "leadcapture":
+        return true;
+      case "crm":
+        return true;
       default:
         return false;
     }
@@ -350,8 +528,42 @@ export default function EditChatbot() {
     }
   };
 
+  const handleStepClick = (stepNumber: number) => {
+    // Allow direct navigation to any step
+    const stepIndex = stepNumber - 1;
+    if (stepIndex >= 0 && stepIndex < steps.length) {
+      setCurrentStep(steps[stepIndex].id);
+    }
+  };
+
   const handleSave = () => {
-    updateMutation.mutate(formData);
+    // Separate chatbot fields from CRM fields (CRM saved in mutation's onSuccess)
+    const chatbotData: Partial<InsertChatbot> = { ...formData };
+    
+    // Remove CRM-specific fields from chatbot data (they're in a separate table)
+    delete (chatbotData as any).crmEnabled;
+    delete (chatbotData as any).crmIntegrationType;
+    delete (chatbotData as any).crmWebhookUrl;
+    delete (chatbotData as any).crmWebhookMethod;
+    delete (chatbotData as any).crmAuthType;
+    delete (chatbotData as any).crmAuthValue;
+    delete (chatbotData as any).crmCustomHeaders;
+    delete (chatbotData as any).crmFieldMapping;
+    delete (chatbotData as any).crmRetryEnabled;
+    delete (chatbotData as any).crmMaxRetries;
+    delete (chatbotData as any).crmHyphenEndpoint;
+    delete (chatbotData as any).crmHyphenBuilderId;
+    delete (chatbotData as any).crmHyphenUsername;
+    delete (chatbotData as any).crmHyphenApiKey;
+    delete (chatbotData as any).crmHyphenCommunityId;
+    delete (chatbotData as any).crmHyphenSourceId;
+    delete (chatbotData as any).crmHyphenGradeId;
+    delete (chatbotData as any).crmHyphenInfluenceId;
+    delete (chatbotData as any).crmHyphenContactMethodId;
+    delete (chatbotData as any).crmHyphenReference;
+    
+    // Trigger mutation (CRM data will be saved in onSuccess callback)
+    updateMutation.mutate(chatbotData);
   };
 
   if (isLoading || !chatbot) {
@@ -373,7 +585,7 @@ export default function EditChatbot() {
     return <StepComplete chatbotId={chatbotId} indexingStatus={indexingStatus} />;
   }
 
-  const isLastStep = currentStep === "escalation";
+  const isLastStep = currentStep === "crm";
 
   return (
     <div className="min-h-screen bg-background">
@@ -388,15 +600,7 @@ export default function EditChatbot() {
         </div>
 
         <div className="mb-8">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium">
-              Step {currentStepIndex + 1} of {steps.length}
-            </span>
-            <span className="text-sm text-muted-foreground">
-              {steps[currentStepIndex].label}
-            </span>
-          </div>
-          <Progress value={progress} />
+          <StepIndicator steps={STEPS} currentStep={currentStepIndex + 1} onStepClick={handleStepClick} />
         </div>
 
         <div className="bg-card rounded-lg border p-8 mb-6">
@@ -407,7 +611,12 @@ export default function EditChatbot() {
             <StepKnowledgeBase formData={formData} updateFormData={handleUpdateData} />
           )}
           {currentStep === "personality" && (
-            <StepPersonality formData={formData} updateFormData={handleUpdateData} />
+            <StepPersonality 
+              formData={formData} 
+              updateFormData={handleUpdateData}
+              userTier={userTier}
+              isAdmin={isAdmin}
+            />
           )}
           {currentStep === "customization" && (
             <StepCustomization formData={formData} updateFormData={handleUpdateData} />
@@ -416,7 +625,15 @@ export default function EditChatbot() {
             <StepEscalation formData={formData} updateFormData={handleUpdateData} />
           )}
           {currentStep === "leadcapture" && (
-            <StepLeadCapture formData={formData} updateFormData={handleUpdateData} />
+            <StepLeadCapture 
+              formData={formData} 
+              updateFormData={handleUpdateData}
+              userTier={userTier}
+              isAdmin={isAdmin}
+            />
+          )}
+          {currentStep === "crm" && (
+            <StepCrm formData={formData} updateFormData={handleUpdateData} />
           )}
         </div>
 

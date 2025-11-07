@@ -6,6 +6,16 @@ BuildMyChatbot.Ai is a SaaS web application enabling non-technical business owne
 
 ## Recent Updates (November 7, 2025)
 
+**EditChatbot Improvements:**
+- Enhanced edit mode to show all 7 wizard steps with full bidirectional navigation
+- Implemented clickable StepIndicator component with `onStepClick` handler for direct step access
+- Fixed CRM data loading by adding separate query to `/api/chatbots/:id/crm-integration` endpoint
+- Added useEffect in StepCrm component to sync local state when formData changes (fixes toggle state bugs)
+- Implemented smart re-indexing that only triggers when knowledge sources actually change
+- Added baseline tracking to prevent false re-indexing prompts on subsequent edits
+- CRM data properly persists via dedicated endpoint with proper string/boolean conversion
+- Fixed timezone bug in live agent day-of-week calculation by using chatbot's timezone instead of server timezone
+
 **Live Agent Hours Configuration:**
 - Added configurable business hours for live agent availability
 - New fields: `liveAgentHoursEnabled`, `liveAgentStartTime`, `liveAgentEndTime`, `liveAgentTimezone`, `liveAgentDaysOfWeek`
