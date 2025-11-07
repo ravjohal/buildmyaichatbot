@@ -9,6 +9,7 @@ import { Loader2, MessageSquare, Send, Check, X, Clock, User } from "lucide-reac
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { format } from "date-fns";
+import { DashboardHeader } from "@/components/DashboardHeader";
 
 type HandoffRequest = {
   handoff: {
@@ -210,9 +211,12 @@ export default function LiveChats() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" data-testid="loader-live-chats" />
-      </div>
+      <>
+        <DashboardHeader />
+        <div className="flex items-center justify-center min-h-[400px]">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" data-testid="loader-live-chats" />
+        </div>
+      </>
     );
   }
 
@@ -220,7 +224,9 @@ export default function LiveChats() {
   const activeHandoffs = handoffs?.filter(h => h.handoff.status === "active") || [];
 
   return (
-    <div className="container mx-auto p-6 max-w-7xl">
+    <>
+      <DashboardHeader />
+      <div className="container mx-auto p-6 max-w-7xl">
       <div className="mb-6">
         <h1 className="text-3xl font-bold" data-testid="heading-live-chats">Live Chats</h1>
         <p className="text-muted-foreground mt-2" data-testid="text-live-chats-description">
@@ -477,5 +483,6 @@ export default function LiveChats() {
         </div>
       </div>
     </div>
+    </>
   );
 }
