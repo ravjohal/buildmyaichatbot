@@ -1933,17 +1933,27 @@ Generate 3 short, natural questions that would help the user learn more. Return 
       // Helper function to detect explicit user requests for human support
       const detectUserHandoffRequest = (userMessage: string): boolean => {
         const lowerMessage = userMessage.toLowerCase();
-        return lowerMessage.includes("speak with a human") ||
-          lowerMessage.includes("talk to a human") ||
-          lowerMessage.includes("speak to a human") ||
-          lowerMessage.includes("talk with a human") ||
-          lowerMessage.includes("speak with someone") ||
-          lowerMessage.includes("talk to someone") ||
-          lowerMessage.includes("human agent") ||
-          lowerMessage.includes("live agent") ||
-          lowerMessage.includes("real person") ||
-          lowerMessage.includes("customer service") ||
-          lowerMessage.includes("customer support");
+        
+        // Direct requests for human/agent/person
+        const humanRequests = [
+          "speak with a human", "speak to a human", "speak with someone",
+          "talk to a human", "talk with a human", "talk to someone", "talk with someone",
+          "connect with a human", "connect to a human", "connect with someone", "connect to someone",
+          "connect me with", "connect me to",
+          "transfer to a human", "transfer to someone", "transfer me to",
+          "reach a human", "reach someone", "reach a person",
+          "contact a human", "contact someone", "contact a person",
+          "get a human", "get someone", "get a person", "get me a",
+          "need a human", "need someone", "need a person", "need help from a",
+          "want a human", "want someone", "want a person", "want to speak", "want to talk",
+          "human agent", "live agent", "real person", "real human",
+          "customer service", "customer support", "support agent", "support team",
+          "representative", "support representative",
+          "chat with a human", "chat with someone", "chat with a person",
+          "message a human", "message someone", "message a person"
+        ];
+        
+        return humanRequests.some(phrase => lowerMessage.includes(phrase));
       };
 
       let aiMessage: string;
