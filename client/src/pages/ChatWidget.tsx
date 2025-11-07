@@ -272,6 +272,13 @@ export default function ChatWidget() {
   const [showHandoffButton, setShowHandoffButton] = useState(false);
   const [handoffWs, setHandoffWs] = useState<WebSocket | null>(null);
   
+  // Debug: Monitor button state changes
+  useEffect(() => {
+    console.log(`[ChatWidget STATE] showHandoffButton changed to: ${showHandoffButton}`);
+    console.log(`[ChatWidget STATE] handoffStatus is: ${handoffStatus}`);
+    console.log(`[ChatWidget STATE] Button will ${showHandoffButton && handoffStatus === "none" ? "SHOW ✅" : "NOT SHOW ❌"}`);
+  }, [showHandoffButton, handoffStatus]);
+  
   // Streaming chat handler
   const handleStreamingChat = async (message: string) => {
     setIsStreaming(true);

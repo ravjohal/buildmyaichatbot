@@ -1,0 +1,27 @@
+[ChatWidget] Function called
+ChatWidget.tsx:104 [ChatWidget] Params: {0: 'd143dd47-bb82-47c8-b047-968f2401296c', id: 'd143dd47-bb82-47c8-b047-968f2401296c'}
+ChatWidget.tsx:105 [ChatWidget] Chatbot ID from route: d143dd47-bb82-47c8-b047-968f2401296c
+ChatWidget.tsx:260 [ChatWidget] isLoading: false
+ChatWidget.tsx:261 [ChatWidget] chatbot: {id: 'd143dd47-bb82-47c8-b047-968f2401296c', name: 'tryign thsi one more time', welcomeMessage: 'Hello! How can I help you today?', primaryColor: '#0EA5E9', accentColor: '#0284C7', …}
+ChatWidget.tsx:262 [ChatWidget] error: null
+ChatWidget.tsx:263 [ChatWidget] isStandalone: true
+ChatWidget.tsx:264 [ChatWidget] aiGeneratedQuestions: 20
+ChatWidget.tsx:1113 [ChatWidget RENDER] showHandoffButton=false, handoffStatus=none
+ChatWidget.tsx:423 [ChatWidget] ========== ESCALATION CHECK ==========
+ChatWidget.tsx:424 [ChatWidget] Final shouldEscalate value: false
+ChatWidget.tsx:425 [ChatWidget] Current handoffStatus: none
+ChatWidget.tsx:434 [ChatWidget] ❌ No escalation - button will NOT show
+ChatWidget.tsx:436 [ChatWidget] ========== END ESCALATION CHECK ==========
+ChatWidget.tsx:459 [PERF-WIDGET] Chat mutation completed: 2238.10ms
+ChatWidget.tsx:463 [PERF-WIDGET] Chat mutation settled (isPending should now be false)
+ChatWidget.tsx:99 [ChatWidget] Function called
+ChatWidget.tsx:104 [ChatWidget] Params: {0: 'd143dd47-bb82-47c8-b047-968f2401296c', id: 'd143dd47-bb82-47c8-b047-968f2401296c'}
+ChatWidget.tsx:105 [ChatWidget] Chatbot ID from route: d143dd47-bb82-47c8-b047-968f2401296c
+ChatWidget.tsx:260 [ChatWidget] isLoading: false
+ChatWidget.tsx:261 [ChatWidget] chatbot: {id: 'd143dd47-bb82-47c8-b047-968f2401296c', name: 'tryign thsi one more time', welcomeMessage: 'Hello! How can I help you today?', primaryColor: '#0EA5E9', accentColor: '#0284C7', …}
+ChatWidget.tsx:262 [ChatWidget] error: null
+ChatWidget.tsx:263 [ChatWidget] isStandalone: true
+ChatWidget.tsx:264 [ChatWidget] aiGeneratedQuestions: 20
+ChatWidget.tsx:1113 [ChatWidget RENDER] showHandoffButton=false, handoffStatus=none
+ChatWidget.tsx:586 [PERF-WIDGET] chatMutation.isPending: false
+ChatWidget.tsx:588 [PERF-WIDGET] Mutat
