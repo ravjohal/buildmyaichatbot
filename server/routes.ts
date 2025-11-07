@@ -9,7 +9,7 @@ import multer from "multer";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import { isAuthenticated } from "./auth";
 import { db } from "./db";
-import { eq, sql, and, gte, desc, or } from "drizzle-orm";
+import { eq, sql, and, gte, desc, or, inArray } from "drizzle-orm";
 import { crawlMultipleWebsitesRecursive, refreshWebsites, calculateContentHash, normalizeUrl } from "./crawler";
 import Stripe from "stripe";
 import crypto from "crypto";
@@ -4467,7 +4467,7 @@ INCORRECT citation examples (NEVER do this):
             eq(liveAgentHandoffs.status, 'pending'),
             eq(liveAgentHandoffs.status, 'active')
           ),
-          sql`${liveAgentHandoffs.chatbotId} = ANY(${chatbotIds})`
+          inArray(liveAgentHandoffs.chatbotId, chatbotIds)
         )
       )
       .orderBy(desc(liveAgentHandoffs.requestedAt));

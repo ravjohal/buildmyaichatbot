@@ -1,0 +1,64 @@
+12:01:40 AM [express] POST /api/handoffs 201 in 1372ms :: {"id":"a71ed2ec-414b-47b4-a0ab-400f71d2cbce…
+[WebSocket] New connection
+[WebSocket] visitor joined conversation: c842d707-7007-4a7f-a0ed-9c797d60bb52
+[WORKER-HEARTBEAT] Worker alive | Jobs processed: 0 | Uptime: 60s
+[AUTH] isAuthenticated check: {
+  isAuthenticated: true,
+  hasUser: true,
+  hasSession: true,
+  sessionID: 'ZhUXkL3Qq_apT209JzRBvvo0XQ1ojblF'
+}
+[AUTH] ✓ Authenticated
+Error fetching handoffs: error: op ANY/ALL (array) requires array on right side
+    at file:///home/runner/workspace/node_modules/@neondatabase/serverless/index.mjs:1345:74
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async NeonPreparedQuery.execute (/home/runner/workspace/node_modules/src/neon-serverless/session.ts:102:18)
+    at async <anonymous> (/home/runner/workspace/server/routes.ts:4449:24) {
+  length: 121,
+  severity: 'ERROR',
+  code: '42809',
+  detail: undefined,
+  hint: undefined,
+  position: '885',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_oper.c',
+  line: '814',
+  routine: 'make_scalar_array_op'
+}
+12:01:57 AM [express] GET /api/handoffs 500 in 978ms :: {"error":"Failed to fetch handoffs"}
+[AUTH] isAuthenticated check: {
+  isAuthenticated: true,
+  hasUser: true,
+  hasSession: true,
+  sessionID: 'ZhUXkL3Qq_apT209JzRBvvo0XQ1ojblF'
+}
+[AUTH] ✓ Authenticated
+Error fetching handoffs: error: op ANY/ALL (array) requires array on right side
+    at file:///home/runner/workspace/node_modules/@neondatabase/serverless/index.mjs:1345:74
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async NeonPreparedQuery.execute (/home/runner/workspace/node_modules/src/neon-serverless/session.ts:102:18)
+    at async <anonymous> (/home/runner/workspace/server/routes.ts:4449:24) {
+  length: 121,
+  severity: 'ERROR',
+  code: '42809',
+  detail: undefined,
+  hint: undefined,
+  position: '885',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_oper.c',
+  line: '814',
+  routine: 'make_scalar_array_op'
