@@ -309,6 +309,48 @@ export const insertCrmIntegrationSchema = createInsertSchema(crmIntegrations).om
 export type CrmIntegration = typeof crmIntegrations.$inferSelect;
 export type InsertCrmIntegration = z.infer<typeof insertCrmIntegrationSchema>;
 
+// Keyword Alerts - configuration for monitoring specific keywords in conversations
+export const keywordAlerts = pgTable("keyword_alerts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  chatbotId: varchar("chatbot_id").notNull().references(() => chatbots.id, { onDelete: "cascade" }).unique(),
+  enabled: text("enabled").notNull().default("false"), // "true" or "false"
+  keywords: text("keywords").array().default(sql`ARRAY[]::text[]`), // List of keywords to monitor (case-insensitive)
+  inAppNotifications: text("in_app_notifications").notNull().default("true"), // Show in-app notifications
+  emailNotifications: text("email_notifications").notNull().default("false"), // Send email notifications
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertKeywordAlertSchema = createInsertSchema(keywordAlerts).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type KeywordAlert = typeof keywordAlerts.$inferSelect;
+export type InsertKeywordAlert = z.infer<typeof insertKeywordAlertSchema>;
+
+// Keyword Alert Triggers - records when keywords are detected in conversations
+export const keywordAlertTriggers = pgTable("keyword_alert_triggers", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  chatbotId: varchar("chatbot_id").notNull().references(() => chatbots.id, { onDelete: "cascade" }),
+  conversationId: varchar("conversation_id").references(() => conversations.id, { onDelete: "set null" }),
+  keyword: text("keyword").notNull(), // The specific keyword that triggered the alert
+  messageContent: text("message_content").notNull(), // The visitor message that contained the keyword
+  visitorName: text("visitor_name"), // Name of visitor if available from lead capture
+  visitorEmail: text("visitor_email"), // Email of visitor if available
+  read: text("read").notNull().default("false"), // Whether the alert has been acknowledged
+  triggeredAt: timestamp("triggered_at").defaultNow().notNull(),
+});
+
+export const insertKeywordAlertTriggerSchema = createInsertSchema(keywordAlertTriggers).omit({
+  id: true,
+  triggeredAt: true,
+});
+
+export type KeywordAlertTrigger = typeof keywordAlertTriggers.$inferSelect;
+export type InsertKeywordAlertTrigger = z.infer<typeof insertKeywordAlertTriggerSchema>;
+
 // URL Crawl Metadata - tracks when URLs were last crawled and their content hash for change detection
 export const urlCrawlMetadata = pgTable("url_crawl_metadata", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),

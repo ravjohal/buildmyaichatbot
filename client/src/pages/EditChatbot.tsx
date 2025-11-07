@@ -63,6 +63,10 @@ interface ExtendedFormData extends Partial<InsertChatbot> {
   crmHyphenInfluenceId?: string;
   crmHyphenContactMethodId?: string;
   crmHyphenReference?: string;
+  keywordAlertsEnabled?: string;
+  keywordAlertKeywords?: string[];
+  keywordAlertsEmailEnabled?: string;
+  keywordAlertsInAppEnabled?: string;
 }
 
 type ChatbotWithCrm = Chatbot & Partial<Pick<ExtendedFormData, 
@@ -131,6 +135,11 @@ export default function EditChatbot() {
 
   const { data: crmIntegration } = useQuery<any>({
     queryKey: [`/api/chatbots/${chatbotId}/crm-integration`],
+    enabled: !!chatbotId,
+  });
+
+  const { data: keywordAlerts } = useQuery<any>({
+    queryKey: [`/api/chatbots/${chatbotId}/keyword-alerts`],
     enabled: !!chatbotId,
   });
 
@@ -233,6 +242,19 @@ export default function EditChatbot() {
       }));
     }
   }, [crmIntegration]);
+
+  // Populate keyword alerts fields from separate keywordAlerts query
+  useEffect(() => {
+    if (keywordAlerts) {
+      setFormData(prev => ({
+        ...prev,
+        keywordAlertsEnabled: keywordAlerts.enabled || "false",
+        keywordAlertKeywords: keywordAlerts.keywords || [],
+        keywordAlertsEmailEnabled: keywordAlerts.emailNotifications || "true",
+        keywordAlertsInAppEnabled: keywordAlerts.inAppNotifications || "true",
+      }));
+    }
+  }, [keywordAlerts]);
 
   // Poll for indexing status when re-indexing after knowledge source changes
   useEffect(() => {
@@ -337,6 +359,25 @@ export default function EditChatbot() {
         toast({
           title: "Warning",
           description: "Chatbot saved but CRM settings failed to update. Please check CRM configuration.",
+          variant: "destructive",
+        });
+      }
+
+      // Save keyword alerts data separately (always call to support disabling)
+      try {
+        const keywordAlertsData = {
+          enabled: formData.keywordAlertsEnabled || "false",
+          keywords: formData.keywordAlertKeywords || [],
+          emailNotifications: formData.keywordAlertsEmailEnabled || "true",
+          inAppNotifications: formData.keywordAlertsInAppEnabled || "true",
+        };
+        
+        await apiRequest("PUT", `/api/chatbots/${chatbotId}/keyword-alerts`, keywordAlertsData);
+      } catch (error) {
+        console.error("Failed to save keyword alerts:", error);
+        toast({
+          title: "Warning",
+          description: "Chatbot saved but keyword alerts settings failed to update.",
           variant: "destructive",
         });
       }
@@ -536,8 +577,23 @@ export default function EditChatbot() {
     }
   };
 
+  const handleKeywordAlertsChange = (config: {
+    enabled: boolean;
+    keywords: string[];
+    emailEnabled: boolean;
+    inAppEnabled: boolean;
+  }) => {
+    setFormData(prev => ({
+      ...prev,
+      keywordAlertsEnabled: config.enabled ? "true" : "false",
+      keywordAlertKeywords: config.keywords,
+      keywordAlertsEmailEnabled: config.emailEnabled ? "true" : "false",
+      keywordAlertsInAppEnabled: config.inAppEnabled ? "true" : "false",
+    }));
+  };
+
   const handleSave = () => {
-    // Separate chatbot fields from CRM fields (CRM saved in mutation's onSuccess)
+    // Separate chatbot fields from CRM and keyword alerts fields (saved separately in mutation's onSuccess)
     const chatbotData: Partial<InsertChatbot> = { ...formData };
     
     // Remove CRM-specific fields from chatbot data (they're in a separate table)
@@ -562,7 +618,13 @@ export default function EditChatbot() {
     delete (chatbotData as any).crmHyphenContactMethodId;
     delete (chatbotData as any).crmHyphenReference;
     
-    // Trigger mutation (CRM data will be saved in onSuccess callback)
+    // Remove keyword alerts fields from chatbot data (they're in a separate table)
+    delete (chatbotData as any).keywordAlertsEnabled;
+    delete (chatbotData as any).keywordAlertKeywords;
+    delete (chatbotData as any).keywordAlertsEmailEnabled;
+    delete (chatbotData as any).keywordAlertsInAppEnabled;
+    
+    // Trigger mutation (CRM and keyword alerts data will be saved in onSuccess callback)
     updateMutation.mutate(chatbotData);
   };
 
@@ -622,7 +684,15 @@ export default function EditChatbot() {
             <StepCustomization formData={formData} updateFormData={handleUpdateData} />
           )}
           {currentStep === "escalation" && (
-            <StepEscalation formData={formData} updateFormData={handleUpdateData} />
+            <StepEscalation 
+              formData={formData} 
+              updateFormData={handleUpdateData}
+              keywordAlertsEnabled={formData.keywordAlertsEnabled === "true"}
+              keywordAlertKeywords={formData.keywordAlertKeywords || []}
+              keywordAlertsEmailEnabled={formData.keywordAlertsEmailEnabled !== "false"}
+              keywordAlertsInAppEnabled={formData.keywordAlertsInAppEnabled !== "false"}
+              onKeywordAlertsChange={handleKeywordAlertsChange}
+            />
           )}
           {currentStep === "leadcapture" && (
             <StepLeadCapture 

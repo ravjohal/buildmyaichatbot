@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertChatbotSchema, insertLeadSchema, type ChatRequest, type ChatResponse, chatbots, conversations, conversationMessages, users, leads, urlCrawlMetadata, manualQaOverrides, conversationRatings, knowledgeChunks, liveAgentHandoffs, agentMessages, insertLiveAgentHandoffSchema, insertAgentMessageSchema, teamInvitations, insertTeamInvitationSchema, scrapedImages, crmIntegrations, insertCrmIntegrationSchema } from "@shared/schema";
+import { insertChatbotSchema, insertLeadSchema, type ChatRequest, type ChatResponse, chatbots, conversations, conversationMessages, users, leads, urlCrawlMetadata, manualQaOverrides, conversationRatings, knowledgeChunks, liveAgentHandoffs, agentMessages, insertLiveAgentHandoffSchema, insertAgentMessageSchema, teamInvitations, insertTeamInvitationSchema, scrapedImages, crmIntegrations, insertCrmIntegrationSchema, keywordAlerts, keywordAlertTriggers, insertKeywordAlertSchema } from "@shared/schema";
 import { crmWebhookService } from "./crm-webhook";
 import { ZodError } from "zod";
 import { GoogleGenAI } from "@google/genai";
@@ -2253,6 +2253,97 @@ INCORRECT citation examples (NEVER do this):
         storage.incrementChatbotQuestionCount(chatbotId)
       ]);
       perfTimings.dbSaveMessages = performance.now() - dbSaveStart;
+
+      // Keyword detection and alerts (non-blocking)
+      (async () => {
+        try {
+          // Check if keyword alerts are enabled for this chatbot
+          const keywordAlertConfig = await db.select()
+            .from(keywordAlerts)
+            .where(eq(keywordAlerts.chatbotId, chatbotId))
+            .limit(1);
+
+          if (keywordAlertConfig[0] && keywordAlertConfig[0].enabled === "true" && keywordAlertConfig[0].keywords && keywordAlertConfig[0].keywords.length > 0) {
+            const config = keywordAlertConfig[0];
+            const messageLower = message.toLowerCase();
+            
+            // Check if message contains any of the configured keywords (case-insensitive)
+            const detectedKeywords = (config.keywords || []).filter(keyword => 
+              messageLower.includes(keyword.toLowerCase())
+            );
+
+            if (detectedKeywords.length > 0) {
+              console.log(`[KEYWORD-ALERT] Detected keywords in conversation ${conversation.id}:`, detectedKeywords);
+
+              // Get visitor info from conversation leads if available
+              const conversationLeads = await db.select()
+                .from(leads)
+                .where(eq(leads.conversationId, conversation.id))
+                .limit(1);
+              
+              const lead = conversationLeads[0];
+
+              // Create alert trigger records for each detected keyword
+              for (const keyword of detectedKeywords) {
+                await db.insert(keywordAlertTriggers).values({
+                  chatbotId,
+                  conversationId: conversation.id,
+                  keyword,
+                  messageContent: message,
+                  visitorName: lead?.name || null,
+                  visitorEmail: lead?.email || null,
+                  read: "false",
+                });
+              }
+
+              // Send email notification if enabled
+              if (config.emailNotifications === "true" && owner?.email) {
+                try {
+                  const { Resend } = await import('resend');
+                  const resend = new Resend(process.env.RESEND_API_KEY);
+
+                  const keywordList = detectedKeywords.join(", ");
+                  const visitorInfo = lead ? `${lead.name} (${lead.email})` : "Anonymous visitor";
+
+                  await resend.emails.send({
+                    from: 'BuildMyChatbot.Ai <notifications@buildmychatbot.ai>',
+                    to: owner.email,
+                    subject: `🔔 Keyword Alert: "${detectedKeywords[0]}" detected`,
+                    html: `
+                      <h2>Keyword Alert Triggered</h2>
+                      <p>One or more monitored keywords were detected in a conversation on your chatbot <strong>${chatbot.name}</strong>.</p>
+                      
+                      <h3>Detected Keywords:</h3>
+                      <p><strong>${keywordList}</strong></p>
+                      
+                      <h3>Visitor Message:</h3>
+                      <blockquote style="border-left: 3px solid #0EA5E9; padding-left: 15px; margin: 10px 0;">
+                        ${message}
+                      </blockquote>
+                      
+                      <h3>Visitor Info:</h3>
+                      <p>${visitorInfo}</p>
+                      
+                      <p style="margin-top: 20px;">
+                        <a href="${process.env.FRONTEND_URL || 'https://buildmychatbot.ai'}/analytics?chatbot=${chatbotId}&conversation=${conversation.id}" 
+                           style="background-color: #0EA5E9; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">
+                          View Conversation
+                        </a>
+                      </p>
+                    `,
+                  });
+
+                  console.log(`[KEYWORD-ALERT] Email notification sent to ${owner.email}`);
+                } catch (emailError) {
+                  console.error("[KEYWORD-ALERT] Failed to send email notification:", emailError);
+                }
+              }
+            }
+          }
+        } catch (alertError) {
+          console.error("[KEYWORD-ALERT] Error processing keyword alerts:", alertError);
+        }
+      })();
       
       // Increment monthly conversation count for all paid tiers (not free, and not admins)
       if (owner && owner.isAdmin !== "true" && owner.subscriptionTier !== "free") {
@@ -3085,6 +3176,191 @@ INCORRECT citation examples (NEVER do this):
       res.status(500).json({ error: "Failed to delete CRM integration" });
     }
   });
+
+  // ==================== Keyword Alerts Endpoints ====================
+  
+  // Get keyword alerts configuration for a chatbot (protected)
+  app.get("/api/chatbots/:id/keyword-alerts", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const chatbotId = req.params.id;
+
+      // Verify user owns this chatbot
+      const chatbot = await storage.getChatbot(chatbotId, userId);
+      if (!chatbot) {
+        return res.status(404).json({ error: "Chatbot not found" });
+      }
+
+      // Get keyword alerts configuration
+      const config = await db.select()
+        .from(keywordAlerts)
+        .where(eq(keywordAlerts.chatbotId, chatbotId))
+        .limit(1);
+
+      res.json(config[0] || null);
+    } catch (error) {
+      console.error("Error fetching keyword alerts:", error);
+      res.status(500).json({ error: "Failed to fetch keyword alerts" });
+    }
+  });
+
+  // Create or update keyword alerts configuration (protected)
+  app.put("/api/chatbots/:id/keyword-alerts", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const chatbotId = req.params.id;
+
+      // Verify user owns this chatbot
+      const chatbot = await storage.getChatbot(chatbotId, userId);
+      if (!chatbot) {
+        return res.status(404).json({ error: "Chatbot not found" });
+      }
+
+      // Validate request body
+      const validatedData = insertKeywordAlertSchema.parse({
+        ...req.body,
+        chatbotId,
+      });
+
+      // Check if configuration already exists
+      const existing = await db.select()
+        .from(keywordAlerts)
+        .where(eq(keywordAlerts.chatbotId, chatbotId))
+        .limit(1);
+
+      let config;
+      if (existing[0]) {
+        // Update existing
+        const updated = await db.update(keywordAlerts)
+          .set({ ...validatedData, updatedAt: new Date() })
+          .where(eq(keywordAlerts.id, existing[0].id))
+          .returning();
+        config = updated[0];
+      } else {
+        // Create new
+        const created = await db.insert(keywordAlerts)
+          .values(validatedData)
+          .returning();
+        config = created[0];
+      }
+
+      res.json(config);
+    } catch (error) {
+      if (error instanceof ZodError) {
+        return res.status(400).json({ error: "Invalid data", details: error.errors });
+      }
+      console.error("Error saving keyword alerts:", error);
+      res.status(500).json({ error: "Failed to save keyword alerts" });
+    }
+  });
+
+  // Get triggered keyword alerts for a chatbot (protected)
+  app.get("/api/chatbots/:id/keyword-alerts/triggers", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const chatbotId = req.params.id;
+      const { unreadOnly } = req.query;
+
+      // Verify user owns this chatbot
+      const chatbot = await storage.getChatbot(chatbotId, userId);
+      if (!chatbot) {
+        return res.status(404).json({ error: "Chatbot not found" });
+      }
+
+      // Build query with conditional filtering
+      const triggers = unreadOnly === 'true'
+        ? await db.select()
+            .from(keywordAlertTriggers)
+            .where(
+              and(
+                eq(keywordAlertTriggers.chatbotId, chatbotId),
+                eq(keywordAlertTriggers.read, "false")
+              )
+            )
+            .orderBy(desc(keywordAlertTriggers.triggeredAt))
+        : await db.select()
+            .from(keywordAlertTriggers)
+            .where(eq(keywordAlertTriggers.chatbotId, chatbotId))
+            .orderBy(desc(keywordAlertTriggers.triggeredAt));
+
+      res.json(triggers);
+    } catch (error) {
+      console.error("Error fetching keyword alert triggers:", error);
+      res.status(500).json({ error: "Failed to fetch keyword alert triggers" });
+    }
+  });
+
+  // Get all unread keyword alerts for user's chatbots (protected)
+  app.get("/api/keyword-alerts/unread", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+
+      // Get all chatbots owned by user
+      const userChatbots = await storage.getAllChatbots(userId);
+      const chatbotIds = userChatbots.map(c => c.id);
+
+      if (chatbotIds.length === 0) {
+        return res.json([]);
+      }
+
+      // Get unread triggers for user's chatbots
+      const triggers = await db.select({
+        trigger: keywordAlertTriggers,
+        chatbot: chatbots,
+      })
+        .from(keywordAlertTriggers)
+        .innerJoin(chatbots, eq(keywordAlertTriggers.chatbotId, chatbots.id))
+        .where(
+          and(
+            inArray(keywordAlertTriggers.chatbotId, chatbotIds),
+            eq(keywordAlertTriggers.read, "false")
+          )
+        )
+        .orderBy(desc(keywordAlertTriggers.triggeredAt))
+        .limit(50); // Limit to 50 most recent
+
+      res.json(triggers);
+    } catch (error) {
+      console.error("Error fetching unread keyword alerts:", error);
+      res.status(500).json({ error: "Failed to fetch unread keyword alerts" });
+    }
+  });
+
+  // Mark keyword alert trigger as read (protected)
+  app.put("/api/keyword-alerts/triggers/:triggerId/mark-read", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const triggerId = req.params.triggerId;
+
+      // Get trigger and verify user owns the chatbot
+      const trigger = await db.select()
+        .from(keywordAlertTriggers)
+        .where(eq(keywordAlertTriggers.id, triggerId))
+        .limit(1);
+
+      if (!trigger[0]) {
+        return res.status(404).json({ error: "Alert not found" });
+      }
+
+      const chatbot = await storage.getChatbot(trigger[0].chatbotId, userId);
+      if (!chatbot) {
+        return res.status(403).json({ error: "Unauthorized" });
+      }
+
+      // Mark as read
+      const updated = await db.update(keywordAlertTriggers)
+        .set({ read: "true" })
+        .where(eq(keywordAlertTriggers.id, triggerId))
+        .returning();
+
+      res.json(updated[0]);
+    } catch (error) {
+      console.error("Error marking alert as read:", error);
+      res.status(500).json({ error: "Failed to mark alert as read" });
+    }
+  });
+
+  // ==================== End Keyword Alerts Endpoints ====================
 
   // Create Stripe subscription (protected)
   app.post("/api/create-subscription", isAuthenticated, async (req: any, res) => {

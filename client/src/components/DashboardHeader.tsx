@@ -1,19 +1,56 @@
 import { Link } from "wouter";
-import { Crown, LogOut, User as UserIcon, Shield, LayoutDashboard, Briefcase, Users, MessageSquare } from "lucide-react";
+import { Crown, LogOut, User as UserIcon, Shield, LayoutDashboard, Briefcase, Users, MessageSquare, Bell, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { User } from "@shared/schema";
 import { Logo } from "@/components/Logo";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { formatDistanceToNow } from "date-fns";
+
+interface KeywordAlertTrigger {
+  trigger: {
+    id: string;
+    keyword: string;
+    messageContent: string;
+    visitorName: string | null;
+    visitorEmail: string | null;
+    triggeredAt: string;
+    read: string;
+  };
+  chatbot: {
+    id: string;
+    name: string;
+  };
+}
 
 export function DashboardHeader() {
   const { data: user } = useQuery<User>({
     queryKey: ["/api/auth/user"],
   });
 
-  const isAdmin = user?.isAdmin === true || user?.isAdmin === "true";
+  const { data: unreadAlerts = [], refetch: refetchAlerts } = useQuery<KeywordAlertTrigger[]>({
+    queryKey: ["/api/keyword-alerts/unread"],
+    enabled: !!user,
+    refetchInterval: 30000, // Refetch every 30 seconds
+  });
+
+  const markAsReadMutation = useMutation({
+    mutationFn: async (triggerId: string) => {
+      const response = await apiRequest("PUT", `/api/keyword-alerts/triggers/${triggerId}/mark-read`, {});
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/keyword-alerts/unread"] });
+    },
+  });
+
+  const isAdmin = user?.isAdmin === "true";
   const isFreeTier = user?.subscriptionTier === "free" && !isAdmin;
+  const unreadCount = unreadAlerts.length;
 
   const getUserDisplay = () => {
     if (user?.firstName && user?.lastName) {
@@ -92,6 +129,92 @@ export function DashboardHeader() {
                 </Button>
               </Link>
             )}
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="default"
+                  className="relative"
+                  data-testid="button-notifications"
+                >
+                  <Bell className="w-4 h-4 mr-2" />
+                  Alerts
+                  {unreadCount > 0 && (
+                    <Badge 
+                      variant="destructive" 
+                      className="absolute -top-2 -right-2 h-5 min-w-5 px-1 flex items-center justify-center text-xs"
+                      data-testid="badge-notification-count"
+                    >
+                      {unreadCount}
+                    </Badge>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-96 p-0" align="end" data-testid="popover-notifications">
+                <div className="p-4 border-b">
+                  <h3 className="font-semibold">Keyword Alerts</h3>
+                  <p className="text-sm text-muted-foreground">
+                    {unreadCount === 0 ? "No new alerts" : `${unreadCount} unread alert${unreadCount > 1 ? "s" : ""}`}
+                  </p>
+                </div>
+                <ScrollArea className="h-96">
+                  {unreadAlerts.length === 0 ? (
+                    <div className="p-8 text-center text-muted-foreground" data-testid="text-no-alerts">
+                      <Bell className="w-12 h-12 mx-auto mb-3 opacity-20" />
+                      <p className="text-sm">No keyword alerts</p>
+                      <p className="text-xs mt-1">
+                        Configure keyword alerts in your chatbot settings
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="divide-y">
+                      {unreadAlerts.map(({ trigger, chatbot }) => (
+                        <div
+                          key={trigger.id}
+                          className="p-4 hover-elevate transition-colors"
+                          data-testid={`alert-${trigger.id}`}
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex-1 space-y-1">
+                              <div className="flex items-center gap-2">
+                                <Badge variant="secondary" data-testid={`badge-keyword-${trigger.keyword}`}>
+                                  {trigger.keyword}
+                                </Badge>
+                                <span className="text-xs text-muted-foreground">
+                                  {formatDistanceToNow(new Date(trigger.triggeredAt), { addSuffix: true })}
+                                </span>
+                              </div>
+                              <p className="text-sm font-medium">{chatbot.name}</p>
+                              <p className="text-sm text-muted-foreground line-clamp-2">
+                                {trigger.messageContent}
+                              </p>
+                              {trigger.visitorName && (
+                                <p className="text-xs text-muted-foreground">
+                                  From: {trigger.visitorName}
+                                  {trigger.visitorEmail && ` (${trigger.visitorEmail})`}
+                                </p>
+                              )}
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                markAsReadMutation.mutate(trigger.id);
+                              }}
+                              disabled={markAsReadMutation.isPending}
+                              data-testid={`button-dismiss-${trigger.id}`}
+                            >
+                              <X className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </ScrollArea>
+              </PopoverContent>
+            </Popover>
             <Link href="/account">
               <Button 
                 variant="outline" 
