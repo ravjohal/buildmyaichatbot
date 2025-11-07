@@ -6,6 +6,16 @@ BuildMyChatbot.Ai is a SaaS web application enabling non-technical business owne
 
 ## Recent Updates (November 7, 2025)
 
+**Keyword Alerts System:**
+- Added ability for chatbot owners to receive notifications when visitors mention specific keywords in chat
+- New database tables: `keyword_alerts` (configuration) and `keyword_alert_triggers` (detection history)
+- Real-time keyword detection in chat endpoint with case-insensitive matching
+- Dual-channel notifications: email (via Resend) and in-app notifications panel
+- Configuration UI in wizard Step 5 (Escalation) with keyword management and notification channel toggles
+- In-app notifications panel in DashboardHeader with Bell icon, unread badge, Popover display, and mark-as-read functionality
+- 30-second polling interval keeps notifications fresh without overwhelming the server
+- Non-blocking async operation ensures keyword detection doesn't impact chat response times
+
 **EditChatbot Improvements:**
 - Enhanced edit mode to show all 7 wizard steps with full bidirectional navigation
 - Implemented clickable StepIndicator component with `onStepClick` handler for direct step access
@@ -74,6 +84,7 @@ The backend is built with Express.js, Node.js, and TypeScript, following a RESTf
 *   **Live Agent Handoff:** When chatbot detects it cannot help, visitors can request live human support. Real-time WebSocket-based chat connects visitors with support agents. Includes pending/active handoff queue, agent dashboard, and email notifications.
 *   **Team Management System:** Account owners can invite team members to act as live chat agents. Features role-based access (owner/team_member), email invitations with expiry, and team member management dashboard.
 *   **CRM Integration:** Generic webhook-based system for automatically sending captured leads to any CRM platform (Salesforce, HubSpot, Pipedrive, etc.). Supports multiple authentication types (Bearer, API Key, Basic), custom headers, flexible field mapping, automatic retry with exponential backoff, test connection capability, and real-time sync tracking with success/error monitoring.
+*   **Keyword Alerts:** Enables chatbot owners to receive notifications when visitors mention specific keywords. Features configurable keyword lists, dual-channel notifications (email via Resend and in-app), real-time detection with case-insensitive matching, alert history tracking, and a notifications panel with unread badge and 30-second polling for real-time updates.
 
 ### System Design Choices
 
