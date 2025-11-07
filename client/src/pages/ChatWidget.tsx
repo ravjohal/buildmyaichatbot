@@ -343,6 +343,7 @@ export default function ChatWidget() {
                   );
                 } else if (data.type === "complete") {
                   // Final message or cached response
+                  console.log(`[ChatWidget] Complete event received. Full data:`, JSON.stringify(data));
                   if (data.message) {
                     fullResponse = data.message;
                     setMessages((prev) =>
@@ -370,8 +371,11 @@ export default function ChatWidget() {
                     suggestions = data.suggestedQuestions;
                   }
                   if (data.shouldEscalate !== undefined) {
-                    console.log(`[ChatWidget] Received shouldEscalate in complete event:`, data.shouldEscalate);
+                    console.log(`[ChatWidget] ✅ Received shouldEscalate in complete event:`, data.shouldEscalate);
+                    console.log(`[ChatWidget] Setting local variable shouldEscalate =`, data.shouldEscalate);
                     shouldEscalate = data.shouldEscalate;
+                  } else {
+                    console.log(`[ChatWidget] ⚠️ shouldEscalate field NOT present in complete event`);
                   }
                 } else if (data.type === "metadata") {
                   if (data.conversationId) {
@@ -416,13 +420,20 @@ export default function ChatWidget() {
       );
 
       // Show handoff button if escalation is needed
+      console.log(`[ChatWidget] ========== ESCALATION CHECK ==========`);
       console.log(`[ChatWidget] Final shouldEscalate value:`, shouldEscalate);
       console.log(`[ChatWidget] Current handoffStatus:`, handoffStatus);
       if (shouldEscalate) {
-        console.log(`[ChatWidget] Setting showHandoffButton to true`);
+        console.log(`[ChatWidget] ✅ ESCALATION DETECTED - Setting showHandoffButton to true`);
         setShowHandoffButton(true);
         console.log(`[ChatWidget] Button will show if handoffStatus === "none", current:`, handoffStatus);
+        if (handoffStatus !== "none") {
+          console.log(`[ChatWidget] ⚠️ WARNING: Button won't show because handoffStatus is not "none"!`);
+        }
+      } else {
+        console.log(`[ChatWidget] ❌ No escalation - button will NOT show`);
       }
+      console.log(`[ChatWidget] ========== END ESCALATION CHECK ==========`);
 
     } catch (error) {
       console.error("Streaming error:", error);
