@@ -1077,6 +1077,11 @@ export default function ChatWidget() {
 
         {renderLeadForm()}
 
+        {(() => {
+          console.log(`[ChatWidget RENDER] showHandoffButton=${showHandoffButton}, handoffStatus=${handoffStatus}`);
+          return null;
+        })()}
+
         {showHandoffButton && handoffStatus === "none" && (
           <div className="p-4 border-t bg-muted/30">
             <Button
