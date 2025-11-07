@@ -1877,6 +1877,15 @@ Generate 3 short, natural questions that would help the user learn more. Return 
       }
       perfTimings.manualOverrideCheck = performance.now() - cacheStart;
       
+      // Helper function to detect escalation
+      const detectEscalation = (message: string): boolean => {
+        return message.toLowerCase().includes("contact support") ||
+          message.toLowerCase().includes("speak with") ||
+          message.toLowerCase().includes("human representative") ||
+          message.toLowerCase().includes("don't know") ||
+          message.toLowerCase().includes("cannot find");
+      };
+
       let aiMessage: string;
       let suggestedQuestions: string[] = [];
       
@@ -1885,10 +1894,15 @@ Generate 3 short, natural questions that would help the user learn more. Return 
         console.log(`[STREAMING] Manual override hit - sending cached answer`);
         aiMessage = manualOverride.manualAnswer;
         
+        const shouldEscalate = detectEscalation(aiMessage);
+        if (shouldEscalate) {
+          console.log(`[ESCALATION] Detected escalation in manual override. shouldEscalate=true`);
+        }
+        
         res.write(`data: ${JSON.stringify({ 
           type: "complete",
           message: aiMessage,
-          shouldEscalate: false,
+          shouldEscalate,
           images: relevantImages.length > 0 ? relevantImages : undefined,
         })}\n\n`);
         
@@ -1908,10 +1922,15 @@ Generate 3 short, natural questions that would help the user learn more. Return 
           aiMessage = cachedAnswer.answer;
           suggestedQuestions = cachedAnswer.suggestedQuestions || [];
           
+          const shouldEscalate = detectEscalation(aiMessage);
+          if (shouldEscalate) {
+            console.log(`[ESCALATION] Detected escalation in cached answer. shouldEscalate=true`);
+          }
+          
           res.write(`data: ${JSON.stringify({ 
             type: "complete",
             message: aiMessage,
-            shouldEscalate: false,
+            shouldEscalate,
             suggestedQuestions,
             images: relevantImages.length > 0 ? relevantImages : undefined,
           })}\n\n`);
@@ -1984,6 +2003,12 @@ INCORRECT citation examples (NEVER do this):
 
             aiMessage = fullResponse || "I apologize, but I couldn't generate a response.";
             
+            // Check for escalation in the LLM response
+            const shouldEscalateStreamed = detectEscalation(aiMessage);
+            if (shouldEscalateStreamed) {
+              console.log(`[ESCALATION] Detected escalation in LLM response. shouldEscalate=true`);
+            }
+            
             // DISABLED: Follow-up question generation (redundant with 20 rotating AI questions from DB)
             // This was causing 11+ second delay after main response
             // The widget already shows rotating questions from aiGeneratedQuestions array
@@ -1994,6 +2019,7 @@ INCORRECT citation examples (NEVER do this):
             // Send completion event
             res.write(`data: ${JSON.stringify({ 
               type: "complete",
+              shouldEscalate: shouldEscalateStreamed,
               suggestedQuestions,
               images: relevantImages.length > 0 ? relevantImages : undefined,
             })}\n\n`);
