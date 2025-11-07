@@ -227,7 +227,7 @@ export class LiveChatWebSocket {
     }
   }
 
-  private broadcastToConversation(conversationId: string, message: WSMessage, exclude?: WebSocketClient) {
+  public broadcastToConversation(conversationId: string, message: WSMessage, exclude?: WebSocketClient) {
     const conversationClients = this.clients.get(conversationId);
     if (!conversationClients) return;
 

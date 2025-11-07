@@ -1740,13 +1740,16 @@ Generate 3 short, natural questions that would help the user learn more. Return 
         });
         
         // Broadcast to agent via WebSocket
-        const wsModule = await import('./websocket.js');
-        wsModule.broadcastToConversation(conversation.id, {
-          type: "message",
-          role: "visitor",
-          content: message,
-          messageId,
-        });
+        const { getLiveChatWS } = await import('./websocket.js');
+        const ws = getLiveChatWS();
+        if (ws) {
+          ws.broadcastToConversation(conversation.id, {
+            type: "message",
+            role: "visitor",
+            content: message,
+            messageId,
+          });
+        }
         
         // Send acknowledgment to visitor (no bot message shown)
         res.write(`data: ${JSON.stringify({ 
@@ -4683,11 +4686,14 @@ INCORRECT citation examples (NEVER do this):
       
       // Notify visitor that they're being returned to AI
       const conversationId = handoffResult[0].handoff.conversationId;
-      const wsModule = await import('./websocket.js');
-      wsModule.broadcastToConversation(conversationId, {
-        type: "handoff_resolved",
-        message: "You've been returned to AI support. I'm here to help!",
-      });
+      const { getLiveChatWS } = await import('./websocket.js');
+      const ws = getLiveChatWS();
+      if (ws) {
+        ws.broadcastToConversation(conversationId, {
+          type: "handoff_resolved",
+          message: "You've been returned to AI support. I'm here to help!",
+        });
+      }
       
       res.json(updated[0]);
     } catch (error) {
