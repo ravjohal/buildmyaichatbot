@@ -131,6 +131,12 @@ export class LiveChatWebSocket {
   }
 
   private async handleAgentMessage(ws: WebSocketClient, message: WSMessage) {
+    console.log('[WebSocket] Received agent_message:', {
+      handoffId: message.handoffId,
+      conversationId: message.conversationId,
+      contentLength: message.content?.length,
+    });
+
     if (!message.handoffId || !message.conversationId) {
       ws.send(JSON.stringify({ type: 'error', content: 'Missing required fields' }));
       return;
@@ -169,13 +175,19 @@ export class LiveChatWebSocket {
         wasEscalated: "true",
       });
 
-      this.broadcastToConversation(message.conversationId, {
+      const broadcastMessage = {
         type: 'message',
         role: 'agent',
         content: message.content,
         agentName: message.agentName,
         timestamp: Date.now(),
-      }, ws);
+      };
+
+      console.log('[WebSocket] Broadcasting agent message to conversation:', message.conversationId);
+      console.log('[WebSocket] Active clients for conversation:', this.clients.get(message.conversationId)?.size || 0);
+      
+      this.broadcastToConversation(message.conversationId, broadcastMessage, ws);
+      console.log('[WebSocket] Agent message broadcast complete');
     } catch (error) {
       console.error('[WebSocket] Error saving agent message:', error);
       ws.send(JSON.stringify({ type: 'error', content: 'Failed to save message' }));
