@@ -1958,6 +1958,7 @@ Generate 3 short, natural questions that would help the user learn more. Return 
 
       let aiMessage: string;
       let suggestedQuestions: string[] = [];
+      let shouldEscalate = false;
       
       // Check if user explicitly requested human support
       const userRequestsHuman = detectUserHandoffRequest(message);
@@ -1970,7 +1971,7 @@ Generate 3 short, natural questions that would help the user learn more. Return 
         console.log(`[STREAMING] Manual override hit - sending cached answer`);
         aiMessage = manualOverride.manualAnswer;
         
-        const shouldEscalate = userRequestsHuman || detectEscalation(aiMessage);
+        shouldEscalate = userRequestsHuman || detectEscalation(aiMessage);
         if (shouldEscalate) {
           console.log(`[ESCALATION] Detected escalation in manual override. shouldEscalate=true`);
         }
@@ -1998,7 +1999,7 @@ Generate 3 short, natural questions that would help the user learn more. Return 
           aiMessage = cachedAnswer.answer;
           suggestedQuestions = cachedAnswer.suggestedQuestions || [];
           
-          const shouldEscalate = userRequestsHuman || detectEscalation(aiMessage);
+          shouldEscalate = userRequestsHuman || detectEscalation(aiMessage);
           if (shouldEscalate) {
             console.log(`[ESCALATION] Detected escalation in cached answer. shouldEscalate=true`);
           }
@@ -2080,8 +2081,8 @@ INCORRECT citation examples (NEVER do this):
             aiMessage = fullResponse || "I apologize, but I couldn't generate a response.";
             
             // Check for escalation in the LLM response or user's explicit request
-            const shouldEscalateStreamed = userRequestsHuman || detectEscalation(aiMessage);
-            if (shouldEscalateStreamed) {
+            shouldEscalate = userRequestsHuman || detectEscalation(aiMessage);
+            if (shouldEscalate) {
               console.log(`[ESCALATION] Detected escalation in LLM response. shouldEscalate=true`);
             }
             
@@ -2095,7 +2096,7 @@ INCORRECT citation examples (NEVER do this):
             // Send completion event
             res.write(`data: ${JSON.stringify({ 
               type: "complete",
-              shouldEscalate: shouldEscalateStreamed,
+              shouldEscalate,
               suggestedQuestions,
               images: relevantImages.length > 0 ? relevantImages : undefined,
             })}\n\n`);
@@ -2122,16 +2123,9 @@ INCORRECT citation examples (NEVER do this):
         }
       }
 
-      // Check escalation
-      const shouldEscalate =
-        aiMessage.toLowerCase().includes("contact support") ||
-        aiMessage.toLowerCase().includes("speak with") ||
-        aiMessage.toLowerCase().includes("human representative") ||
-        aiMessage.toLowerCase().includes("don't know") ||
-        aiMessage.toLowerCase().includes("cannot find");
-
+      // Note: shouldEscalate is already set in each code path above (manual override, cache, LLM)
       if (shouldEscalate) {
-        console.log(`[ESCALATION] Detected escalation trigger in AI response. shouldEscalate=true`);
+        console.log(`[ESCALATION] Final escalation status: shouldEscalate=true`);
         console.log(`[ESCALATION] Response preview: ${aiMessage.substring(0, 200)}...`);
       }
 
