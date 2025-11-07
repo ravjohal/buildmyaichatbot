@@ -475,6 +475,7 @@ export default function ChatWidget() {
       const response = await apiRequest("POST", "/api/handoffs", {
         conversationId: conversationId || "",
         chatbotId,
+        sessionId,
         visitorName: leadFormData.name || null,
         visitorEmail: leadFormData.email || null,
       });
