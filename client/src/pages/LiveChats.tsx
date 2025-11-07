@@ -125,8 +125,16 @@ export default function LiveChats() {
       const res = await apiRequest("POST", `/api/handoffs/${handoffId}/accept`);
       return res.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/handoffs"] });
+    onSuccess: async (data) => {
+      await queryClient.invalidateQueries({ queryKey: ["/api/handoffs"] });
+      // Keep the accepted handoff selected by finding it in the updated data
+      const updatedHandoffs = queryClient.getQueryData<HandoffRequest[]>(["/api/handoffs"]);
+      if (updatedHandoffs) {
+        const acceptedHandoff = updatedHandoffs.find(h => h.handoff.id === data.id);
+        if (acceptedHandoff) {
+          setSelectedHandoff(acceptedHandoff);
+        }
+      }
       toast({
         title: "Chat accepted",
         description: "You can now respond to the visitor.",
@@ -248,6 +256,10 @@ export default function LiveChats() {
                 {pendingHandoffs.map((handoff) => (
                   <Card
                     key={handoff.handoff.id}
+                    className={`cursor-pointer hover-elevate ${
+                      selectedHandoff?.handoff.id === handoff.handoff.id ? "border-primary" : ""
+                    }`}
+                    onClick={() => setSelectedHandoff(handoff)}
                     data-testid={`handoff-pending-${handoff.handoff.id}`}
                   >
                     <CardContent className="p-4">
@@ -268,7 +280,10 @@ export default function LiveChats() {
                       <Button
                         size="sm"
                         className="w-full"
-                        onClick={() => handleAccept(handoff)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleAccept(handoff);
+                        }}
                         disabled={acceptMutation.isPending}
                         data-testid={`button-accept-handoff-${handoff.handoff.id}`}
                       >
@@ -448,7 +463,7 @@ export default function LiveChats() {
                 </ScrollArea>
               </CardContent>
 
-              {selectedHandoff.handoff.status === "active" && (
+              {selectedHandoff.handoff.status === "active" ? (
                 <div className="border-t p-4">
                   <form onSubmit={sendMessage} className="flex gap-2">
                     <Input
@@ -467,6 +482,13 @@ export default function LiveChats() {
                       Send
                     </Button>
                   </form>
+                </div>
+              ) : (
+                <div className="border-t p-4 bg-muted/50">
+                  <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                    <Clock className="h-4 w-4" />
+                    <span>Click "Accept Chat" to respond to this conversation</span>
+                  </div>
                 </div>
               )}
             </Card>
