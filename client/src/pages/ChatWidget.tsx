@@ -502,7 +502,10 @@ export default function ChatWidget() {
 
   // WebSocket connection for agent messages
   useEffect(() => {
+    console.log(`[ChatWidget] WebSocket effect triggered - handoffStatus: ${handoffStatus}, conversationId: ${conversationId}`);
+    
     if ((handoffStatus === "requested" || handoffStatus === "connected") && conversationId) {
+      console.log("[ChatWidget] Setting up WebSocket connection");
       const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
       const wsUrl = `${protocol}//${window.location.host}/ws/live-chat`;
       const websocket = new WebSocket(wsUrl);
@@ -547,7 +550,7 @@ export default function ChatWidget() {
         websocket.close();
       };
     }
-  }, [conversationId]);
+  }, [conversationId, handoffStatus]);
 
   // Track mutation pending state changes (must be after chatMutation declaration)
   useEffect(() => {
