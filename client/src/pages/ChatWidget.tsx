@@ -370,6 +370,7 @@ export default function ChatWidget() {
                     suggestions = data.suggestedQuestions;
                   }
                   if (data.shouldEscalate !== undefined) {
+                    console.log(`[ChatWidget] Received shouldEscalate in complete event:`, data.shouldEscalate);
                     shouldEscalate = data.shouldEscalate;
                   }
                 } else if (data.type === "metadata") {
@@ -410,7 +411,9 @@ export default function ChatWidget() {
       );
 
       // Show handoff button if escalation is needed
+      console.log(`[ChatWidget] Final shouldEscalate value:`, shouldEscalate);
       if (shouldEscalate) {
+        console.log(`[ChatWidget] Setting showHandoffButton to true`);
         setShowHandoffButton(true);
       }
 
