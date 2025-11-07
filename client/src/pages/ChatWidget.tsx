@@ -412,9 +412,11 @@ export default function ChatWidget() {
 
       // Show handoff button if escalation is needed
       console.log(`[ChatWidget] Final shouldEscalate value:`, shouldEscalate);
+      console.log(`[ChatWidget] Current handoffStatus:`, handoffStatus);
       if (shouldEscalate) {
         console.log(`[ChatWidget] Setting showHandoffButton to true`);
         setShowHandoffButton(true);
+        console.log(`[ChatWidget] Button will show if handoffStatus === "none", current:`, handoffStatus);
       }
 
     } catch (error) {

@@ -1,0 +1,28 @@
+[ChatWidget] error: null
+injected.js:27 [ChatWidget] isStandalone: false
+injected.js:27 [ChatWidget] aiGeneratedQuestions: 0
+injected.js:27 [PERF-WIDGET] chatMutation.isPending: true
+injected.js:27 [PERF-WIDGET] Chat mutation started
+injected.js:27 [ChatWidget] Function called
+injected.js:27 [ChatWidget] Params: {0: 'b344830a-daa5-4133-96e1-4a0380fdd1c6', id: 'b344830a-daa5-4133-96e1-4a0380fdd1c6'}
+injected.js:27 [ChatWidget] Chatbot ID from route: b344830a-daa5-4133-96e1-4a0380fdd1c6
+injected.js:27 [ChatWidget] isLoading: false
+injected.js:27 [ChatWidget] chatbot: {id: 'b344830a-daa5-4133-96e1-4a0380fdd1c6', name: 'check doc upload chatbot', welcomeMessage: 'Hello! How can I help you today?', primaryColor: '#0de711', accentColor: '#c58702', …}
+injected.js:27 [ChatWidget] error: null
+injected.js:27 [ChatWidget] isStandalone: false
+injected.js:27 [ChatWidget] aiGeneratedQuestions: 0
+injected.js:27 [ChatWidget] Received shouldEscalate in complete event: true
+injected.js:27 [ChatWidget] Final shouldEscalate value: true
+injected.js:27 [ChatWidget] Setting showHandoffButton to true
+injected.js:27 [PERF-WIDGET] Chat mutation completed: 3021.40ms
+injected.js:27 [PERF-WIDGET] Chat mutation settled (isPending should now be false)
+injected.js:27 [ChatWidget] Function called
+injected.js:27 [ChatWidget] Params: {0: 'b344830a-daa5-4133-96e1-4a0380fdd1c6', id: 'b344830a-daa5-4133-96e1-4a0380fdd1c6'}
+injected.js:27 [ChatWidget] Chatbot ID from route: b344830a-daa5-4133-96e1-4a0380fdd1c6
+injected.js:27 [ChatWidget] isLoading: false
+injected.js:27 [ChatWidget] chatbot: {id: 'b344830a-daa5-4133-96e1-4a0380fdd1c6', name: 'check doc upload chatbot', welcomeMessage: 'Hello! How can I help you today?', primaryColor: '#0de711', accentColor: '#c58702', …}
+injected.js:27 [ChatWidget] error: null
+injected.js:27 [ChatWidget] isStandalone: false
+injected.js:27 [ChatWidget] aiGeneratedQuestions: 0
+injected.js:27 [PERF-WIDGET] chatMutation.isPending: false
+injected.js:27 [PERF-WIDGET] Mutation complete - suggested questions should now be visible
