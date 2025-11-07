@@ -365,17 +365,17 @@ export default function LiveChats() {
                         variant="outline"
                         onClick={handleResolve}
                         disabled={resolveMutation.isPending}
-                        data-testid="button-resolve-chat"
+                        data-testid="button-return-to-ai"
                       >
                         {resolveMutation.isPending ? (
                           <>
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                            Resolving...
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Returning...
                           </>
                         ) : (
                           <>
-                            <Check className="h-4 w-4" />
-                            Resolve
+                            <Check className="h-4 w-4 mr-2" />
+                            Return to AI
                           </>
                         )}
                       </Button>

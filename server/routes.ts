@@ -1918,7 +1918,7 @@ Generate 3 short, natural questions that would help the user learn more. Return 
       }
       perfTimings.manualOverrideCheck = performance.now() - cacheStart;
       
-      // Helper function to detect escalation
+      // Helper function to detect escalation in AI responses
       const detectEscalation = (message: string): boolean => {
         return message.toLowerCase().includes("contact support") ||
           message.toLowerCase().includes("speak with") ||
@@ -1926,16 +1926,38 @@ Generate 3 short, natural questions that would help the user learn more. Return 
           message.toLowerCase().includes("don't know") ||
           message.toLowerCase().includes("cannot find");
       };
+      
+      // Helper function to detect explicit user requests for human support
+      const detectUserHandoffRequest = (userMessage: string): boolean => {
+        const lowerMessage = userMessage.toLowerCase();
+        return lowerMessage.includes("speak with a human") ||
+          lowerMessage.includes("talk to a human") ||
+          lowerMessage.includes("speak to a human") ||
+          lowerMessage.includes("talk with a human") ||
+          lowerMessage.includes("speak with someone") ||
+          lowerMessage.includes("talk to someone") ||
+          lowerMessage.includes("human agent") ||
+          lowerMessage.includes("live agent") ||
+          lowerMessage.includes("real person") ||
+          lowerMessage.includes("customer service") ||
+          lowerMessage.includes("customer support");
+      };
 
       let aiMessage: string;
       let suggestedQuestions: string[] = [];
+      
+      // Check if user explicitly requested human support
+      const userRequestsHuman = detectUserHandoffRequest(message);
+      if (userRequestsHuman) {
+        console.log(`[ESCALATION] User explicitly requested human support in message`);
+      }
       
       if (manualOverride) {
         // Manual override found - send immediately (no streaming needed)
         console.log(`[STREAMING] Manual override hit - sending cached answer`);
         aiMessage = manualOverride.manualAnswer;
         
-        const shouldEscalate = detectEscalation(aiMessage);
+        const shouldEscalate = userRequestsHuman || detectEscalation(aiMessage);
         if (shouldEscalate) {
           console.log(`[ESCALATION] Detected escalation in manual override. shouldEscalate=true`);
         }
@@ -1963,7 +1985,7 @@ Generate 3 short, natural questions that would help the user learn more. Return 
           aiMessage = cachedAnswer.answer;
           suggestedQuestions = cachedAnswer.suggestedQuestions || [];
           
-          const shouldEscalate = detectEscalation(aiMessage);
+          const shouldEscalate = userRequestsHuman || detectEscalation(aiMessage);
           if (shouldEscalate) {
             console.log(`[ESCALATION] Detected escalation in cached answer. shouldEscalate=true`);
           }
@@ -2044,8 +2066,8 @@ INCORRECT citation examples (NEVER do this):
 
             aiMessage = fullResponse || "I apologize, but I couldn't generate a response.";
             
-            // Check for escalation in the LLM response
-            const shouldEscalateStreamed = detectEscalation(aiMessage);
+            // Check for escalation in the LLM response or user's explicit request
+            const shouldEscalateStreamed = userRequestsHuman || detectEscalation(aiMessage);
             if (shouldEscalateStreamed) {
               console.log(`[ESCALATION] Detected escalation in LLM response. shouldEscalate=true`);
             }
@@ -4658,6 +4680,14 @@ INCORRECT citation examples (NEVER do this):
         })
         .where(eq(liveAgentHandoffs.id, handoffId))
         .returning();
+      
+      // Notify visitor that they're being returned to AI
+      const conversationId = handoffResult[0].handoff.conversationId;
+      const wsModule = await import('./websocket.js');
+      wsModule.broadcastToConversation(conversationId, {
+        type: "handoff_resolved",
+        message: "You've been returned to AI support. I'm here to help!",
+      });
       
       res.json(updated[0]);
     } catch (error) {

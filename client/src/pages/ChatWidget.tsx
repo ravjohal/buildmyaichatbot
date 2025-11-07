@@ -537,6 +537,19 @@ export default function ChatWidget() {
             timestamp: Date.now(),
           };
           setMessages((prev) => [...prev, agentMessage]);
+        } else if (data.type === "handoff_resolved") {
+          // Agent has returned the visitor to AI support
+          console.log("[ChatWidget] Handoff resolved, returning to AI");
+          setHandoffStatus("none");
+          const aiMessage: ChatMessage = {
+            id: Date.now().toString(),
+            role: "assistant",
+            content: data.message || "You've been returned to AI support. How can I help you?",
+            timestamp: Date.now(),
+          };
+          setMessages((prev) => [...prev, aiMessage]);
+          // Close WebSocket connection
+          websocket.close();
         }
       };
 
