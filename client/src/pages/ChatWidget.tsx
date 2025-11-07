@@ -337,6 +337,7 @@ export default function ChatWidget() {
             if (line.startsWith("data: ")) {
               try {
                 const data = JSON.parse(line.slice(6));
+                console.log(`[ChatWidget SSE] Received event:`, data.type, `shouldEscalate in data:`, data.shouldEscalate);
 
                 if (data.type === "chunk") {
                   // Streaming chunk - append to message
