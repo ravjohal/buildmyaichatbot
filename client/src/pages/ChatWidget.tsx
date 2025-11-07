@@ -271,6 +271,8 @@ export default function ChatWidget() {
   const [handoffStatus, setHandoffStatus] = useState<"none" | "requested" | "connected">("none");
   const [showHandoffButton, setShowHandoffButton] = useState(false);
   const [handoffWs, setHandoffWs] = useState<WebSocket | null>(null);
+  const [liveAgentAvailable, setLiveAgentAvailable] = useState(true);
+  const [liveAgentMessage, setLiveAgentMessage] = useState<string | null>(null);
   
   // Debug: Monitor button state changes
   useEffect(() => {
@@ -385,6 +387,12 @@ export default function ChatWidget() {
                   } else {
                     console.log(`[ChatWidget] ⚠️ shouldEscalate field NOT present in complete event`);
                   }
+                  if (data.liveAgentAvailable !== undefined) {
+                    setLiveAgentAvailable(data.liveAgentAvailable);
+                  }
+                  if (data.liveAgentMessage) {
+                    setLiveAgentMessage(data.liveAgentMessage);
+                  }
                 } else if (data.type === "metadata") {
                   if (data.conversationId) {
                     receivedConversationId = data.conversationId;
@@ -394,6 +402,12 @@ export default function ChatWidget() {
                   }
                   if (data.shouldEscalate !== undefined) {
                     shouldEscalate = data.shouldEscalate;
+                  }
+                  if (data.liveAgentAvailable !== undefined) {
+                    setLiveAgentAvailable(data.liveAgentAvailable);
+                  }
+                  if (data.liveAgentMessage) {
+                    setLiveAgentMessage(data.liveAgentMessage);
                   }
                 } else if (data.type === "handoff_message") {
                   // Message routed to live agent - don't show bot response
@@ -1124,17 +1138,23 @@ export default function ChatWidget() {
 
         {showHandoffButton && handoffStatus === "none" && (
           <div className="p-4 border-t bg-muted/30">
-            <Button
-              variant="default"
-              className="w-full"
-              style={{ backgroundColor: chatbot.accentColor }}
-              onClick={handleRequestHandoff}
-              disabled={handoffMutation.isPending}
-              data-testid="button-request-handoff"
-            >
-              <UserPlus className="w-4 h-4 mr-2" />
-              {handoffMutation.isPending ? "Connecting..." : "Talk to a Human Agent"}
-            </Button>
+            {liveAgentAvailable ? (
+              <Button
+                variant="default"
+                className="w-full"
+                style={{ backgroundColor: chatbot.accentColor }}
+                onClick={handleRequestHandoff}
+                disabled={handoffMutation.isPending}
+                data-testid="button-request-handoff"
+              >
+                <UserPlus className="w-4 h-4 mr-2" />
+                {handoffMutation.isPending ? "Connecting..." : "Talk to a Human Agent"}
+              </Button>
+            ) : (
+              <div className="text-sm text-muted-foreground text-center" data-testid="text-agent-unavailable">
+                {liveAgentMessage || "Live agents are currently unavailable. Please try again during business hours."}
+              </div>
+            )}
           </div>
         )}
 
