@@ -53,6 +53,61 @@ if (stripeSecretKey) {
   console.error('[Stripe] No Stripe secret key found! Set appropriate environment variables.');
 }
 
+// Helper function to check if current time is within live agent hours
+function isWithinLiveAgentHours(chatbot: any): { available: boolean; message?: string } {
+  // If hours are not enabled, live agents are always available
+  if (chatbot.liveAgentHoursEnabled !== "true") {
+    return { available: true };
+  }
+
+  try {
+    // Get current time in the chatbot's timezone
+    const timezone = chatbot.liveAgentTimezone || "America/New_York";
+    const now = new Date();
+    
+    // Get current day of week (lowercase)
+    const dayNames = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+    const currentDay = dayNames[now.getDay()];
+    
+    // Convert to chatbot's timezone
+    const timeInTz = new Date(now.toLocaleString("en-US", { timeZone: timezone }));
+    const currentHour = timeInTz.getHours();
+    const currentMinute = timeInTz.getMinutes();
+    const currentTimeMinutes = currentHour * 60 + currentMinute;
+    
+    // Parse start and end times
+    const [startHour, startMinute] = (chatbot.liveAgentStartTime || "09:00").split(":").map(Number);
+    const [endHour, endMinute] = (chatbot.liveAgentEndTime || "17:00").split(":").map(Number);
+    const startTimeMinutes = startHour * 60 + startMinute;
+    const endTimeMinutes = endHour * 60 + endMinute;
+    
+    // Check if current day is in allowed days
+    const allowedDays = chatbot.liveAgentDaysOfWeek || ["monday", "tuesday", "wednesday", "thursday", "friday"];
+    const isDayAllowed = allowedDays.includes(currentDay);
+    
+    // Check if current time is within range
+    const isTimeInRange = currentTimeMinutes >= startTimeMinutes && currentTimeMinutes < endTimeMinutes;
+    
+    if (!isDayAllowed || !isTimeInRange) {
+      // Format availability message
+      const daysText = allowedDays.map((d: string) => d.charAt(0).toUpperCase() + d.slice(1)).join(", ");
+      const startTime = chatbot.liveAgentStartTime || "9:00 AM";
+      const endTime = chatbot.liveAgentEndTime || "5:00 PM";
+      
+      return {
+        available: false,
+        message: `Live support is available ${daysText} from ${startTime} to ${endTime} (${timezone}).`
+      };
+    }
+    
+    return { available: true };
+  } catch (error) {
+    console.error("[LIVE-AGENT-HOURS] Error checking availability:", error);
+    // If there's an error parsing hours, default to available
+    return { available: true };
+  }
+}
+
 // In-memory store for background indexing jobs
 interface IndexingJob {
   id: string;
@@ -1959,6 +2014,7 @@ Generate 3 short, natural questions that would help the user learn more. Return 
       let aiMessage: string;
       let suggestedQuestions: string[] = [];
       let shouldEscalate = false;
+      let liveAgentAvailability = { available: true, message: undefined as string | undefined };
       
       // Check if user explicitly requested human support
       const userRequestsHuman = detectUserHandoffRequest(message);
@@ -1966,20 +2022,34 @@ Generate 3 short, natural questions that would help the user learn more. Return 
         console.log(`[ESCALATION] User explicitly requested human support in message`);
       }
       
+      // Check live agent availability
+      liveAgentAvailability = isWithinLiveAgentHours(chatbot);
+      if (!liveAgentAvailability.available) {
+        console.log(`[LIVE-AGENT-HOURS] Outside configured hours: ${liveAgentAvailability.message}`);
+      }
+      
       if (manualOverride) {
         // Manual override found - send immediately (no streaming needed)
         console.log(`[STREAMING] Manual override hit - sending cached answer`);
         aiMessage = manualOverride.manualAnswer;
         
-        shouldEscalate = userRequestsHuman || detectEscalation(aiMessage);
-        if (shouldEscalate) {
-          console.log(`[ESCALATION] Detected escalation in manual override. shouldEscalate=true`);
+        const escalationDetected = userRequestsHuman || detectEscalation(aiMessage);
+        shouldEscalate = escalationDetected && liveAgentAvailability.available;
+        
+        if (escalationDetected) {
+          if (liveAgentAvailability.available) {
+            console.log(`[ESCALATION] Detected escalation in manual override. shouldEscalate=true`);
+          } else {
+            console.log(`[ESCALATION] Escalation detected but outside live agent hours. shouldEscalate=false`);
+          }
         }
         
         res.write(`data: ${JSON.stringify({ 
           type: "complete",
           message: aiMessage,
           shouldEscalate,
+          liveAgentAvailable: liveAgentAvailability.available,
+          liveAgentMessage: liveAgentAvailability.message,
           images: relevantImages.length > 0 ? relevantImages : undefined,
         })}\n\n`);
         
@@ -1999,15 +2069,23 @@ Generate 3 short, natural questions that would help the user learn more. Return 
           aiMessage = cachedAnswer.answer;
           suggestedQuestions = cachedAnswer.suggestedQuestions || [];
           
-          shouldEscalate = userRequestsHuman || detectEscalation(aiMessage);
-          if (shouldEscalate) {
-            console.log(`[ESCALATION] Detected escalation in cached answer. shouldEscalate=true`);
+          const escalationDetected = userRequestsHuman || detectEscalation(aiMessage);
+          shouldEscalate = escalationDetected && liveAgentAvailability.available;
+          
+          if (escalationDetected) {
+            if (liveAgentAvailability.available) {
+              console.log(`[ESCALATION] Detected escalation in cached answer. shouldEscalate=true`);
+            } else {
+              console.log(`[ESCALATION] Escalation detected but outside live agent hours. shouldEscalate=false`);
+            }
           }
           
           res.write(`data: ${JSON.stringify({ 
             type: "complete",
             message: aiMessage,
             shouldEscalate,
+            liveAgentAvailable: liveAgentAvailability.available,
+            liveAgentMessage: liveAgentAvailability.message,
             suggestedQuestions,
             images: relevantImages.length > 0 ? relevantImages : undefined,
           })}\n\n`);
@@ -2081,9 +2159,15 @@ INCORRECT citation examples (NEVER do this):
             aiMessage = fullResponse || "I apologize, but I couldn't generate a response.";
             
             // Check for escalation in the LLM response or user's explicit request
-            shouldEscalate = userRequestsHuman || detectEscalation(aiMessage);
-            if (shouldEscalate) {
-              console.log(`[ESCALATION] Detected escalation in LLM response. shouldEscalate=true`);
+            const escalationDetected = userRequestsHuman || detectEscalation(aiMessage);
+            shouldEscalate = escalationDetected && liveAgentAvailability.available;
+            
+            if (escalationDetected) {
+              if (liveAgentAvailability.available) {
+                console.log(`[ESCALATION] Detected escalation in LLM response. shouldEscalate=true`);
+              } else {
+                console.log(`[ESCALATION] Escalation detected but outside live agent hours. shouldEscalate=false`);
+              }
             }
             
             // DISABLED: Follow-up question generation (redundant with 20 rotating AI questions from DB)
@@ -2097,6 +2181,8 @@ INCORRECT citation examples (NEVER do this):
             res.write(`data: ${JSON.stringify({ 
               type: "complete",
               shouldEscalate,
+              liveAgentAvailable: liveAgentAvailability.available,
+              liveAgentMessage: liveAgentAvailability.message,
               suggestedQuestions,
               images: relevantImages.length > 0 ? relevantImages : undefined,
             })}\n\n`);
@@ -2195,6 +2281,8 @@ INCORRECT citation examples (NEVER do this):
         type: "metadata",
         conversationId: conversation.id,
         shouldEscalate,
+        liveAgentAvailable: liveAgentAvailability.available,
+        liveAgentMessage: liveAgentAvailability.message,
       })}\n\n`);
       
       res.end();

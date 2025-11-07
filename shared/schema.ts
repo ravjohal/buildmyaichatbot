@@ -85,6 +85,12 @@ export const chatbots = pgTable("chatbots", {
   proactiveChatDelay: text("proactive_chat_delay").notNull().default("5"), // seconds before popup
   proactiveChatMessage: text("proactive_chat_message").default("Hi! Need any help?"),
   proactiveChatTriggerUrls: text("proactive_chat_trigger_urls").array().default(sql`ARRAY[]::text[]`), // URL patterns for triggering
+  // Live agent hours configuration
+  liveAgentHoursEnabled: text("live_agent_hours_enabled").notNull().default("false"),
+  liveAgentStartTime: text("live_agent_start_time").default("09:00"), // 24-hour format HH:MM
+  liveAgentEndTime: text("live_agent_end_time").default("17:00"), // 24-hour format HH:MM
+  liveAgentTimezone: text("live_agent_timezone").default("America/New_York"), // IANA timezone
+  liveAgentDaysOfWeek: text("live_agent_days_of_week").array().default(sql`ARRAY['monday', 'tuesday', 'wednesday', 'thursday', 'friday']::text[]`),
   // Async indexing status
   indexingStatus: varchar("indexing_status", { enum: ["pending", "processing", "completed", "failed"] }).notNull().default("completed"),
   lastIndexingJobId: varchar("last_indexing_job_id"),
@@ -119,6 +125,11 @@ export const insertChatbotSchema = createInsertSchema(chatbots).omit({
   leadCaptureMessage: z.string().optional(),
   leadCaptureTiming: z.string().optional(),
   leadCaptureMessageCount: z.string().optional(),
+  liveAgentHoursEnabled: z.string().optional(),
+  liveAgentStartTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format (use HH:MM)").optional(),
+  liveAgentEndTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format (use HH:MM)").optional(),
+  liveAgentTimezone: z.string().optional(),
+  liveAgentDaysOfWeek: z.array(z.enum(["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"])).optional(),
 });
 
 export type InsertChatbot = z.infer<typeof insertChatbotSchema>;
