@@ -6,6 +6,20 @@ BuildMyChatbot.Ai is a SaaS web application enabling non-technical business owne
 
 ## Recent Updates (November 7, 2025)
 
+**Team Member Limits & Permissions System:**
+- Implemented tier-based team member limits: Free (0), Starter (3), Business/Pro (10), Scale (unlimited)
+- Team invitation endpoint now validates against subscription tier limits before allowing new invites
+- Tier limits count both accepted team members and pending invitations
+- Team Management UI displays current usage vs. tier limit with upgrade prompts when limit reached
+- Added granular role-based permissions system with 6 permission types: view_analytics, manage_chatbots, respond_to_chats, view_leads, manage_team, access_settings
+- New database table: `team_member_permissions` stores permission flags for each team member
+- Default permissions (respond_to_chats only) automatically created when team member accepts invitation
+- Permissions management UI allows account owners to control what each team member can access
+- Permission enforcement middleware (`hasPermission`) protects critical API endpoints
+- Multi-tenant security: team members automatically scoped to their owner's resources via `parentUserId`
+- Invitation acceptance flow creates new accounts for non-existing users with password, firstName, lastName
+- Team capacity card shows real-time tier usage and displays upgrade CTA when at limit
+
 **Keyword Alerts System:**
 - Added ability for chatbot owners to receive notifications when visitors mention specific keywords in chat
 - New database tables: `keyword_alerts` (configuration) and `keyword_alert_triggers` (detection history)
