@@ -1731,11 +1731,11 @@ Generate 3 short, natural questions that would help the user learn more. Return 
       if (activeHandoff.length > 0) {
         console.log(`[HANDOFF] Active handoff found for conversation ${conversation.id}, routing to agent`);
         
-        // Save the visitor message to the database
+        // Save the visitor message to conversation history
         const messageId = Date.now().toString();
-        await db.insert(agentMessages).values({
-          handoffId: activeHandoff[0].id,
-          role: "visitor",
+        await db.insert(conversationMessages).values({
+          conversationId: conversation.id,
+          role: "user",
           content: message,
         });
         
