@@ -65,12 +65,14 @@ function isWithinLiveAgentHours(chatbot: any): { available: boolean; message?: s
     const timezone = chatbot.liveAgentTimezone || "America/New_York";
     const now = new Date();
     
-    // Get current day of week (lowercase)
-    const dayNames = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
-    const currentDay = dayNames[now.getDay()];
-    
-    // Convert to chatbot's timezone
+    // Convert to chatbot's timezone first
     const timeInTz = new Date(now.toLocaleString("en-US", { timeZone: timezone }));
+    
+    // Get current day of week in the chatbot's timezone (lowercase)
+    const dayNames = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+    const currentDay = dayNames[timeInTz.getDay()];
+    
+    // Get current time in minutes
     const currentHour = timeInTz.getHours();
     const currentMinute = timeInTz.getMinutes();
     const currentTimeMinutes = currentHour * 60 + currentMinute;
