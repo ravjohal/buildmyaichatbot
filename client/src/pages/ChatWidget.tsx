@@ -497,12 +497,13 @@ export default function ChatWidget() {
 
   // WebSocket connection for agent messages
   useEffect(() => {
-    if (handoffStatus === "requested" && conversationId) {
+    if ((handoffStatus === "requested" || handoffStatus === "connected") && conversationId) {
       const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
       const wsUrl = `${protocol}//${window.location.host}/ws/live-chat`;
       const websocket = new WebSocket(wsUrl);
 
       websocket.onopen = () => {
+        console.log("[ChatWidget] WebSocket connected, joining conversation");
         websocket.send(JSON.stringify({
           type: "join",
           conversationId,
@@ -512,6 +513,7 @@ export default function ChatWidget() {
 
       websocket.onmessage = (event) => {
         const data = JSON.parse(event.data);
+        console.log("[ChatWidget] WebSocket message received:", data);
 
         if (data.type === "message" && data.role === "agent") {
           setHandoffStatus("connected");
@@ -526,16 +528,21 @@ export default function ChatWidget() {
       };
 
       websocket.onerror = (error) => {
-        console.error("WebSocket error:", error);
+        console.error("[ChatWidget] WebSocket error:", error);
+      };
+
+      websocket.onclose = () => {
+        console.log("[ChatWidget] WebSocket connection closed");
       };
 
       setHandoffWs(websocket);
 
       return () => {
+        console.log("[ChatWidget] Cleaning up WebSocket connection");
         websocket.close();
       };
     }
-  }, [handoffStatus, conversationId]);
+  }, [conversationId]);
 
   // Track mutation pending state changes (must be after chatMutation declaration)
   useEffect(() => {
