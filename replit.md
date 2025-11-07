@@ -4,15 +4,23 @@
 
 BuildMyChatbot.Ai is a SaaS web application enabling non-technical business owners to create, customize, and deploy AI-powered customer support chatbots for their websites. It offers a guided creation wizard, extensive customization, and an embeddable widget for seamless website integration. The project aims to provide efficient, AI-driven customer support, reducing operational costs and enhancing customer satisfaction. Key capabilities include streaming LLM responses, chunk-based knowledge retrieval with vector embeddings, AI responses from website content and documents, multi-tier user management, comprehensive analytics, and a freemium pricing model with Stripe integration.
 
-## Recent Updates (November 6, 2025)
+## Recent Updates (November 7, 2025)
 
-**External Form Link for Lead Capture:**
+**Live Agent Hours Configuration:**
+- Added configurable business hours for live agent availability
+- New fields: `liveAgentHoursEnabled`, `liveAgentStartTime`, `liveAgentEndTime`, `liveAgentTimezone`, `liveAgentDaysOfWeek`
+- Timezone-aware availability checking using `isWithinLiveAgentHours()` helper function
+- Backend respects configured hours when determining escalation eligibility
+- Chat widget displays availability message instead of handoff button when outside configured hours
+- Wizard Step 5 includes UI for configuring hours: enable/disable switch, time selects, timezone selector, days of week checkboxes
+
+**External Form Link for Lead Capture (November 6):**
 - Added ability to direct visitors to external forms (Google Forms, Typeform, etc.) instead of using built-in contact form
 - New fields: `leadCaptureType` (form/external_link), `leadCaptureExternalUrl`
 - Multi-layer security validation prevents XSS attacks via malicious URLs (server-side Zod, client-side HTML5, runtime checks)
 - Chat widget displays "Open Contact Form" button for external links vs traditional form inputs
 
-**Object Storage Fixes:**
+**Object Storage Fixes (November 6):**
 - Fixed logo upload functionality by migrating from GCS `getSignedUrl()` to Replit's sidecar endpoint for URL signing
 - Fixed document upload by using proper signed URL upload flow instead of non-existent `extractObjectPath()` method
 - All object storage operations now use Replit's managed storage service correctly
