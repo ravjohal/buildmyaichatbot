@@ -163,6 +163,17 @@ export default function LiveChats() {
     e.preventDefault();
     if (!message.trim() || !ws || !selectedHandoff) return;
 
+    // Check if WebSocket is open before sending
+    if (ws.readyState !== WebSocket.OPEN) {
+      console.error("[LiveChats] WebSocket is not open, current state:", ws.readyState);
+      toast({
+        title: "Connection issue",
+        description: "Reconnecting to chat...",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const messageContent = message.trim();
     
     // Optimistically add the message to the UI
