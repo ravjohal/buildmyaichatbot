@@ -31,6 +31,9 @@ type HandoffRequest = {
     sessionId: string;
     messageCount: number;
   };
+  agent: {
+    email: string | null;
+  } | null;
 };
 
 type Message = {
@@ -239,8 +242,6 @@ export default function LiveChats() {
                 {pendingHandoffs.map((handoff) => (
                   <Card
                     key={handoff.handoff.id}
-                    className="cursor-pointer hover-elevate"
-                    onClick={() => handleAccept(handoff)}
                     data-testid={`handoff-pending-${handoff.handoff.id}`}
                   >
                     <CardContent className="p-4">
@@ -255,9 +256,28 @@ export default function LiveChats() {
                         </div>
                         <Badge variant="secondary" className="text-xs">New</Badge>
                       </div>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-xs text-muted-foreground mb-3">
                         {format(new Date(handoff.handoff.requestedAt), "MMM d, h:mm a")}
                       </p>
+                      <Button
+                        size="sm"
+                        className="w-full"
+                        onClick={() => handleAccept(handoff)}
+                        disabled={acceptMutation.isPending}
+                        data-testid={`button-accept-handoff-${handoff.handoff.id}`}
+                      >
+                        {acceptMutation.isPending ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Accepting...
+                          </>
+                        ) : (
+                          <>
+                            <Check className="h-4 w-4 mr-2" />
+                            Accept Chat
+                          </>
+                        )}
+                      </Button>
                     </CardContent>
                   </Card>
                 ))}
@@ -295,9 +315,17 @@ export default function LiveChats() {
                         </div>
                         <Badge variant="default" className="text-xs">Active</Badge>
                       </div>
-                      <p className="text-xs text-muted-foreground">
-                        {format(new Date(handoff.handoff.acceptedAt!), "MMM d, h:mm a")}
-                      </p>
+                      <div className="space-y-1">
+                        {handoff.agent?.email && (
+                          <p className="text-xs text-muted-foreground flex items-center gap-1">
+                            <User className="h-3 w-3" />
+                            {handoff.agent.email}
+                          </p>
+                        )}
+                        <p className="text-xs text-muted-foreground">
+                          {format(new Date(handoff.handoff.acceptedAt!), "MMM d, h:mm a")}
+                        </p>
+                      </div>
                     </CardContent>
                   </Card>
                 ))}

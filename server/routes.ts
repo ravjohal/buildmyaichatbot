@@ -4512,6 +4512,12 @@ INCORRECT citation examples (NEVER do this):
         return res.json([]);
       }
       
+      // Create a subquery to get agent names
+      const agentUsers = db.select({
+        id: users.id,
+        email: users.email,
+      }).from(users).as('agent_users');
+
       // Get all pending and active handoffs for owner's chatbots
       const handoffs = await db.select({
         handoff: liveAgentHandoffs,
@@ -4523,11 +4529,15 @@ INCORRECT citation examples (NEVER do this):
           id: conversations.id,
           sessionId: conversations.sessionId,
           messageCount: conversations.messageCount,
+        },
+        agent: {
+          email: agentUsers.email,
         }
       })
       .from(liveAgentHandoffs)
       .leftJoin(chatbots, eq(liveAgentHandoffs.chatbotId, chatbots.id))
       .leftJoin(conversations, eq(liveAgentHandoffs.conversationId, conversations.id))
+      .leftJoin(agentUsers, eq(liveAgentHandoffs.agentId, agentUsers.id))
       .where(
         and(
           or(
