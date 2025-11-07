@@ -613,6 +613,38 @@ export const insertTeamInvitationSchema = createInsertSchema(teamInvitations).om
 export type TeamInvitation = typeof teamInvitations.$inferSelect;
 export type InsertTeamInvitation = z.infer<typeof insertTeamInvitationSchema>;
 
+// Team Member Permissions - granular access control for team members
+export const teamMemberPermissions = pgTable("team_member_permissions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }).unique(),
+  canViewAnalytics: text("can_view_analytics").notNull().default("true"),
+  canManageChatbots: text("can_manage_chatbots").notNull().default("false"),
+  canRespondToChats: text("can_respond_to_chats").notNull().default("true"),
+  canViewLeads: text("can_view_leads").notNull().default("true"),
+  canManageTeam: text("can_manage_team").notNull().default("false"),
+  canAccessSettings: text("can_access_settings").notNull().default("false"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertTeamMemberPermissionsSchema = createInsertSchema(teamMemberPermissions).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type TeamMemberPermissions = typeof teamMemberPermissions.$inferSelect;
+export type InsertTeamMemberPermissions = z.infer<typeof insertTeamMemberPermissionsSchema>;
+
+// Team member limits by subscription tier
+export const TEAM_MEMBER_LIMITS = {
+  free: 0, // Free tier cannot have team members
+  starter: 3,
+  business: 10,
+  pro: 10,
+  scale: -1, // Unlimited (-1 means no limit)
+} as const;
+
 // Scraped Images - stores images extracted from knowledge base sources
 export const scrapedImages = pgTable("scraped_images", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),

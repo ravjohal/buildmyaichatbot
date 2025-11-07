@@ -6,8 +6,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, UserPlus, X, Mail, Clock, Check } from "lucide-react";
+import { Loader2, UserPlus, X, Mail, Clock, Check, Settings, Crown } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -36,11 +45,42 @@ type TeamInvitation = {
   expiresAt: string;
 };
 
+type TeamMemberPermissions = {
+  id: string;
+  userId: string;
+  canViewAnalytics: string;
+  canManageChatbots: string;
+  canRespondToChats: string;
+  canViewLeads: string;
+  canManageTeam: string;
+  canAccessSettings: string;
+};
+
+type User = {
+  id: string;
+  email: string;
+  subscriptionTier: string;
+};
+
+const TEAM_MEMBER_LIMITS: Record<string, number> = {
+  free: 0,
+  starter: 3,
+  business: 10,
+  pro: 10,
+  scale: -1, // unlimited
+};
+
 export default function TeamManagement() {
   const [email, setEmail] = useState("");
   const [memberToRemove, setMemberToRemove] = useState<TeamMember | null>(null);
   const [invitationToCancel, setInvitationToCancel] = useState<TeamInvitation | null>(null);
+  const [editingPermissions, setEditingPermissions] = useState<TeamMember | null>(null);
+  const [permissions, setPermissions] = useState<TeamMemberPermissions | null>(null);
   const { toast } = useToast();
+
+  const { data: user } = useQuery<User>({
+    queryKey: ["/api/auth/user"],
+  });
 
   const { data, isLoading } = useQuery<{ members: TeamMember[]; invitations: TeamInvitation[] }>({
     queryKey: ["/api/team/members"],
@@ -112,6 +152,55 @@ export default function TeamManagement() {
     },
   });
 
+  const updatePermissionsMutation = useMutation({
+    mutationFn: async ({ memberId, permissions }: { memberId: string; permissions: Partial<TeamMemberPermissions> }) => {
+      const res = await apiRequest("PUT", `/api/team/members/${memberId}/permissions`, permissions);
+      return res.json();
+    },
+    onSuccess: () => {
+      setEditingPermissions(null);
+      setPermissions(null);
+      toast({
+        title: "Permissions updated",
+        description: "Team member permissions have been updated successfully.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to update permissions",
+        description: error.message || "Please try again",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleOpenPermissions = async (member: TeamMember) => {
+    setEditingPermissions(member);
+    try {
+      const res = await fetch(`/api/team/members/${member.id}/permissions`, {
+        credentials: 'include',
+      });
+      const perms = await res.json();
+      setPermissions(perms);
+    } catch (error) {
+      toast({
+        title: "Failed to load permissions",
+        description: "Please try again",
+        variant: "destructive",
+      });
+      setEditingPermissions(null);
+    }
+  };
+
+  const handleSavePermissions = () => {
+    if (editingPermissions && permissions) {
+      updatePermissionsMutation.mutate({
+        memberId: editingPermissions.id,
+        permissions,
+      });
+    }
+  };
+
   const handleInvite = (e: React.FormEvent) => {
     e.preventDefault();
     if (email.trim()) {
@@ -129,6 +218,18 @@ export default function TeamManagement() {
 
   const members = data?.members || [];
   const invitations = data?.invitations || [];
+  
+  const tierLimit = user ? TEAM_MEMBER_LIMITS[user.subscriptionTier] || 0 : 0;
+  const currentUsage = members.length + invitations.length;
+  const isAtLimit = tierLimit !== -1 && currentUsage >= tierLimit;
+  
+  const tierNames: Record<string, string> = {
+    free: "Free",
+    starter: "Starter",
+    business: "Business",
+    pro: "Pro",
+    scale: "Scale"
+  };
 
   return (
     <div className="container mx-auto p-6 max-w-4xl space-y-6">
@@ -138,6 +239,40 @@ export default function TeamManagement() {
           Invite team members to help respond to live chat requests from your customers.
         </p>
       </div>
+      
+      {user && (
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="font-semibold">Team Capacity</h3>
+                  <Badge variant="secondary">{tierNames[user.subscriptionTier] || user.subscriptionTier}</Badge>
+                </div>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {tierLimit === -1 
+                    ? `Unlimited team members on ${tierNames[user.subscriptionTier]} plan`
+                    : `${currentUsage} of ${tierLimit} team slots used`
+                  }
+                </p>
+              </div>
+              {isAtLimit && tierLimit > 0 && (
+                <Button variant="outline" size="default" asChild data-testid="button-upgrade-team">
+                  <a href="/pricing">
+                    <Crown className="w-4 h-4 mr-2" />
+                    Upgrade Plan
+                  </a>
+                </Button>
+              )}
+            </div>
+            {isAtLimit && (
+              <p className="text-sm text-destructive mt-3" data-testid="text-limit-reached">
+                You've reached your team member limit. Upgrade to add more members.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>
@@ -165,7 +300,7 @@ export default function TeamManagement() {
             </div>
             <Button
               type="submit"
-              disabled={inviteMutation.isPending || !email.trim()}
+              disabled={inviteMutation.isPending || !email.trim() || isAtLimit}
               data-testid="button-send-invite"
             >
               {inviteMutation.isPending ? (
@@ -272,14 +407,25 @@ export default function TeamManagement() {
                       </p>
                     </div>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setMemberToRemove(member)}
-                    data-testid={`button-remove-member-${member.id}`}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="default"
+                      onClick={() => handleOpenPermissions(member)}
+                      data-testid={`button-permissions-${member.id}`}
+                    >
+                      <Settings className="h-4 w-4 mr-2" />
+                      Permissions
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setMemberToRemove(member)}
+                      data-testid={`button-remove-member-${member.id}`}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -358,6 +504,131 @@ export default function TeamManagement() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={!!editingPermissions} onOpenChange={() => {
+        setEditingPermissions(null);
+        setPermissions(null);
+      }}>
+        <DialogContent data-testid="dialog-permissions">
+          <DialogHeader>
+            <DialogTitle>Manage Permissions</DialogTitle>
+            <DialogDescription>
+              Control what {editingPermissions?.firstName || editingPermissions?.email} can access and manage.
+            </DialogDescription>
+          </DialogHeader>
+          {permissions ? (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label htmlFor="canViewAnalytics">View Analytics</Label>
+                  <p className="text-sm text-muted-foreground">Access chatbot analytics and performance data</p>
+                </div>
+                <Switch
+                  id="canViewAnalytics"
+                  checked={permissions.canViewAnalytics === "true"}
+                  onCheckedChange={(checked) => setPermissions({...permissions, canViewAnalytics: checked ? "true" : "false"})}
+                  data-testid="switch-view-analytics"
+                />
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label htmlFor="canManageChatbots">Manage Chatbots</Label>
+                  <p className="text-sm text-muted-foreground">Create, edit, and delete chatbots</p>
+                </div>
+                <Switch
+                  id="canManageChatbots"
+                  checked={permissions.canManageChatbots === "true"}
+                  onCheckedChange={(checked) => setPermissions({...permissions, canManageChatbots: checked ? "true" : "false"})}
+                  data-testid="switch-manage-chatbots"
+                />
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label htmlFor="canRespondToChats">Respond to Live Chats</Label>
+                  <p className="text-sm text-muted-foreground">Answer live chat requests from visitors</p>
+                </div>
+                <Switch
+                  id="canRespondToChats"
+                  checked={permissions.canRespondToChats === "true"}
+                  onCheckedChange={(checked) => setPermissions({...permissions, canRespondToChats: checked ? "true" : "false"})}
+                  data-testid="switch-respond-chats"
+                />
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label htmlFor="canViewLeads">View Leads</Label>
+                  <p className="text-sm text-muted-foreground">Access captured lead information</p>
+                </div>
+                <Switch
+                  id="canViewLeads"
+                  checked={permissions.canViewLeads === "true"}
+                  onCheckedChange={(checked) => setPermissions({...permissions, canViewLeads: checked ? "true" : "false"})}
+                  data-testid="switch-view-leads"
+                />
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label htmlFor="canManageTeam">Manage Team</Label>
+                  <p className="text-sm text-muted-foreground">Invite and remove team members</p>
+                </div>
+                <Switch
+                  id="canManageTeam"
+                  checked={permissions.canManageTeam === "true"}
+                  onCheckedChange={(checked) => setPermissions({...permissions, canManageTeam: checked ? "true" : "false"})}
+                  data-testid="switch-manage-team"
+                />
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label htmlFor="canAccessSettings">Access Settings</Label>
+                  <p className="text-sm text-muted-foreground">Modify account and subscription settings</p>
+                </div>
+                <Switch
+                  id="canAccessSettings"
+                  checked={permissions.canAccessSettings === "true"}
+                  onCheckedChange={(checked) => setPermissions({...permissions, canAccessSettings: checked ? "true" : "false"})}
+                  data-testid="switch-access-settings"
+                />
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          )}
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setEditingPermissions(null);
+                setPermissions(null);
+              }}
+              data-testid="button-cancel-permissions"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSavePermissions}
+              disabled={updatePermissionsMutation.isPending || !permissions}
+              data-testid="button-save-permissions"
+            >
+              {updatePermissionsMutation.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Saving...
+                </>
+              ) : (
+                "Save Changes"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

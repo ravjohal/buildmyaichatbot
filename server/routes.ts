@@ -4587,6 +4587,45 @@ INCORRECT citation examples (NEVER do this):
         return res.status(403).json({ error: "Only account owners can invite team members" });
       }
       
+      // Check team member limits based on subscription tier
+      const { TEAM_MEMBER_LIMITS } = await import("@shared/schema");
+      const tierLimit = TEAM_MEMBER_LIMITS[user.subscriptionTier as keyof typeof TEAM_MEMBER_LIMITS];
+      
+      // Count existing team members (accepted invitations)
+      const existingMembers = await db.select().from(users)
+        .where(and(
+          eq(users.parentUserId, userId),
+          eq(users.role, 'team_member')
+        ));
+      
+      // Count pending invitations
+      const pendingInvites = await db.select().from(teamInvitations)
+        .where(and(
+          eq(teamInvitations.invitedBy, userId),
+          eq(teamInvitations.status, 'pending')
+        ));
+      
+      const totalTeamSlots = existingMembers.length + pendingInvites.length;
+      
+      // Check if limit is reached (tierLimit of -1 means unlimited)
+      if (tierLimit !== -1 && totalTeamSlots >= tierLimit) {
+        const tierNames: Record<string, string> = {
+          free: "Free",
+          starter: "Starter",
+          business: "Business",
+          pro: "Pro",
+          scale: "Scale"
+        };
+        return res.status(403).json({ 
+          error: `Team member limit reached for ${tierNames[user.subscriptionTier]} tier`,
+          limit: tierLimit,
+          current: totalTeamSlots,
+          message: tierLimit === 0 
+            ? "Upgrade to Starter or higher to invite team members"
+            : "Upgrade your plan to invite more team members"
+        });
+      }
+      
       // Check if email is already invited or is an existing team member
       const existingInvite = await db.select().from(teamInvitations)
         .where(and(
@@ -4598,6 +4637,18 @@ INCORRECT citation examples (NEVER do this):
       
       if (existingInvite.length > 0) {
         return res.status(400).json({ error: "Invitation already sent to this email" });
+      }
+      
+      // Check if email already belongs to a team member
+      const existingMember = await db.select().from(users)
+        .where(and(
+          eq(users.parentUserId, userId),
+          eq(users.email, email)
+        ))
+        .limit(1);
+      
+      if (existingMember.length > 0) {
+        return res.status(400).json({ error: "This email is already a team member" });
       }
       
       // Generate unique token
@@ -4735,6 +4786,24 @@ INCORRECT citation examples (NEVER do this):
           })
           .where(eq(users.id, existingUser[0].id));
         
+        // Create default permissions for team member if they don't exist
+        const { teamMemberPermissions } = await import('@shared/schema');
+        const existingPermissions = await db.select().from(teamMemberPermissions)
+          .where(eq(teamMemberPermissions.userId, existingUser[0].id))
+          .limit(1);
+        
+        if (existingPermissions.length === 0) {
+          await db.insert(teamMemberPermissions).values({
+            userId: existingUser[0].id,
+            canViewAnalytics: "true",
+            canManageChatbots: "false",
+            canRespondToChats: "true",
+            canViewLeads: "true",
+            canManageTeam: "false",
+            canAccessSettings: "false",
+          });
+        }
+        
         // Mark invitation as accepted
         await db.update(teamInvitations)
           .set({
@@ -4757,6 +4826,18 @@ INCORRECT citation examples (NEVER do this):
           role: 'team_member',
           parentUserId: invitation.invitedBy,
         }).returning();
+        
+        // Create default permissions for team member
+        const { teamMemberPermissions } = await import('@shared/schema');
+        await db.insert(teamMemberPermissions).values({
+          userId: newUser[0].id,
+          canViewAnalytics: "true",
+          canManageChatbots: "false",
+          canRespondToChats: "true",
+          canViewLeads: "true",
+          canManageTeam: "false",
+          canAccessSettings: "false",
+        });
         
         // Mark invitation as accepted
         await db.update(teamInvitations)
@@ -4823,6 +4904,101 @@ INCORRECT citation examples (NEVER do this):
     } catch (error) {
       console.error("Error cancelling invitation:", error);
       res.status(500).json({ error: "Failed to cancel invitation" });
+    }
+  });
+  
+  // Get team member permissions
+  app.get("/api/team/members/:id/permissions", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const memberId = req.params.id;
+      
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      // Only owners can view team member permissions
+      if (user.role !== 'owner') {
+        return res.status(403).json({ error: "Only account owners can view team member permissions" });
+      }
+      
+      // Verify the member belongs to this owner
+      const member = await db.select().from(users).where(eq(users.id, memberId)).limit(1);
+      if (!member[0] || member[0].parentUserId !== userId) {
+        return res.status(404).json({ error: "Team member not found" });
+      }
+      
+      // Get permissions
+      const { teamMemberPermissions } = await import('@shared/schema');
+      const permissions = await db.select().from(teamMemberPermissions)
+        .where(eq(teamMemberPermissions.userId, memberId))
+        .limit(1);
+      
+      if (permissions.length === 0) {
+        // Create default permissions if they don't exist
+        const newPermissions = await db.insert(teamMemberPermissions).values({
+          userId: memberId,
+          canViewAnalytics: "true",
+          canManageChatbots: "false",
+          canRespondToChats: "true",
+          canViewLeads: "true",
+          canManageTeam: "false",
+          canAccessSettings: "false",
+        }).returning();
+        
+        return res.json(newPermissions[0]);
+      }
+      
+      res.json(permissions[0]);
+    } catch (error) {
+      console.error("Error fetching team member permissions:", error);
+      res.status(500).json({ error: "Failed to fetch permissions" });
+    }
+  });
+  
+  // Update team member permissions
+  app.put("/api/team/members/:id/permissions", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const memberId = req.params.id;
+      const permissionsData = req.body;
+      
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      // Only owners can update team member permissions
+      if (user.role !== 'owner') {
+        return res.status(403).json({ error: "Only account owners can update team member permissions" });
+      }
+      
+      // Verify the member belongs to this owner
+      const member = await db.select().from(users).where(eq(users.id, memberId)).limit(1);
+      if (!member[0] || member[0].parentUserId !== userId) {
+        return res.status(404).json({ error: "Team member not found" });
+      }
+      
+      // Update permissions
+      const { teamMemberPermissions } = await import('@shared/schema');
+      const updatedPermissions = await db.update(teamMemberPermissions)
+        .set({
+          canViewAnalytics: permissionsData.canViewAnalytics,
+          canManageChatbots: permissionsData.canManageChatbots,
+          canRespondToChats: permissionsData.canRespondToChats,
+          canViewLeads: permissionsData.canViewLeads,
+          canManageTeam: permissionsData.canManageTeam,
+          canAccessSettings: permissionsData.canAccessSettings,
+          updatedAt: new Date(),
+        })
+        .where(eq(teamMemberPermissions.userId, memberId))
+        .returning();
+      
+      res.json(updatedPermissions[0]);
+    } catch (error) {
+      console.error("Error updating team member permissions:", error);
+      res.status(500).json({ error: "Failed to update permissions" });
     }
   });
 
