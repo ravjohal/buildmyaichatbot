@@ -41,13 +41,6 @@
           "file": "/docs/chatbot/knowledge-base.md"
         },
         {
-          "id": "customization",
-          "title": "Customizing Your Chatbot",
-          "slug": "customization",
-          "description": "Personalize colors, branding, and chatbot personality",
-          "file": "/docs/chatbot/customization.md"
-        },
-        {
           "id": "embedding",
           "title": "Embedding Your Chatbot",
           "slug": "embedding",
@@ -74,13 +67,6 @@
           "slug": "live-chat",
           "description": "Handle customer conversations in real-time",
           "file": "/docs/team/live-chat.md"
-        },
-        {
-          "id": "permissions",
-          "title": "Team Permissions",
-          "slug": "permissions",
-          "description": "Understanding role-based access control",
-          "file": "/docs/team/permissions.md"
         }
       ]
     },
@@ -109,48 +95,6 @@
           "slug": "crm-integration",
           "description": "Connect your CRM to automatically sync leads",
           "file": "/docs/leads/crm.md"
-        }
-      ]
-    },
-    {
-      "id": "analytics",
-      "title": "Analytics & Optimization",
-      "icon": "BarChart3",
-      "articles": [
-        {
-          "id": "analytics-dashboard",
-          "title": "Analytics Dashboard",
-          "slug": "analytics-dashboard",
-          "description": "Understand your chatbot's performance and engagement",
-          "file": "/docs/analytics/dashboard.md"
-        },
-        {
-          "id": "manual-training",
-          "title": "Training Your Chatbot",
-          "slug": "manual-training",
-          "description": "Improve accuracy with manual answer corrections",
-          "file": "/docs/analytics/training.md"
-        }
-      ]
-    },
-    {
-      "id": "account",
-      "title": "Account & Billing",
-      "icon": "CreditCard",
-      "articles": [
-        {
-          "id": "subscription-plans",
-          "title": "Subscription Plans",
-          "slug": "subscription-plans",
-          "description": "Understanding tier limits and features",
-          "file": "/docs/account/plans.md"
-        },
-        {
-          "id": "account-settings",
-          "title": "Account Settings",
-          "slug": "account-settings",
-          "description": "Manage your profile and preferences",
-          "file": "/docs/account/settings.md"
         }
       ]
     }

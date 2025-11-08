@@ -1,5 +1,5 @@
 import { Link } from "wouter";
-import { Crown, LogOut, User as UserIcon, Shield, LayoutDashboard, Briefcase, Users, MessageSquare, Bell, X } from "lucide-react";
+import { Crown, LogOut, User as UserIcon, Shield, LayoutDashboard, Briefcase, Users, MessageSquare, Bell, X, HelpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -119,6 +119,16 @@ export function DashboardHeader() {
               >
                 <Users className="w-4 h-4 mr-2" />
                 Team
+              </Button>
+            </Link>
+            <Link href="/help">
+              <Button 
+                variant="outline" 
+                size="default"
+                data-testid="button-help"
+              >
+                <HelpCircle className="w-4 h-4 mr-2" />
+                Help
               </Button>
             </Link>
             {isFreeTier && (

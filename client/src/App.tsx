@@ -21,6 +21,7 @@ import AdminJobs from "@/pages/AdminJobs";
 import NotificationSettings from "@/pages/NotificationSettings";
 import TeamManagement from "@/pages/TeamManagement";
 import LiveChats from "@/pages/LiveChats";
+import Help from "@/pages/Help";
 import Landing from "@/pages/Landing";
 import Login from "@/pages/Login";
 import Register from "@/pages/Register";
@@ -88,6 +89,8 @@ function ProtectedRouter() {
       <Route path="/notifications" component={NotificationSettings} />
       <Route path="/team" component={TeamManagement} />
       <Route path="/live-chats" component={LiveChats} />
+      <Route path="/help" component={Help} />
+      <Route path="/help/:slug" component={Help} />
       <Route path="/admin" component={Admin} />
       <Route path="/admin/jobs" component={AdminJobs} />
       <Route component={NotFound} />
