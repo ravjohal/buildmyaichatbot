@@ -1,0 +1,158 @@
+{
+  "categories": [
+    {
+      "id": "getting-started",
+      "title": "Getting Started",
+      "icon": "Rocket",
+      "articles": [
+        {
+          "id": "welcome",
+          "title": "Welcome to BuildMyChatbot.Ai",
+          "slug": "welcome",
+          "description": "Get started with your first AI chatbot in minutes",
+          "file": "/docs/getting-started/welcome.md"
+        },
+        {
+          "id": "quick-start",
+          "title": "Quick Start Guide",
+          "slug": "quick-start",
+          "description": "Create your first chatbot in 5 easy steps",
+          "file": "/docs/getting-started/quick-start.md"
+        }
+      ]
+    },
+    {
+      "id": "chatbot",
+      "title": "Building Your Chatbot",
+      "icon": "Bot",
+      "articles": [
+        {
+          "id": "chatbot-wizard",
+          "title": "Chatbot Creation Wizard",
+          "slug": "chatbot-wizard",
+          "description": "Step-by-step guide through the 7-step chatbot creation process",
+          "file": "/docs/chatbot/wizard.md"
+        },
+        {
+          "id": "knowledge-base",
+          "title": "Managing Your Knowledge Base",
+          "slug": "knowledge-base",
+          "description": "Add websites, documents, and update your chatbot's knowledge",
+          "file": "/docs/chatbot/knowledge-base.md"
+        },
+        {
+          "id": "customization",
+          "title": "Customizing Your Chatbot",
+          "slug": "customization",
+          "description": "Personalize colors, branding, and chatbot personality",
+          "file": "/docs/chatbot/customization.md"
+        },
+        {
+          "id": "embedding",
+          "title": "Embedding Your Chatbot",
+          "slug": "embedding",
+          "description": "Add your chatbot to your website with a simple script",
+          "file": "/docs/chatbot/embedding.md"
+        }
+      ]
+    },
+    {
+      "id": "team",
+      "title": "Team & Collaboration",
+      "icon": "Users",
+      "articles": [
+        {
+          "id": "team-management",
+          "title": "Managing Your Team",
+          "slug": "team-management",
+          "description": "Invite team members and control their permissions",
+          "file": "/docs/team/management.md"
+        },
+        {
+          "id": "live-chat",
+          "title": "Live Agent Handoff",
+          "slug": "live-chat",
+          "description": "Handle customer conversations in real-time",
+          "file": "/docs/team/live-chat.md"
+        },
+        {
+          "id": "permissions",
+          "title": "Team Permissions",
+          "slug": "permissions",
+          "description": "Understanding role-based access control",
+          "file": "/docs/team/permissions.md"
+        }
+      ]
+    },
+    {
+      "id": "leads",
+      "title": "Customer Engagement",
+      "icon": "Mail",
+      "articles": [
+        {
+          "id": "lead-capture",
+          "title": "Lead Capture Forms",
+          "slug": "lead-capture",
+          "description": "Collect visitor information and manage leads",
+          "file": "/docs/leads/capture.md"
+        },
+        {
+          "id": "keyword-alerts",
+          "title": "Keyword Alerts",
+          "slug": "keyword-alerts",
+          "description": "Get notified when visitors mention specific keywords",
+          "file": "/docs/leads/keyword-alerts.md"
+        },
+        {
+          "id": "crm-integration",
+          "title": "CRM Integration",
+          "slug": "crm-integration",
+          "description": "Connect your CRM to automatically sync leads",
+          "file": "/docs/leads/crm.md"
+        }
+      ]
+    },
+    {
+      "id": "analytics",
+      "title": "Analytics & Optimization",
+      "icon": "BarChart3",
+      "articles": [
+        {
+          "id": "analytics-dashboard",
+          "title": "Analytics Dashboard",
+          "slug": "analytics-dashboard",
+          "description": "Understand your chatbot's performance and engagement",
+          "file": "/docs/analytics/dashboard.md"
+        },
+        {
+          "id": "manual-training",
+          "title": "Training Your Chatbot",
+          "slug": "manual-training",
+          "description": "Improve accuracy with manual answer corrections",
+          "file": "/docs/analytics/training.md"
+        }
+      ]
+    },
+    {
+      "id": "account",
+      "title": "Account & Billing",
+      "icon": "CreditCard",
+      "articles": [
+        {
+          "id": "subscription-plans",
+          "title": "Subscription Plans",
+          "slug": "subscription-plans",
+          "description": "Understanding tier limits and features",
+          "file": "/docs/account/plans.md"
+        },
+        {
+          "id": "account-settings",
+          "title": "Account Settings",
+          "slug": "account-settings",
+          "description": "Manage your profile and preferences",
+          "file": "/docs/account/settings.md"
+        }
+      ]
+    }
+  ]
+}
