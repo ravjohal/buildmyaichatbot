@@ -4657,43 +4657,47 @@ INCORRECT citation examples (NEVER do this):
         return res.status(403).json({ error: "Only account owners can invite team members" });
       }
       
-      // Check team member limits based on subscription tier
-      const { TEAM_MEMBER_LIMITS } = await import("@shared/schema");
-      const tierLimit = TEAM_MEMBER_LIMITS[user.subscriptionTier as keyof typeof TEAM_MEMBER_LIMITS];
-      
-      // Count existing team members (accepted invitations)
-      const existingMembers = await db.select().from(users)
-        .where(and(
-          eq(users.parentUserId, userId),
-          eq(users.role, 'team_member')
-        ));
-      
-      // Count pending invitations
-      const pendingInvites = await db.select().from(teamInvitations)
-        .where(and(
-          eq(teamInvitations.invitedBy, userId),
-          eq(teamInvitations.status, 'pending')
-        ));
-      
-      const totalTeamSlots = existingMembers.length + pendingInvites.length;
-      
-      // Check if limit is reached (tierLimit of -1 means unlimited)
-      if (tierLimit !== -1 && totalTeamSlots >= tierLimit) {
-        const tierNames: Record<string, string> = {
-          free: "Free",
-          starter: "Starter",
-          business: "Business",
-          pro: "Pro",
-          scale: "Scale"
-        };
-        return res.status(403).json({ 
-          error: `Team member limit reached for ${tierNames[user.subscriptionTier]} tier`,
-          limit: tierLimit,
-          current: totalTeamSlots,
-          message: tierLimit === 0 
-            ? "Upgrade to Starter or higher to invite team members"
-            : "Upgrade your plan to invite more team members"
-        });
+      // Admin users have unlimited team members (equivalent to Scale tier)
+      // Skip limit check for admin users
+      if (user.isAdmin !== "true") {
+        // Check team member limits based on subscription tier
+        const { TEAM_MEMBER_LIMITS } = await import("@shared/schema");
+        const tierLimit = TEAM_MEMBER_LIMITS[user.subscriptionTier as keyof typeof TEAM_MEMBER_LIMITS];
+        
+        // Count existing team members (accepted invitations)
+        const existingMembers = await db.select().from(users)
+          .where(and(
+            eq(users.parentUserId, userId),
+            eq(users.role, 'team_member')
+          ));
+        
+        // Count pending invitations
+        const pendingInvites = await db.select().from(teamInvitations)
+          .where(and(
+            eq(teamInvitations.invitedBy, userId),
+            eq(teamInvitations.status, 'pending')
+          ));
+        
+        const totalTeamSlots = existingMembers.length + pendingInvites.length;
+        
+        // Check if limit is reached (tierLimit of -1 means unlimited)
+        if (tierLimit !== -1 && totalTeamSlots >= tierLimit) {
+          const tierNames: Record<string, string> = {
+            free: "Free",
+            starter: "Starter",
+            business: "Business",
+            pro: "Pro",
+            scale: "Scale"
+          };
+          return res.status(403).json({ 
+            error: `Team member limit reached for ${tierNames[user.subscriptionTier]} tier`,
+            limit: tierLimit,
+            current: totalTeamSlots,
+            message: tierLimit === 0 
+              ? "Upgrade to Starter or higher to invite team members"
+              : "Upgrade your plan to invite more team members"
+          });
+        }
       }
       
       // Check if email is already invited or is an existing team member

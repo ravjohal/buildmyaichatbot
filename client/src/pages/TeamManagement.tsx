@@ -60,6 +60,7 @@ type User = {
   id: string;
   email: string;
   subscriptionTier: string;
+  isAdmin: string;
 };
 
 const TEAM_MEMBER_LIMITS: Record<string, number> = {
@@ -219,7 +220,10 @@ export default function TeamManagement() {
   const members = data?.members || [];
   const invitations = data?.invitations || [];
   
-  const tierLimit = user ? TEAM_MEMBER_LIMITS[user.subscriptionTier] || 0 : 0;
+  // Admin users have unlimited team members (equivalent to Scale tier)
+  const tierLimit = user 
+    ? (user.isAdmin === "true" ? -1 : TEAM_MEMBER_LIMITS[user.subscriptionTier] || 0)
+    : 0;
   const currentUsage = members.length + invitations.length;
   const isAtLimit = tierLimit !== -1 && currentUsage >= tierLimit;
   
