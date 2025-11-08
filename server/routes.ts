@@ -4742,12 +4742,13 @@ INCORRECT citation examples (NEVER do this):
       
       // Send invitation email
       try {
+        console.log(`[TEAM-INVITE] Attempting to send invitation email to ${email}`);
         const { getUncachableResendClient } = await import('./emails/resend-client');
         const { client, fromEmail } = await getUncachableResendClient();
         
         const inviteUrl = `${process.env.REPL_SLUG ? `https://${process.env.REPL_SLUG}.${process.env.REPLIT_DEV_DOMAIN}` : 'http://localhost:5000'}/team/accept?token=${token}`;
         
-        await client.emails.send({
+        const emailResult = await client.emails.send({
           from: fromEmail,
           to: email,
           subject: `${user.firstName || 'Someone'} invited you to join their team`,
@@ -4765,8 +4766,9 @@ INCORRECT citation examples (NEVER do this):
             <p style="color: #666; font-size: 12px;">If the button doesn't work, copy and paste this link: ${inviteUrl}</p>
           `
         });
+        console.log(`[TEAM-INVITE] ✓ Invitation email sent successfully to ${email}`, emailResult);
       } catch (emailError) {
-        console.error("Failed to send invitation email:", emailError);
+        console.error(`[TEAM-INVITE] ✗ Failed to send invitation email to ${email}:`, emailError);
       }
       
       res.status(201).json(invitation[0]);
