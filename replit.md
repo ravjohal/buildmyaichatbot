@@ -2,62 +2,7 @@
 
 ## Overview
 
-BuildMyChatbot.Ai is a SaaS web application enabling non-technical business owners to create, customize, and deploy AI-powered customer support chatbots for their websites. It offers a guided creation wizard, extensive customization, and an embeddable widget for seamless website integration. The project aims to provide efficient, AI-driven customer support, reducing operational costs and enhancing customer satisfaction. Key capabilities include streaming LLM responses, chunk-based knowledge retrieval with vector embeddings, AI responses from website content and documents, multi-tier user management, comprehensive analytics, and a freemium pricing model with Stripe integration.
-
-## Recent Updates (November 7, 2025)
-
-**Team Member Limits & Permissions System:**
-- Implemented tier-based team member limits: Free (0), Starter (3), Business/Pro (10), Scale (unlimited)
-- Team invitation endpoint now validates against subscription tier limits before allowing new invites
-- Tier limits count both accepted team members and pending invitations
-- Team Management UI displays current usage vs. tier limit with upgrade prompts when limit reached
-- Added granular role-based permissions system with 6 permission types: view_analytics, manage_chatbots, respond_to_chats, view_leads, manage_team, access_settings
-- New database table: `team_member_permissions` stores permission flags for each team member
-- Default permissions (respond_to_chats only) automatically created when team member accepts invitation
-- Permissions management UI allows account owners to control what each team member can access
-- Permission enforcement middleware (`hasPermission`) protects critical API endpoints
-- Multi-tenant security: team members automatically scoped to their owner's resources via `parentUserId`
-- Invitation acceptance flow creates new accounts for non-existing users with password, firstName, lastName
-- Team capacity card shows real-time tier usage and displays upgrade CTA when at limit
-
-**Keyword Alerts System:**
-- Added ability for chatbot owners to receive notifications when visitors mention specific keywords in chat
-- New database tables: `keyword_alerts` (configuration) and `keyword_alert_triggers` (detection history)
-- Real-time keyword detection in chat endpoint with case-insensitive matching
-- Dual-channel notifications: email (via Resend) and in-app notifications panel
-- Configuration UI in wizard Step 5 (Escalation) with keyword management and notification channel toggles
-- In-app notifications panel in DashboardHeader with Bell icon, unread badge, Popover display, and mark-as-read functionality
-- 30-second polling interval keeps notifications fresh without overwhelming the server
-- Non-blocking async operation ensures keyword detection doesn't impact chat response times
-
-**EditChatbot Improvements:**
-- Enhanced edit mode to show all 7 wizard steps with full bidirectional navigation
-- Implemented clickable StepIndicator component with `onStepClick` handler for direct step access
-- Fixed CRM data loading by adding separate query to `/api/chatbots/:id/crm-integration` endpoint
-- Added useEffect in StepCrm component to sync local state when formData changes (fixes toggle state bugs)
-- Implemented smart re-indexing that only triggers when knowledge sources actually change
-- Added baseline tracking to prevent false re-indexing prompts on subsequent edits
-- CRM data properly persists via dedicated endpoint with proper string/boolean conversion
-- Fixed timezone bug in live agent day-of-week calculation by using chatbot's timezone instead of server timezone
-
-**Live Agent Hours Configuration:**
-- Added configurable business hours for live agent availability
-- New fields: `liveAgentHoursEnabled`, `liveAgentStartTime`, `liveAgentEndTime`, `liveAgentTimezone`, `liveAgentDaysOfWeek`
-- Timezone-aware availability checking using `isWithinLiveAgentHours()` helper function
-- Backend respects configured hours when determining escalation eligibility
-- Chat widget displays availability message instead of handoff button when outside configured hours
-- Wizard Step 5 includes UI for configuring hours: enable/disable switch, time selects, timezone selector, days of week checkboxes
-
-**External Form Link for Lead Capture (November 6):**
-- Added ability to direct visitors to external forms (Google Forms, Typeform, etc.) instead of using built-in contact form
-- New fields: `leadCaptureType` (form/external_link), `leadCaptureExternalUrl`
-- Multi-layer security validation prevents XSS attacks via malicious URLs (server-side Zod, client-side HTML5, runtime checks)
-- Chat widget displays "Open Contact Form" button for external links vs traditional form inputs
-
-**Object Storage Fixes (November 6):**
-- Fixed logo upload functionality by migrating from GCS `getSignedUrl()` to Replit's sidecar endpoint for URL signing
-- Fixed document upload by using proper signed URL upload flow instead of non-existent `extractObjectPath()` method
-- All object storage operations now use Replit's managed storage service correctly
+BuildMyChatbot.Ai is a SaaS web application designed to empower non-technical business owners to create, customize, and deploy AI-powered customer support chatbots. Its primary purpose is to provide efficient, AI-driven customer support, thereby reducing operational costs and enhancing customer satisfaction. The platform offers a guided creation wizard, extensive customization options, and an embeddable widget for seamless website integration. Key features include streaming LLM responses, chunk-based knowledge retrieval, AI responses from diverse content sources, multi-tier user management, comprehensive analytics, and a freemium pricing model with Stripe integration.
 
 ## User Preferences
 
@@ -67,55 +12,56 @@ Preferred communication style: Simple, everyday language.
 
 ### UI/UX Decisions
 
-The frontend uses React and TypeScript, with Vite for development and Wouter for routing. TanStack Query manages server state. Tailwind CSS with shadcn/ui (New York variant) provides a professional SaaS aesthetic, featuring a multi-step chatbot creation wizard, real-time customization previews, and a responsive layout. All authenticated pages utilize a `DashboardHeader` for consistent global navigation, ensuring a unified user experience.
+The frontend leverages React, TypeScript, and Vite, with Wouter for routing and TanStack Query for server state management. Tailwind CSS combined with shadcn/ui (New York variant) establishes a professional SaaS aesthetic. The design incorporates a multi-step chatbot creation wizard, real-time customization previews, and a responsive layout. A consistent `DashboardHeader` across all authenticated pages ensures unified global navigation.
 
 ### Technical Implementations
 
-The backend is built with Express.js, Node.js, and TypeScript, following a RESTful API design. Zod is used for data validation. PostgreSQL with Drizzle ORM handles data persistence. The embeddable chat widget is delivered via an iframe for isolation. The system uses system Chromium from `replit.nix` for Playwright operations. Database connection resilience is achieved through automatic retry logic with exponential backoff for Neon serverless database connections. PDF extraction employs a 6-strategy fallback system: Strategies 1-4 attempt various pdf-parse library patterns, Strategy 5 uses the modern `unpdf` library (built on Mozilla's PDF.js) for production-quality extraction, and Strategy 6 employs regex-based extraction with comprehensive text sanitization as a last resort. The chunker intelligently handles large paragraphs without proper formatting by splitting them into sentences or fixed-size blocks with overlap, ensuring PDF text without paragraph breaks generates proper chunks. Source attribution in chatbot responses links to specific page URLs. Chatbots support configurable custom instructions that allow users to define specific behavioral rules for AI responses (e.g., "When discussing floor plans, focus only on layouts without mentioning pricing").
+The backend is built using Express.js, Node.js, and TypeScript, adhering to a RESTful API design. Zod handles data validation. PostgreSQL with Drizzle ORM manages data persistence. The embeddable chat widget is isolated within an iframe. The system utilizes Playwright for operations, including rendering Single Page Applications (SPAs) with SSRF protection. Database connection resilience features automatic retry logic with exponential backoff for Neon serverless connections. PDF extraction employs a 6-strategy fallback system, incorporating `pdf-parse`, `unpdf` (based on Mozilla's PDF.js), and regex-based methods. An intelligent chunker processes large paragraphs by splitting them into sentences or fixed-size blocks with overlap. Chatbot responses include source attribution linking to specific page URLs and support configurable custom instructions for AI behavior.
 
 ### Feature Specifications
 
-*   **Chatbot Creation Wizard:** A guided 7-step process for configuring chatbot name, knowledge base (website URLs, document uploads), personality, visual customization, support escalation, lead capture, and CRM integration.
-*   **Chat Widget:** An embeddable, customizable, and mobile-responsive AI chat interface with real-time streaming responses, suggested questions, conversation history, escalation detection, and configurable lead capture forms.
-*   **Smart Suggested Questions:** AI (Gemini) generates FAQ-style questions from website content during indexing, stored and randomly displayed in the chat widget.
-*   **Streaming LLM Responses:** Implements Server-Sent Events (SSE) for real-time, word-by-word response display.
-*   **Chunk-Based Knowledge Retrieval:** Content is split into semantic chunks with vector embeddings, and top-k similarity search retrieves the 5 most relevant chunks.
-*   **Visual Content Display:** Chatbots automatically scrape and index images from website knowledge sources during crawling. Images are retrieved via semantic similarity search and displayed inline within chat responses, enabling visual communication for floor plans, product images, diagrams, and other visual content.
-*   **Q&A Caching System:** Reduces LLM API costs by caching question-answer pairs with hybrid exact and semantic matching using pgvector embeddings.
-*   **Manual Answer Training:** Enables chatbot owners to improve accuracy by manually correcting AI responses via the Analytics interface.
-*   **Lead Capture System:** Collects visitor contact information via configurable forms, with a management dashboard and CSV export.
-*   **On-Demand Knowledge Base Refresh:** Intelligently updates chatbot knowledge from website URLs by detecting content changes via MD5 hashing.
-*   **Analytics Dashboard:** Offers comprehensive chatbot analytics, including key metrics, detailed conversation transcripts, and performance breakdowns.
-*   **3-Tier Pricing System:** Implements Free, Pro, and Scale tiers with server-side enforcement and varying limits on chatbots, conversations, and storage.
-*   **Admin System:** Provides full user management, system-wide statistics, and access to all chatbots for administrators.
-*   **Account Management:** Users can manage profile, subscription status, and billing via an integrated Stripe portal.
-*   **Shareable Links & QR Codes:** Enables easy distribution of chatbots via direct links and QR codes with a full-page chat interface.
-*   **Intelligent SPA Crawler:** A dual-mode website crawler that automatically detects and renders JavaScript-heavy Single Page Applications using Playwright, with SSRF protection.
-*   **Satisfaction Ratings:** Allows visitors to rate their chat experience (1-5 stars) for analytics.
-*   **Proactive Chat Popup:** Automatically displays a customizable popup notification to website visitors after a configurable delay.
-*   **Email Notifications:** Sends automated email alerts via Resend for new lead submissions, unanswered questions, and weekly performance reports.
-*   **Async Indexing Pipeline:** Non-blocking chatbot creation with background processing for website crawling. Frontend displays real-time indexing status with polling. Worker processes jobs sequentially with automatic error recovery and progress tracking.
-*   **Live Agent Handoff:** When chatbot detects it cannot help, visitors can request live human support. Real-time WebSocket-based chat connects visitors with support agents. Includes pending/active handoff queue, agent dashboard, and email notifications.
-*   **Team Management System:** Account owners can invite team members to act as live chat agents. Features role-based access (owner/team_member), email invitations with expiry, and team member management dashboard.
-*   **CRM Integration:** Generic webhook-based system for automatically sending captured leads to any CRM platform (Salesforce, HubSpot, Pipedrive, etc.). Supports multiple authentication types (Bearer, API Key, Basic), custom headers, flexible field mapping, automatic retry with exponential backoff, test connection capability, and real-time sync tracking with success/error monitoring.
-*   **Keyword Alerts:** Enables chatbot owners to receive notifications when visitors mention specific keywords. Features configurable keyword lists, dual-channel notifications (email via Resend and in-app), real-time detection with case-insensitive matching, alert history tracking, and a notifications panel with unread badge and 30-second polling for real-time updates.
+*   **Chatbot Creation Wizard:** A 7-step guided process covering configuration, knowledge base (URLs, documents), personality, visual customization, support escalation, lead capture, and CRM integration.
+*   **Chat Widget:** Embeddable, customizable, mobile-responsive AI chat interface with streaming responses, suggested questions, conversation history, escalation detection, and configurable lead capture forms.
+*   **Smart Suggested Questions:** AI (Gemini) generates FAQ-style questions from website content during indexing.
+*   **Streaming LLM Responses:** Uses Server-Sent Events (SSE) for real-time, word-by-word display.
+*   **Chunk-Based Knowledge Retrieval:** Content is semantically chunked, vectorized, and used for top-k similarity search.
+*   **Visual Content Display:** Chatbots scrape and index images from websites, displaying them inline in chat responses via semantic similarity search.
+*   **Q&A Caching System:** Reduces LLM costs by caching question-answer pairs with hybrid exact and semantic matching using pgvector.
+*   **Manual Answer Training:** Allows owners to correct AI responses via the Analytics interface.
+*   **Lead Capture System:** Collects visitor contact information via configurable forms, with a management dashboard and CSV export. Supports directing visitors to external forms.
+*   **On-Demand Knowledge Base Refresh:** Intelligently updates knowledge bases from website URLs by detecting content changes.
+*   **Analytics Dashboard:** Provides comprehensive chatbot analytics, including metrics, conversation transcripts, and performance breakdowns.
+*   **3-Tier Pricing System:** Implements Free, Pro, and Scale tiers with server-side enforcement of limits.
+*   **Admin System:** Offers full user management, system-wide statistics, and access to all chatbots for administrators.
+*   **Account Management:** Users manage profile, subscription, and billing via an integrated Stripe portal.
+*   **Shareable Links & QR Codes:** Enables distribution of chatbots via direct links and QR codes with a full-page chat interface.
+*   **Intelligent SPA Crawler:** Dual-mode crawler automatically detects and renders JavaScript-heavy SPAs using Playwright.
+*   **Satisfaction Ratings:** Allows visitors to rate their chat experience.
+*   **Proactive Chat Popup:** Displays a customizable popup notification after a configurable delay.
+*   **Email Notifications:** Sends automated alerts via Resend for new leads, unanswered questions, and performance reports.
+*   **Async Indexing Pipeline:** Non-blocking chatbot creation with background processing, error recovery, and real-time status updates.
+*   **Live Agent Handoff:** Allows visitors to request human support when the chatbot cannot assist. Features real-time WebSocket-based chat, a handoff queue, agent dashboard, and email notifications. Configurable business hours for live agent availability.
+*   **Team Management System:** Account owners can invite team members with role-based access (owner/team_member), email invitations, and a management dashboard. Implements tier-based team member limits and a granular role-based permissions system.
+*   **CRM Integration:** Generic webhook-based system for sending captured leads to CRMs, supporting various authentication types, custom headers, field mapping, automatic retry, and real-time sync tracking.
+*   **Keyword Alerts:** Notifies chatbot owners when specific keywords are mentioned in chat. Features configurable keyword lists, dual-channel notifications (email/in-app), real-time detection, alert history, and a notifications panel.
+*   **In-App Help Center:** Comprehensive self-service documentation accessible to all users via DashboardHeader. Features 10 step-by-step guides covering Phase 1 features, organized into 4 categories. Includes real-time search, URL-based article routing, markdown rendering (react-markdown + remark-gfm), and mobile-responsive three-pane layout with manifest-driven architecture.
 
 ### System Design Choices
 
-*   **Data Storage:** PostgreSQL with Drizzle ORM stores all persistent data, including users, chatbots, conversations, leads, Q&A cache, manual overrides, and knowledge chunks.
-*   **AI Integration:** Google Gemini AI (gemini-2.5-flash) via the `@google/genai` SDK is used for NLP, with a streaming API. System prompt engineering and chunk-based retrieval optimize responses. Response priority is Manual Override → Exact Cache → Semantic Cache → LLM with Chunks.
-*   **File Storage:** Google Cloud Storage (via Replit Object Storage) stores user-uploaded files, with Uppy.js for client-side uploads using signed URLs.
-*   **Authentication & Security:** Custom email/password authentication (`passport-local`, bcrypt, session-based) with robust security features, CSRF protection, and Zod input validation. Multi-tenant architecture scopes chatbots.
+*   **Data Storage:** PostgreSQL with Drizzle ORM for all persistent data.
+*   **AI Integration:** Google Gemini AI (gemini-2.5-flash) via `@google/genai` SDK for NLP, with a streaming API, system prompt engineering, and chunk-based retrieval. Response priority: Manual Override → Exact Cache → Semantic Cache → LLM with Chunks.
+*   **File Storage:** Google Cloud Storage (via Replit Object Storage) for user-uploaded files, with Uppy.js for client-side uploads using signed URLs.
+*   **Authentication & Security:** Custom email/password authentication (passport-local, bcrypt, session-based), CSRF protection, and Zod input validation. Multi-tenant architecture.
 *   **Payment Processing:** Stripe integration with automatic subscription tier management via webhooks.
-*   **Deployment Architecture:** Frontend assets built with Vite, server code with esbuild. Configured for development and production, with dynamic environment-based configurations.
+*   **Deployment Architecture:** Frontend built with Vite, server code with esbuild, configured for development and production.
 
 ## External Dependencies
 
 ### Third-Party Services
 
 *   **Google Cloud Platform:** Gemini AI API (NLP), Google Cloud Storage (user file storage).
-*   **Stripe:** Payment gateway for subscription management and billing.
-*   **Resend:** Transactional email service for notifications and reports.
+*   **Stripe:** Payment gateway for subscription management.
+*   **Resend:** Transactional email service.
 *   **Replit Infrastructure:** Replit Object Storage (managed object storage built on Google Cloud Storage).
 
 ### Key NPM Packages
