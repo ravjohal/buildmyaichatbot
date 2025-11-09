@@ -151,6 +151,34 @@ export async function setupAuth(app: Express) {
       const newUserResult = await db.select().from(users).where(eq(users.email, email)).limit(1);
       const newUser = newUserResult[0];
       
+      // Send notification to admin users about new signup
+      (async () => {
+        try {
+          const { notificationService } = await import('./emails/notification-service');
+          
+          // Get all admin users
+          const adminUsers = await db.select().from(users).where(eq(users.isAdmin, true));
+          
+          // Send email to each admin
+          for (const admin of adminUsers) {
+            await notificationService.sendNewUserSignupNotification(
+              admin.email,
+              {
+                userName: `${newUser.firstName} ${newUser.lastName}`.trim() || 'Unknown',
+                userEmail: newUser.email,
+                signupDate: new Date().toLocaleString('en-US', { 
+                  dateStyle: 'long', 
+                  timeStyle: 'short' 
+                }),
+              }
+            );
+          }
+        } catch (emailError) {
+          // Log error but don't fail registration
+          console.error('[EMAIL] Failed to send admin signup notification:', emailError);
+        }
+      })();
+      
       // Auto-login after registration
       req.login(newUser, (err) => {
         if (err) {

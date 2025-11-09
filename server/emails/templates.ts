@@ -1,5 +1,54 @@
 // Email HTML templates
 export const emailTemplates = {
+  newUserSignup: (data: {
+    userName: string;
+    userEmail: string;
+    signupDate: string;
+  }) => ({
+    subject: `New User Signup: ${data.userName}`,
+    html: `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background-color: #10B981; color: white; padding: 20px; text-align: center; }
+          .content { background-color: #f9f9f9; padding: 20px; margin-top: 20px; }
+          .field { margin-bottom: 15px; }
+          .field-label { font-weight: bold; color: #666; }
+          .field-value { margin-top: 5px; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>🎉 New User Signup!</h1>
+          </div>
+          <div class="content">
+            <p>A new user has signed up for BuildMyChatbot.Ai!</p>
+            
+            <div class="field">
+              <div class="field-label">Name:</div>
+              <div class="field-value">${data.userName}</div>
+            </div>
+            
+            <div class="field">
+              <div class="field-label">Email:</div>
+              <div class="field-value"><a href="mailto:${data.userEmail}">${data.userEmail}</a></div>
+            </div>
+            
+            <div class="field">
+              <div class="field-label">Signup Date:</div>
+              <div class="field-value">${data.signupDate}</div>
+            </div>
+          </div>
+        </div>
+      </body>
+      </html>
+    `
+  }),
+
   newLead: (data: {
     chatbotName: string;
     leadName?: string;
