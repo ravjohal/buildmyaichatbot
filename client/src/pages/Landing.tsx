@@ -3,6 +3,7 @@ import { Bot, MessageSquare, Sparkles, Zap, DollarSign, Check } from "lucide-rea
 import { Link } from "wouter";
 import { Logo } from "@/components/Logo";
 import { Footer } from "@/components/Footer";
+import { PRICING_PLANS } from "../../../shared/pricing";
 
 export default function Landing() {
   return (
@@ -93,87 +94,58 @@ export default function Landing() {
         </div>
 
         {/* Pricing Preview Section */}
-        <div className="max-w-6xl mx-auto mt-24">
+        <div className="max-w-7xl mx-auto mt-24">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold mb-4">Simple, Transparent Pricing</h2>
             <p className="text-lg text-muted-foreground">
-              Start free, upgrade when you need unlimited chatbots
+              Start free, upgrade as you grow
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-            <div className="p-8 rounded-lg border bg-card">
-              <div className="mb-6">
-                <h3 className="text-2xl font-bold mb-2">Free</h3>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-4xl font-bold">$0</span>
-                  <span className="text-muted-foreground">forever</span>
-                </div>
-              </div>
-              <ul className="space-y-3 mb-8">
-                <li className="flex items-center gap-3">
-                  <Check className="w-5 h-5 text-primary flex-shrink-0" />
-                  <span>1 AI chatbot</span>
-                </li>
-                <li className="flex items-center gap-3">
-                  <Check className="w-5 h-5 text-primary flex-shrink-0" />
-                  <span>3 questions per chatbot</span>
-                </li>
-                <li className="flex items-center gap-3">
-                  <Check className="w-5 h-5 text-primary flex-shrink-0" />
-                  <span>Test & demo mode</span>
-                </li>
-              </ul>
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={() => window.location.href = "/register"}
-                data-testid="button-start-free"
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {PRICING_PLANS.map((plan) => (
+              <div
+                key={plan.tier}
+                className={`p-6 rounded-lg border bg-card relative flex flex-col ${
+                  plan.popular ? "border-2 border-primary" : ""
+                }`}
               >
-                Get Started Free
-              </Button>
-            </div>
-
-            <div className="p-8 rounded-lg border-2 border-primary bg-card relative">
-              <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground px-3 py-1 rounded-full text-sm font-medium">
-                Most Popular
-              </div>
-              <div className="mb-6">
-                <h3 className="text-2xl font-bold mb-2">Pro</h3>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-4xl font-bold">$29.99</span>
-                  <span className="text-muted-foreground">/month</span>
+                {plan.popular && (
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground px-3 py-1 rounded-full text-sm font-medium">
+                    Most Popular
+                  </div>
+                )}
+                <div className="mb-6">
+                  <h3 className="text-2xl font-bold mb-2">{plan.name}</h3>
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-4xl font-bold">${plan.monthlyPrice}</span>
+                    <span className="text-muted-foreground">/month</span>
+                  </div>
+                  {plan.annualPrice > 0 && (
+                    <p className="text-sm text-muted-foreground mt-1">
+                      or ${plan.annualPrice}/year
+                    </p>
+                  )}
+                  <p className="text-sm text-muted-foreground mt-2">{plan.description}</p>
                 </div>
-                <p className="text-sm text-muted-foreground mt-1">or $300/year (save $60)</p>
-              </div>
-              <ul className="space-y-3 mb-8">
-                <li className="flex items-center gap-3">
-                  <Check className="w-5 h-5 text-primary flex-shrink-0" />
-                  <span className="font-medium">Unlimited chatbots</span>
-                </li>
-                <li className="flex items-center gap-3">
-                  <Check className="w-5 h-5 text-primary flex-shrink-0" />
-                  <span className="font-medium">Unlimited questions</span>
-                </li>
-                <li className="flex items-center gap-3">
-                  <Check className="w-5 h-5 text-primary flex-shrink-0" />
-                  <span className="font-medium">Full customization</span>
-                </li>
-                <li className="flex items-center gap-3">
-                  <Check className="w-5 h-5 text-primary flex-shrink-0" />
-                  <span className="font-medium">Website embedding</span>
-                </li>
-                <li className="flex items-center gap-3">
-                  <Check className="w-5 h-5 text-primary flex-shrink-0" />
-                  <span className="font-medium">Analytics dashboard</span>
-                </li>
-              </ul>
-              <Link href="/pricing">
-                <Button className="w-full" data-testid="button-upgrade-pro-landing">
-                  Upgrade to Pro
+                <ul className="space-y-2 mb-6 flex-1">
+                  {plan.features.slice(0, 6).map((feature, idx) => (
+                    <li key={idx} className="flex items-start gap-2">
+                      <Check className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
+                      <span className="text-sm">{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+                <Button
+                  variant={plan.tier === "free" ? "outline" : plan.popular ? "default" : "outline"}
+                  className="w-full"
+                  onClick={() => window.location.href = plan.tier === "free" ? "/register" : "/pricing"}
+                  data-testid={`button-plan-${plan.tier}`}
+                >
+                  {plan.tier === "free" ? "Get Started Free" : `Choose ${plan.name}`}
                 </Button>
-              </Link>
-            </div>
+              </div>
+            ))}
           </div>
 
           <div className="text-center mt-8">
