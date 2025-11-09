@@ -1,0 +1,65 @@
+chunk-RPCDYKBN.js?v=a9fe6658:521 Warning: validateDOMNesting(...): <a> cannot appear as a descendant of <a>.
+    at a
+    at a
+    at https://de085492-a001-461d-a509-cadbb37b63e7-00-3o7ljlj9jllh8.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=a9fe6658:205:18
+    at nav
+    at div
+    at div
+    at footer
+    at Footer
+    at div
+    at Landing
+    at Route (https://de085492-a001-461d-a509-cadbb37b63e7-00-3o7ljlj9jllh8.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=a9fe6658:191:16)
+    at Switch (https://de085492-a001-461d-a509-cadbb37b63e7-00-3o7ljlj9jllh8.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=a9fe6658:247:17)
+    at PublicRouter
+    at ProtectedRouter (https://de085492-a001-461d-a509-cadbb37b63e7-00-3o7ljlj9jllh8.spock.replit.dev/src/App.tsx?v=rSGdEWTdUkuLvOvLuwdYR:124:42)
+    at Router (https://de085492-a001-461d-a509-cadbb37b63e7-00-3o7ljlj9jllh8.spock.replit.dev/src/App.tsx?v=rSGdEWTdUkuLvOvLuwdYR:266:22)
+    at Provider (https://de085492-a001-461d-a509-cadbb37b63e7-00-3o7ljlj9jllh8.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-OXZDJRWN.js?v=a9fe6658:38:15)
+    at TooltipProvider (https://de085492-a001-461d-a509-cadbb37b63e7-00-3o7ljlj9jllh8.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-tooltip.js?v=a9fe6658:64:5)
+    at QueryClientProvider (https://de085492-a001-461d-a509-cadbb37b63e7-00-3o7ljlj9jllh8.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=a9fe6658:2805:3)
+    at App
+printWarning @ chunk-RPCDYKBN.js?v=a9fe6658:521
+error @ chunk-RPCDYKBN.js?v=a9fe6658:505
+validateDOMNesting @ chunk-RPCDYKBN.js?v=a9fe6658:8256
+createInstance @ chunk-RPCDYKBN.js?v=a9fe6658:8328
+completeWork @ chunk-RPCDYKBN.js?v=a9fe6658:16290
+completeUnitOfWork @ chunk-RPCDYKBN.js?v=a9fe6658:19224
+performUnitOfWork @ chunk-RPCDYKBN.js?v=a9fe6658:19206
+workLoopSync @ chunk-RPCDYKBN.js?v=a9fe6658:19137
+renderRootSync @ chunk-RPCDYKBN.js?v=a9fe6658:19116
+performSyncWorkOnRoot @ chunk-RPCDYKBN.js?v=a9fe6658:18874
+flushSyncCallbacks @ chunk-RPCDYKBN.js?v=a9fe6658:9119
+(anonymous) @ chunk-RPCDYKBN.js?v=a9fe6658:18627
+setTimeout
+scheduleFn @ @tanstack_react-query.js?v=a9fe6658:555
+flush @ @tanstack_react-query.js?v=a9fe6658:569
+batch @ @tanstack_react-query.js?v=a9fe6658:587
+dispatch_fn @ @tanstack_react-query.js?v=a9fe6658:996
+setData @ @tanstack_react-query.js?v=a9fe6658:696
+onSuccess @ @tanstack_react-query.js?v=a9fe6658:897
+resolve @ @tanstack_react-query.js?v=a9fe6658:456
+Promise.then
+run @ @tanstack_react-query.js?v=a9fe6658:498
+start @ @tanstack_react-query.js?v=a9fe6658:536
+fetch @ @tanstack_react-query.js?v=a9fe6658:926
+executeFetch_fn @ @tanstack_react-query.js?v=a9fe6658:2211
+onSubscribe @ @tanstack_react-query.js?v=a9fe6658:1898
+subscribe @ @tanstack_react-query.js?v=a9fe6658:24
+(anonymous) @ @tanstack_react-query.js?v=a9fe6658:3022
+subscribeToStore @ chunk-RPCDYKBN.js?v=a9fe6658:11984
+commitHookEffectListMount @ chunk-RPCDYKBN.js?v=a9fe6658:16915
+commitPassiveMountOnFiber @ chunk-RPCDYKBN.js?v=a9fe6658:18156
+commitPassiveMountEffects_complete @ chunk-RPCDYKBN.js?v=a9fe6658:18129
+commitPassiveMountEffects_begin @ chunk-RPCDYKBN.js?v=a9fe6658:18119
+commitPassiveMountEffects @ chunk-RPCDYKBN.js?v=a9fe6658:18109
+flushPassiveEffectsImpl @ chunk-RPCDYKBN.js?v=a9fe6658:19490
+flushPassiveEffects @ chunk-RPCDYKBN.js?v=a9fe6658:19447
+performSyncWorkOnRoot @ chunk-RPCDYKBN.js?v=a9fe6658:18868
+flushSyncCallbacks @ chunk-RPCDYKBN.js?v=a9fe6658:9119
+commitRootImpl @ chunk-RPCDYKBN.js?v=a9fe6658:19432
+commitRoot @ chunk-RPCDYKBN.js?v=a9fe6658:19277
+finishConcurrentRender @ chunk-RPCDYKBN.js?v=a9fe6658:18805
+performConcurrentWorkOnRoot @ chunk-RPCDYKBN.js?v=a9fe6658:18718
+workLoop @ chunk-RPCDYKBN.js?v=a9fe6658:197
+flushWork @ chunk-RPCDYKBN.js?v=a9fe6658:176
+performWorkUntilDeadline @ chunk-RPCDYKBN.js?v=a9fe6658:384

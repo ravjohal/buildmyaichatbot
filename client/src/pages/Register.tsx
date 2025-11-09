@@ -78,7 +78,15 @@ export default function Register() {
           title: "Account Created!",
           description: "Welcome to your chatbot builder.",
         });
-        navigate("/");
+        
+        // Check for redirect parameter
+        const params = new URLSearchParams(window.location.search);
+        const redirectUrl = params.get('redirect');
+        if (redirectUrl) {
+          navigate(redirectUrl);
+        } else {
+          navigate("/");
+        }
       } else {
         const error = await response.json();
         toast({

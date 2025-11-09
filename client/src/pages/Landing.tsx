@@ -143,7 +143,7 @@ export default function Landing() {
                     if (plan.tier === "free") {
                       window.location.href = "/register";
                     } else {
-                      window.location.href = `/api/login?redirect=/subscribe?tier=${plan.tier}&plan=monthly`;
+                      window.location.href = `/login?redirect=/subscribe?tier=${plan.tier}&plan=monthly`;
                     }
                   }}
                   data-testid={`button-plan-${plan.tier}`}

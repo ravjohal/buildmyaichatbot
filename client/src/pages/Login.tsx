@@ -33,7 +33,15 @@ export default function Login() {
           title: "Welcome back!",
           description: "You have successfully logged in.",
         });
-        navigate("/");
+        
+        // Check for redirect parameter
+        const params = new URLSearchParams(window.location.search);
+        const redirectUrl = params.get('redirect');
+        if (redirectUrl) {
+          navigate(redirectUrl);
+        } else {
+          navigate("/");
+        }
       } else {
         const error = await response.json();
         toast({
@@ -119,7 +127,15 @@ export default function Login() {
               <button
                 type="button"
                 className="font-semibold text-primary hover:underline"
-                onClick={() => navigate("/register")}
+                onClick={() => {
+                  const params = new URLSearchParams(window.location.search);
+                  const redirectUrl = params.get('redirect');
+                  if (redirectUrl) {
+                    navigate(`/register?redirect=${encodeURIComponent(redirectUrl)}`);
+                  } else {
+                    navigate("/register");
+                  }
+                }}
                 data-testid="link-register"
               >
                 Sign up

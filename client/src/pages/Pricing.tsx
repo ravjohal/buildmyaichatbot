@@ -18,14 +18,14 @@ export default function Pricing() {
       if (user) {
         navigate("/");
       } else {
-        window.location.href = "/api/login";
+        window.location.href = "/login";
       }
       return;
     }
 
     if (!user) {
       // Redirect to login, then back to subscribe page
-      window.location.href = `/api/login?redirect=/subscribe?tier=${tier}&plan=${cycle}`;
+      window.location.href = `/login?redirect=/subscribe?tier=${tier}&plan=${cycle}`;
       return;
     }
     navigate(`/subscribe?tier=${tier}&plan=${cycle}`);
