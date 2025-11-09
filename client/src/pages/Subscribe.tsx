@@ -24,7 +24,7 @@ if (!stripePublicKey) {
 console.log(`[Stripe] Using ${isProduction ? 'LIVE' : 'TEST'} mode public key`);
 const stripePromise = loadStripe(stripePublicKey);
 
-const SubscribeForm = ({ billingCycle, tier }: { billingCycle: "monthly" | "annual", tier: "pro" | "scale" }) => {
+const SubscribeForm = ({ billingCycle, tier }: { billingCycle: "monthly" | "annual", tier: "starter" | "business" | "scale" }) => {
   const stripe = useStripe();
   const elements = useElements();
   const { toast } = useToast();
@@ -162,7 +162,7 @@ export default function Subscribe() {
   // Use window.location.search to get query parameters (wouter's location doesn't include them)
   const params = new URLSearchParams(window.location.search);
   const billingCycle = (params.get('plan') as "monthly" | "annual") || "monthly";
-  const tier = (params.get('tier') as "pro" | "scale") || "pro";
+  const tier = (params.get('tier') as "starter" | "business" | "scale") || "starter";
 
   useEffect(() => {
     apiRequest("POST", "/api/create-subscription", { billingCycle, tier })
