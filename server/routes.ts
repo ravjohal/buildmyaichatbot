@@ -3516,28 +3516,48 @@ INCORRECT citation examples (NEVER do this):
 
       // Map tier and billing cycle to correct Stripe price ID
       // Use test or live price IDs based on environment
-      // Supports both "PRO" naming and standard naming for backward compatibility
       let priceId: string | undefined;
       
-      if (tier === "pro") {
+      if (tier === "starter") {
         if (billingCycle === "monthly") {
           priceId = isProduction
-            ? (process.env.STRIPE_LIVE_PRO_MONTHLY_PRICE_ID || process.env.STRIPE_LIVE_MONTHLY_PRICE_ID || process.env.STRIPE_MONTHLY_PRICE_ID)
-            : (process.env.STRIPE_TEST_PRO_MONTHLY_PRICE_ID || process.env.STRIPE_TEST_MONTHLY_PRICE_ID || process.env.STRIPE_MONTHLY_PRICE_ID);
+            ? process.env.STRIPE_LIVE_STARTER_MONTHLY_PRICE_ID
+            : process.env.STRIPE_TEST_STARTER_MONTHLY_PRICE_ID;
         } else {
           priceId = isProduction
-            ? (process.env.STRIPE_LIVE_PRO_ANNUAL_PRICE_ID || process.env.STRIPE_LIVE_ANNUAL_PRICE_ID || process.env.STRIPE_ANNUAL_PRICE_ID)
-            : (process.env.STRIPE_TEST_PRO_ANNUAL_PRICE_ID || process.env.STRIPE_TEST_ANNUAL_PRICE_ID || process.env.STRIPE_ANNUAL_PRICE_ID);
+            ? process.env.STRIPE_LIVE_STARTER_ANNUAL_PRICE_ID
+            : process.env.STRIPE_TEST_STARTER_ANNUAL_PRICE_ID;
+        }
+      } else if (tier === "business") {
+        if (billingCycle === "monthly") {
+          priceId = isProduction
+            ? process.env.STRIPE_LIVE_BUSINESS_MONTHLY_PRICE_ID
+            : process.env.STRIPE_TEST_BUSINESS_MONTHLY_PRICE_ID;
+        } else {
+          priceId = isProduction
+            ? process.env.STRIPE_LIVE_BUSINESS_ANNUAL_PRICE_ID
+            : process.env.STRIPE_TEST_BUSINESS_ANNUAL_PRICE_ID;
         }
       } else if (tier === "scale") {
         if (billingCycle === "monthly") {
           priceId = isProduction
-            ? (process.env.STRIPE_LIVE_SCALE_MONTHLY_PRICE_ID || process.env.STRIPE_SCALE_MONTHLY_PRICE_ID)
-            : (process.env.STRIPE_TEST_SCALE_MONTHLY_PRICE_ID || process.env.STRIPE_SCALE_MONTHLY_PRICE_ID);
+            ? process.env.STRIPE_LIVE_SCALE_MONTHLY_PRICE_ID
+            : process.env.STRIPE_TEST_SCALE_MONTHLY_PRICE_ID;
         } else {
           priceId = isProduction
-            ? (process.env.STRIPE_LIVE_SCALE_ANNUAL_PRICE_ID || process.env.STRIPE_SCALE_ANNUAL_PRICE_ID)
-            : (process.env.STRIPE_TEST_SCALE_ANNUAL_PRICE_ID || process.env.STRIPE_SCALE_ANNUAL_PRICE_ID);
+            ? process.env.STRIPE_LIVE_SCALE_ANNUAL_PRICE_ID
+            : process.env.STRIPE_TEST_SCALE_ANNUAL_PRICE_ID;
+        }
+      } else if (tier === "pro") {
+        // Backward compatibility: map "pro" to "business"
+        if (billingCycle === "monthly") {
+          priceId = isProduction
+            ? process.env.STRIPE_LIVE_BUSINESS_MONTHLY_PRICE_ID
+            : process.env.STRIPE_TEST_BUSINESS_MONTHLY_PRICE_ID;
+        } else {
+          priceId = isProduction
+            ? process.env.STRIPE_LIVE_BUSINESS_ANNUAL_PRICE_ID
+            : process.env.STRIPE_TEST_BUSINESS_ANNUAL_PRICE_ID;
         }
       }
 
@@ -3730,22 +3750,30 @@ INCORRECT citation examples (NEVER do this):
       // Update user tier based on subscription status
       if (subscription.status === 'active' || subscription.status === 'trialing') {
         const priceId = subscription.items.data[0]?.price.id;
-        let tier: 'free' | 'pro' | 'scale' = 'free';
+        let tier: 'free' | 'starter' | 'business' | 'scale' = 'free';
         
-        // Determine tier from price ID (same logic as webhook)
-        const proMonthlyTest = process.env.STRIPE_TEST_PRO_MONTHLY_PRICE_ID || process.env.STRIPE_TEST_MONTHLY_PRICE_ID || process.env.STRIPE_MONTHLY_PRICE_ID;
-        const proMonthlyLive = process.env.STRIPE_LIVE_PRO_MONTHLY_PRICE_ID || process.env.STRIPE_LIVE_MONTHLY_PRICE_ID || process.env.STRIPE_MONTHLY_PRICE_ID;
-        const proAnnualTest = process.env.STRIPE_TEST_PRO_ANNUAL_PRICE_ID || process.env.STRIPE_TEST_ANNUAL_PRICE_ID || process.env.STRIPE_ANNUAL_PRICE_ID;
-        const proAnnualLive = process.env.STRIPE_LIVE_PRO_ANNUAL_PRICE_ID || process.env.STRIPE_LIVE_ANNUAL_PRICE_ID || process.env.STRIPE_ANNUAL_PRICE_ID;
+        // Determine tier from price ID
+        const starterMonthlyTest = process.env.STRIPE_TEST_STARTER_MONTHLY_PRICE_ID;
+        const starterMonthlyLive = process.env.STRIPE_LIVE_STARTER_MONTHLY_PRICE_ID;
+        const starterAnnualTest = process.env.STRIPE_TEST_STARTER_ANNUAL_PRICE_ID;
+        const starterAnnualLive = process.env.STRIPE_LIVE_STARTER_ANNUAL_PRICE_ID;
         
-        const scaleMonthlyTest = process.env.STRIPE_TEST_SCALE_MONTHLY_PRICE_ID || process.env.STRIPE_SCALE_MONTHLY_PRICE_ID;
-        const scaleMonthlyLive = process.env.STRIPE_LIVE_SCALE_MONTHLY_PRICE_ID || process.env.STRIPE_SCALE_MONTHLY_PRICE_ID;
-        const scaleAnnualTest = process.env.STRIPE_TEST_SCALE_ANNUAL_PRICE_ID || process.env.STRIPE_SCALE_ANNUAL_PRICE_ID;
-        const scaleAnnualLive = process.env.STRIPE_LIVE_SCALE_ANNUAL_PRICE_ID || process.env.STRIPE_SCALE_ANNUAL_PRICE_ID;
+        const businessMonthlyTest = process.env.STRIPE_TEST_BUSINESS_MONTHLY_PRICE_ID;
+        const businessMonthlyLive = process.env.STRIPE_LIVE_BUSINESS_MONTHLY_PRICE_ID;
+        const businessAnnualTest = process.env.STRIPE_TEST_BUSINESS_ANNUAL_PRICE_ID;
+        const businessAnnualLive = process.env.STRIPE_LIVE_BUSINESS_ANNUAL_PRICE_ID;
         
-        if (priceId === proMonthlyTest || priceId === proMonthlyLive || 
-            priceId === proAnnualTest || priceId === proAnnualLive) {
-          tier = 'pro';
+        const scaleMonthlyTest = process.env.STRIPE_TEST_SCALE_MONTHLY_PRICE_ID;
+        const scaleMonthlyLive = process.env.STRIPE_LIVE_SCALE_MONTHLY_PRICE_ID;
+        const scaleAnnualTest = process.env.STRIPE_TEST_SCALE_ANNUAL_PRICE_ID;
+        const scaleAnnualLive = process.env.STRIPE_LIVE_SCALE_ANNUAL_PRICE_ID;
+        
+        if (priceId === starterMonthlyTest || priceId === starterMonthlyLive || 
+            priceId === starterAnnualTest || priceId === starterAnnualLive) {
+          tier = 'starter';
+        } else if (priceId === businessMonthlyTest || priceId === businessMonthlyLive || 
+                   priceId === businessAnnualTest || priceId === businessAnnualLive) {
+          tier = 'business';
         } else if (priceId === scaleMonthlyTest || priceId === scaleMonthlyLive || 
                    priceId === scaleAnnualTest || priceId === scaleAnnualLive) {
           tier = 'scale';
@@ -4343,25 +4371,35 @@ INCORRECT citation examples (NEVER do this):
         if (userId && (subscription.status === 'active' || subscription.status === 'trialing' || subscription.status === 'incomplete')) {
           // Determine tier from price ID
           const priceId = subscription.items.data[0]?.price.id;
-          let tier: 'free' | 'pro' | 'scale' = 'free';
+          let tier: 'free' | 'starter' | 'business' | 'scale' = 'free';
           
           // Map price IDs to tiers - check both test and live price IDs
-          // Supports both "PRO" naming and standard naming for backward compatibility
-          const proMonthlyTest = process.env.STRIPE_TEST_PRO_MONTHLY_PRICE_ID || process.env.STRIPE_TEST_MONTHLY_PRICE_ID || process.env.STRIPE_MONTHLY_PRICE_ID;
-          const proMonthlyLive = process.env.STRIPE_LIVE_PRO_MONTHLY_PRICE_ID || process.env.STRIPE_LIVE_MONTHLY_PRICE_ID || process.env.STRIPE_MONTHLY_PRICE_ID;
-          const proAnnualTest = process.env.STRIPE_TEST_PRO_ANNUAL_PRICE_ID || process.env.STRIPE_TEST_ANNUAL_PRICE_ID || process.env.STRIPE_ANNUAL_PRICE_ID;
-          const proAnnualLive = process.env.STRIPE_LIVE_PRO_ANNUAL_PRICE_ID || process.env.STRIPE_LIVE_ANNUAL_PRICE_ID || process.env.STRIPE_ANNUAL_PRICE_ID;
+          const starterMonthlyTest = process.env.STRIPE_TEST_STARTER_MONTHLY_PRICE_ID;
+          const starterMonthlyLive = process.env.STRIPE_LIVE_STARTER_MONTHLY_PRICE_ID;
+          const starterAnnualTest = process.env.STRIPE_TEST_STARTER_ANNUAL_PRICE_ID;
+          const starterAnnualLive = process.env.STRIPE_LIVE_STARTER_ANNUAL_PRICE_ID;
           
-          const scaleMonthlyTest = process.env.STRIPE_TEST_SCALE_MONTHLY_PRICE_ID || process.env.STRIPE_SCALE_MONTHLY_PRICE_ID;
-          const scaleMonthlyLive = process.env.STRIPE_LIVE_SCALE_MONTHLY_PRICE_ID || process.env.STRIPE_SCALE_MONTHLY_PRICE_ID;
-          const scaleAnnualTest = process.env.STRIPE_TEST_SCALE_ANNUAL_PRICE_ID || process.env.STRIPE_SCALE_ANNUAL_PRICE_ID;
-          const scaleAnnualLive = process.env.STRIPE_LIVE_SCALE_ANNUAL_PRICE_ID || process.env.STRIPE_SCALE_ANNUAL_PRICE_ID;
+          const businessMonthlyTest = process.env.STRIPE_TEST_BUSINESS_MONTHLY_PRICE_ID;
+          const businessMonthlyLive = process.env.STRIPE_LIVE_BUSINESS_MONTHLY_PRICE_ID;
+          const businessAnnualTest = process.env.STRIPE_TEST_BUSINESS_ANNUAL_PRICE_ID;
+          const businessAnnualLive = process.env.STRIPE_LIVE_BUSINESS_ANNUAL_PRICE_ID;
           
-          // Check if price ID matches Pro tier (either test or live)
-          if (priceId === proMonthlyTest || priceId === proMonthlyLive || 
-              priceId === proAnnualTest || priceId === proAnnualLive) {
-            tier = 'pro';
-            console.log(`[Webhook] Subscription assigned to Pro tier (priceId: ${priceId})`);
+          const scaleMonthlyTest = process.env.STRIPE_TEST_SCALE_MONTHLY_PRICE_ID;
+          const scaleMonthlyLive = process.env.STRIPE_LIVE_SCALE_MONTHLY_PRICE_ID;
+          const scaleAnnualTest = process.env.STRIPE_TEST_SCALE_ANNUAL_PRICE_ID;
+          const scaleAnnualLive = process.env.STRIPE_LIVE_SCALE_ANNUAL_PRICE_ID;
+          
+          // Check if price ID matches Starter tier (either test or live)
+          if (priceId === starterMonthlyTest || priceId === starterMonthlyLive || 
+              priceId === starterAnnualTest || priceId === starterAnnualLive) {
+            tier = 'starter';
+            console.log(`[Webhook] Subscription assigned to Starter tier (priceId: ${priceId})`);
+          } 
+          // Check if price ID matches Business tier (either test or live)
+          else if (priceId === businessMonthlyTest || priceId === businessMonthlyLive || 
+                   priceId === businessAnnualTest || priceId === businessAnnualLive) {
+            tier = 'business';
+            console.log(`[Webhook] Subscription assigned to Business tier (priceId: ${priceId})`);
           } 
           // Check if price ID matches Scale tier (either test or live)
           else if (priceId === scaleMonthlyTest || priceId === scaleMonthlyLive || 
@@ -4411,22 +4449,30 @@ INCORRECT citation examples (NEVER do this):
             
             if (invoiceUserId && (invoiceSub.status === 'active' || invoiceSub.status === 'trialing')) {
               const priceId = invoiceSub.items.data[0]?.price.id;
-              let tier: 'free' | 'pro' | 'scale' = 'free';
+              let tier: 'free' | 'starter' | 'business' | 'scale' = 'free';
               
               // Map price IDs to tiers
-              const proMonthlyTest = process.env.STRIPE_TEST_PRO_MONTHLY_PRICE_ID || process.env.STRIPE_TEST_MONTHLY_PRICE_ID || process.env.STRIPE_MONTHLY_PRICE_ID;
-              const proMonthlyLive = process.env.STRIPE_LIVE_PRO_MONTHLY_PRICE_ID || process.env.STRIPE_LIVE_MONTHLY_PRICE_ID || process.env.STRIPE_MONTHLY_PRICE_ID;
-              const proAnnualTest = process.env.STRIPE_TEST_PRO_ANNUAL_PRICE_ID || process.env.STRIPE_TEST_ANNUAL_PRICE_ID || process.env.STRIPE_ANNUAL_PRICE_ID;
-              const proAnnualLive = process.env.STRIPE_LIVE_PRO_ANNUAL_PRICE_ID || process.env.STRIPE_LIVE_ANNUAL_PRICE_ID || process.env.STRIPE_ANNUAL_PRICE_ID;
+              const starterMonthlyTest = process.env.STRIPE_TEST_STARTER_MONTHLY_PRICE_ID;
+              const starterMonthlyLive = process.env.STRIPE_LIVE_STARTER_MONTHLY_PRICE_ID;
+              const starterAnnualTest = process.env.STRIPE_TEST_STARTER_ANNUAL_PRICE_ID;
+              const starterAnnualLive = process.env.STRIPE_LIVE_STARTER_ANNUAL_PRICE_ID;
               
-              const scaleMonthlyTest = process.env.STRIPE_TEST_SCALE_MONTHLY_PRICE_ID || process.env.STRIPE_SCALE_MONTHLY_PRICE_ID;
-              const scaleMonthlyLive = process.env.STRIPE_LIVE_SCALE_MONTHLY_PRICE_ID || process.env.STRIPE_SCALE_MONTHLY_PRICE_ID;
-              const scaleAnnualTest = process.env.STRIPE_TEST_SCALE_ANNUAL_PRICE_ID || process.env.STRIPE_SCALE_ANNUAL_PRICE_ID;
-              const scaleAnnualLive = process.env.STRIPE_LIVE_SCALE_ANNUAL_PRICE_ID || process.env.STRIPE_SCALE_ANNUAL_PRICE_ID;
+              const businessMonthlyTest = process.env.STRIPE_TEST_BUSINESS_MONTHLY_PRICE_ID;
+              const businessMonthlyLive = process.env.STRIPE_LIVE_BUSINESS_MONTHLY_PRICE_ID;
+              const businessAnnualTest = process.env.STRIPE_TEST_BUSINESS_ANNUAL_PRICE_ID;
+              const businessAnnualLive = process.env.STRIPE_LIVE_BUSINESS_ANNUAL_PRICE_ID;
               
-              if (priceId === proMonthlyTest || priceId === proMonthlyLive || 
-                  priceId === proAnnualTest || priceId === proAnnualLive) {
-                tier = 'pro';
+              const scaleMonthlyTest = process.env.STRIPE_TEST_SCALE_MONTHLY_PRICE_ID;
+              const scaleMonthlyLive = process.env.STRIPE_LIVE_SCALE_MONTHLY_PRICE_ID;
+              const scaleAnnualTest = process.env.STRIPE_TEST_SCALE_ANNUAL_PRICE_ID;
+              const scaleAnnualLive = process.env.STRIPE_LIVE_SCALE_ANNUAL_PRICE_ID;
+              
+              if (priceId === starterMonthlyTest || priceId === starterMonthlyLive || 
+                  priceId === starterAnnualTest || priceId === starterAnnualLive) {
+                tier = 'starter';
+              } else if (priceId === businessMonthlyTest || priceId === businessMonthlyLive || 
+                         priceId === businessAnnualTest || priceId === businessAnnualLive) {
+                tier = 'business';
               } else if (priceId === scaleMonthlyTest || priceId === scaleMonthlyLive || 
                          priceId === scaleAnnualTest || priceId === scaleAnnualLive) {
                 tier = 'scale';
