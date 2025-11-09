@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PRICING_PLANS } from "@shared/pricing";
 import { DashboardHeader } from "@/components/DashboardHeader";
+import { Loader2, CheckCircle2, AlertCircle } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 // Automatically choose test or live Stripe key based on environment
 // REPLIT_DEPLOYMENT is set when published (production)
@@ -30,6 +32,8 @@ const SubscribeForm = ({ billingCycle, tier }: { billingCycle: "monthly" | "annu
   const { toast } = useToast();
   const [, navigate] = useLocation();
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isPaymentReady, setIsPaymentReady] = useState(false);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
   
   const selectedPlan = PRICING_PLANS.find(p => p.tier === tier);
   if (!selectedPlan) {
@@ -45,24 +49,28 @@ const SubscribeForm = ({ billingCycle, tier }: { billingCycle: "monthly" | "annu
 
     if (!stripe || !elements) {
       console.log('[Subscribe] Missing stripe or elements, aborting');
+      setPaymentError("Payment system not ready. Please wait a moment and try again.");
       toast({
-        title: "Error",
-        description: "Payment system not ready. Please refresh and try again.",
+        title: "Payment System Not Ready",
+        description: "The payment form is still loading. Please wait a moment and try again.",
         variant: "destructive",
       });
       return;
     }
 
     setIsProcessing(true);
+    setPaymentError(null);
     console.log('[Subscribe] Confirming payment...');
 
     // Submit the elements to ensure payment method is collected
     const { error: submitError } = await elements.submit();
     if (submitError) {
       console.error('[Subscribe] Elements submit failed:', submitError);
+      const errorMessage = submitError.message || "Please fill in all required payment fields (card number, expiry date, CVC, and ZIP code).";
+      setPaymentError(errorMessage);
       toast({
-        title: "Payment Error",
-        description: submitError.message || "Please fill in all required payment fields.",
+        title: "Payment Information Required",
+        description: errorMessage,
         variant: "destructive",
       });
       setIsProcessing(false);
@@ -71,9 +79,15 @@ const SubscribeForm = ({ billingCycle, tier }: { billingCycle: "monthly" | "annu
     console.log('[Subscribe] Elements submitted successfully');
 
     try {
-      // Create a timeout promise (15 seconds)
+      // Show processing toast
+      toast({
+        title: "Processing Payment",
+        description: "Please wait while we confirm your payment...",
+      });
+
+      // Create a timeout promise (30 seconds - increased from 15)
       const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Payment confirmation timeout')), 15000);
+        setTimeout(() => reject(new Error('Payment confirmation timeout')), 30000);
       });
 
       // Race between payment confirmation and timeout
@@ -90,30 +104,43 @@ const SubscribeForm = ({ billingCycle, tier }: { billingCycle: "monthly" | "annu
 
       if (error) {
         console.error('[Subscribe] Payment failed:', error);
+        const errorMessage = error.message || "Unable to process payment. Please check your payment details and try again.";
+        setPaymentError(errorMessage);
         toast({
           title: "Payment Failed",
-          description: error.message || "Unable to process payment. Please check your payment details and try again.",
+          description: errorMessage,
           variant: "destructive",
         });
         setIsProcessing(false);
+      } else {
+        // Payment successful - show success message
+        toast({
+          title: "Payment Successful!",
+          description: "Redirecting you to your dashboard...",
+        });
+        // The redirect will happen automatically via return_url
       }
-      // If no error, the page will redirect to return_url
     } catch (err: any) {
       console.error('[Subscribe] Unexpected error:', err);
       
+      let errorMessage = "An unexpected error occurred. Please try again.";
+      
       if (err.message === 'Payment confirmation timeout') {
+        errorMessage = "Payment confirmation is taking longer than expected. Please check your account page to see if the payment went through, or contact support if you need help.";
         toast({
           title: "Payment Timeout",
-          description: "Payment confirmation is taking too long. Please refresh and check your account page, or contact support.",
+          description: errorMessage,
           variant: "destructive",
         });
       } else {
         toast({
           title: "Payment Error",
-          description: "An unexpected error occurred. Please try again.",
+          description: errorMessage,
           variant: "destructive",
         });
       }
+      
+      setPaymentError(errorMessage);
       setIsProcessing(false);
     }
   };
@@ -136,15 +163,59 @@ const SubscribeForm = ({ billingCycle, tier }: { billingCycle: "monthly" | "annu
         </p>
       </div>
       
-      <PaymentElement />
+      {/* Loading indicator for payment form */}
+      {!stripe && (
+        <div className="flex items-center justify-center py-8 space-x-2">
+          <Loader2 className="h-5 w-5 animate-spin text-primary" />
+          <span className="text-sm text-muted-foreground">Loading secure payment form...</span>
+        </div>
+      )}
       
+      {/* Payment Element */}
+      <div className={!stripe ? "hidden" : ""}>
+        <PaymentElement 
+          onReady={() => {
+            console.log('[Subscribe] PaymentElement is ready');
+            setIsPaymentReady(true);
+          }}
+          onChange={(e) => {
+            // Clear error when user starts typing
+            if (paymentError) {
+              setPaymentError(null);
+            }
+          }}
+        />
+      </div>
+      
+      {/* Error Alert */}
+      {paymentError && (
+        <Alert variant="destructive" data-testid="alert-payment-error">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Payment Error</AlertTitle>
+          <AlertDescription>{paymentError}</AlertDescription>
+        </Alert>
+      )}
+      
+      {/* Submit Button */}
       <Button 
         type="submit" 
         className="w-full" 
-        disabled={!stripe || isProcessing}
+        disabled={!stripe || isProcessing || !isPaymentReady}
         data-testid="button-submit-payment"
       >
-        {isProcessing ? "Processing..." : `Subscribe for $${price}`}
+        {isProcessing ? (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Processing Payment...
+          </>
+        ) : !stripe ? (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Loading...
+          </>
+        ) : (
+          `Subscribe for $${price}`
+        )}
       </Button>
       
       <p className="text-xs text-center text-muted-foreground">
