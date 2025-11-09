@@ -145,7 +145,14 @@ export default function Account() {
   });
 
   const formatDate = (timestamp: number) => {
-    return new Date(timestamp * 1000).toLocaleDateString("en-US", {
+    if (!timestamp || timestamp === 0) {
+      return "Not available";
+    }
+    const date = new Date(timestamp * 1000);
+    if (isNaN(date.getTime())) {
+      return "Invalid date";
+    }
+    return date.toLocaleDateString("en-US", {
       year: "numeric",
       month: "long",
       day: "numeric",

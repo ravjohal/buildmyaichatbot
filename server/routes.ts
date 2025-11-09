@@ -277,13 +277,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const subscription = await stripe.subscriptions.retrieve(user.stripeSubscriptionId);
           const product = subscription.items.data[0]?.price;
           
+          console.log('[Account] Stripe subscription data:', {
+            id: subscription.id,
+            status: subscription.status,
+            current_period_start: subscription.current_period_start,
+            current_period_end: subscription.current_period_end,
+            cancel_at_period_end: subscription.cancel_at_period_end,
+          });
+          
           subscriptionDetails = {
             id: subscription.id,
             status: subscription.status,
-            currentPeriodStart: (subscription as any).current_period_start,
-            currentPeriodEnd: (subscription as any).current_period_end,
-            cancelAtPeriodEnd: (subscription as any).cancel_at_period_end,
-            canceledAt: (subscription as any).canceled_at,
+            currentPeriodStart: subscription.current_period_start || 0,
+            currentPeriodEnd: subscription.current_period_end || 0,
+            cancelAtPeriodEnd: subscription.cancel_at_period_end || false,
+            canceledAt: subscription.canceled_at || null,
             billingCycle: product?.recurring?.interval || 'month',
             amount: product?.unit_amount ? product.unit_amount / 100 : 0,
             currency: product?.currency || 'usd',
