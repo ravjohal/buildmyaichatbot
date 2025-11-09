@@ -85,14 +85,16 @@ export default function Help() {
   }, [params?.slug, manifest, selectedArticle]);
 
   // Filter articles by search query
-  const filteredCategories = manifest?.categories.map((category) => ({
-    ...category,
-    articles: category.articles.filter(
-      (article) =>
-        article.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        article.description.toLowerCase().includes(searchQuery.toLowerCase())
-    ),
-  })).filter((category) => category.articles.length > 0);
+  const filteredCategories = searchQuery
+    ? manifest?.categories.map((category) => ({
+        ...category,
+        articles: category.articles.filter(
+          (article) =>
+            article.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            article.description.toLowerCase().includes(searchQuery.toLowerCase())
+        ),
+      })).filter((category) => category.articles.length > 0)
+    : manifest?.categories;
 
   const handleArticleClick = (article: Article) => {
     setSelectedArticle(article);
