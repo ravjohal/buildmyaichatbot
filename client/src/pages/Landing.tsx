@@ -139,7 +139,13 @@ export default function Landing() {
                 <Button
                   variant={plan.tier === "free" ? "outline" : plan.popular ? "default" : "outline"}
                   className="w-full"
-                  onClick={() => window.location.href = plan.tier === "free" ? "/register" : "/pricing"}
+                  onClick={() => {
+                    if (plan.tier === "free") {
+                      window.location.href = "/register";
+                    } else {
+                      window.location.href = `/api/login?redirect=/subscribe?tier=${plan.tier}&plan=monthly`;
+                    }
+                  }}
                   data-testid={`button-plan-${plan.tier}`}
                 >
                   {plan.tier === "free" ? "Get Started Free" : `Choose ${plan.name}`}
