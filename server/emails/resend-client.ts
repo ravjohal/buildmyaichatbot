@@ -10,6 +10,6 @@ export async function getUncachableResendClient() {
   
   return {
     client: new Resend(apiKey),
-    fromEmail: 'Chatbot Analytics <onboarding@resend.dev>'
+    fromEmail: 'BuildMyChatbot.Ai <support@buildmychatbot.ai>'
   };
 }

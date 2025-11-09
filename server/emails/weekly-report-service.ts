@@ -294,8 +294,11 @@ export async function sendWeeklyReport(userId: string, storage: IStorage): Promi
       return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     };
 
-    const result = await resend.emails.send({
-      from: "Chatbot Analytics <onboarding@resend.dev>",
+    const { getUncachableResendClient } = await import('./resend-client');
+    const { client, fromEmail } = await getUncachableResendClient();
+
+    const result = await client.emails.send({
+      from: fromEmail,
       to: recipientEmail,
       subject: `Weekly Report: ${formatDate(reportData.weekStart)} - ${formatDate(reportData.weekEnd)}`,
       html: htmlContent,

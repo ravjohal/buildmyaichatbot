@@ -2376,14 +2376,14 @@ INCORRECT citation examples (NEVER do this):
               // Send email notification if enabled
               if (config.emailNotifications === "true" && owner?.email) {
                 try {
-                  const { Resend } = await import('resend');
-                  const resend = new Resend(process.env.RESEND_API_KEY);
+                  const { getUncachableResendClient } = await import('./emails/resend-client');
+                  const { client, fromEmail } = await getUncachableResendClient();
 
                   const keywordList = detectedKeywords.join(", ");
                   const visitorInfo = lead ? `${lead.name} (${lead.email})` : "Anonymous visitor";
 
-                  await resend.emails.send({
-                    from: 'BuildMyChatbot.Ai <notifications@buildmychatbot.ai>',
+                  await client.emails.send({
+                    from: fromEmail,
                     to: owner.email,
                     subject: `🔔 Keyword Alert: "${detectedKeywords[0]}" detected`,
                     html: `
