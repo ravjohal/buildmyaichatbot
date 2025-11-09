@@ -708,39 +708,41 @@ export default function EditChatbot() {
         </div>
 
         <div className="flex justify-between gap-4">
-          <Button
-            variant="outline"
-            onClick={handleBack}
-            disabled={currentStepIndex === 0}
-            data-testid="button-previous-step"
-          >
-            Previous
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={handleBack}
+              disabled={currentStepIndex === 0}
+              data-testid="button-previous-step"
+            >
+              Previous
+            </Button>
+            {!isLastStep && (
+              <Button
+                variant="ghost"
+                onClick={handleNext}
+                disabled={!canProceed()}
+                data-testid="button-next-step"
+              >
+                Next
+              </Button>
+            )}
+          </div>
 
-          {!isLastStep ? (
-            <Button
-              onClick={handleNext}
-              disabled={!canProceed()}
-              data-testid="button-next-step"
-            >
-              Continue
-            </Button>
-          ) : (
-            <Button
-              onClick={handleSave}
-              disabled={!canProceed() || updateMutation.isPending}
-              data-testid="button-save-chatbot"
-            >
-              {updateMutation.isPending ? (
-                <>Saving...</>
-              ) : (
-                <>
-                  <Check className="w-4 h-4 mr-2" />
-                  Save Changes
-                </>
-              )}
-            </Button>
-          )}
+          <Button
+            onClick={handleSave}
+            disabled={!canProceed() || updateMutation.isPending}
+            data-testid="button-save-chatbot"
+          >
+            {updateMutation.isPending ? (
+              <>Saving...</>
+            ) : (
+              <>
+                <Check className="w-4 h-4 mr-2" />
+                Save Changes
+              </>
+            )}
+          </Button>
         </div>
       </div>
 
