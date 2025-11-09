@@ -3446,8 +3446,8 @@ INCORRECT citation examples (NEVER do this):
       if (!billingCycle || !["monthly", "annual"].includes(billingCycle)) {
         return res.status(400).json({ error: "Invalid billing cycle. Must be 'monthly' or 'annual'" });
       }
-      if (!tier || !["pro", "scale"].includes(tier)) {
-        return res.status(400).json({ error: "Invalid tier. Must be 'pro' or 'scale'" });
+      if (!tier || !["starter", "business", "scale"].includes(tier)) {
+        return res.status(400).json({ error: "Invalid tier. Must be 'starter', 'business', or 'scale'" });
       }
       
       const user = await storage.getUser(userId);

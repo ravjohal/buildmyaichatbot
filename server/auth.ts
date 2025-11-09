@@ -157,7 +157,7 @@ export async function setupAuth(app: Express) {
           const { notificationService } = await import('./emails/notification-service');
           
           // Get all admin users
-          const adminUsers = await db.select().from(users).where(eq(users.isAdmin, true));
+          const adminUsers = await db.select().from(users).where(eq(users.isAdmin, "true"));
           
           // Send email to each admin
           for (const admin of adminUsers) {
