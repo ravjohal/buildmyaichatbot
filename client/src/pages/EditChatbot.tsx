@@ -328,39 +328,47 @@ export default function EditChatbot() {
       queryClient.invalidateQueries({ queryKey: [`/api/chatbots/${chatbotId}`] });
       queryClient.invalidateQueries({ queryKey: [`/api/chatbots/${chatbotId}/crm-integration`] });
       
-      // Save CRM data separately (always call to support disabling)
-      try {
-        const crmData = {
-          enabled: formData.crmEnabled || "false",
-          integrationType: formData.crmIntegrationType || "generic",
-          webhookUrl: formData.crmWebhookUrl,
-          webhookMethod: formData.crmWebhookMethod || "POST",
-          authType: formData.crmAuthType || "none",
-          authValue: formData.crmAuthValue,
-          customHeaders: formData.crmCustomHeaders || {},
-          fieldMapping: formData.crmFieldMapping || {},
-          retryEnabled: formData.crmRetryEnabled !== "false" ? "true" : "false",
-          maxRetries: formData.crmMaxRetries || "3",
-          hyphenEndpoint: formData.crmHyphenEndpoint,
-          hyphenBuilderId: formData.crmHyphenBuilderId,
-          hyphenUsername: formData.crmHyphenUsername,
-          hyphenApiKey: formData.crmHyphenApiKey,
-          hyphenCommunityId: formData.crmHyphenCommunityId,
-          hyphenSourceId: formData.crmHyphenSourceId,
-          hyphenGradeId: formData.crmHyphenGradeId,
-          hyphenInfluenceId: formData.crmHyphenInfluenceId,
-          hyphenContactMethodId: formData.crmHyphenContactMethodId,
-          hyphenReference: formData.crmHyphenReference,
-        };
-        
-        await apiRequest("PUT", `/api/chatbots/${chatbotId}/crm-integration`, crmData);
-      } catch (error) {
-        console.error("Failed to save CRM integration:", error);
-        toast({
-          title: "Warning",
-          description: "Chatbot saved but CRM settings failed to update. Please check CRM configuration.",
-          variant: "destructive",
-        });
+      // Save CRM data separately only if CRM has been configured or there's existing CRM data
+      // This prevents validation errors when saving from non-CRM steps
+      const hasCrmData = crmIntegration != null || 
+                         formData.crmEnabled === "true" || 
+                         !!formData.crmWebhookUrl || 
+                         !!formData.crmHyphenEndpoint;
+      
+      if (hasCrmData) {
+        try {
+          const crmData = {
+            enabled: formData.crmEnabled || "false",
+            integrationType: formData.crmIntegrationType || "generic",
+            webhookUrl: formData.crmWebhookUrl,
+            webhookMethod: formData.crmWebhookMethod || "POST",
+            authType: formData.crmAuthType || "none",
+            authValue: formData.crmAuthValue,
+            customHeaders: formData.crmCustomHeaders || {},
+            fieldMapping: formData.crmFieldMapping || {},
+            retryEnabled: formData.crmRetryEnabled !== "false" ? "true" : "false",
+            maxRetries: formData.crmMaxRetries || "3",
+            hyphenEndpoint: formData.crmHyphenEndpoint,
+            hyphenBuilderId: formData.crmHyphenBuilderId,
+            hyphenUsername: formData.crmHyphenUsername,
+            hyphenApiKey: formData.crmHyphenApiKey,
+            hyphenCommunityId: formData.crmHyphenCommunityId,
+            hyphenSourceId: formData.crmHyphenSourceId,
+            hyphenGradeId: formData.crmHyphenGradeId,
+            hyphenInfluenceId: formData.crmHyphenInfluenceId,
+            hyphenContactMethodId: formData.crmHyphenContactMethodId,
+            hyphenReference: formData.crmHyphenReference,
+          };
+          
+          await apiRequest("PUT", `/api/chatbots/${chatbotId}/crm-integration`, crmData);
+        } catch (error) {
+          console.error("Failed to save CRM integration:", error);
+          toast({
+            title: "Warning",
+            description: "Chatbot saved but CRM settings failed to update. Please check CRM configuration.",
+            variant: "destructive",
+          });
+        }
       }
 
       // Save keyword alerts data separately (always call to support disabling)
