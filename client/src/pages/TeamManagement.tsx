@@ -27,6 +27,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { DashboardHeader } from "@/components/DashboardHeader";
 
 type TeamMember = {
   id: string;
@@ -236,13 +237,16 @@ export default function TeamManagement() {
   };
 
   return (
-    <div className="container mx-auto p-6 max-w-4xl space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold" data-testid="heading-team-management">Team Management</h1>
-        <p className="text-muted-foreground mt-2" data-testid="text-team-description">
-          Invite team members to help respond to live chat requests from your customers.
-        </p>
-      </div>
+    <div className="min-h-screen bg-background">
+      <DashboardHeader />
+      
+      <div className="container mx-auto p-6 max-w-4xl space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold" data-testid="heading-team-management">Team Management</h1>
+          <p className="text-muted-foreground mt-2" data-testid="text-team-description">
+            Invite team members to help respond to live chat requests from your customers.
+          </p>
+        </div>
       
       {user && (
         <Card>
@@ -633,6 +637,7 @@ export default function TeamManagement() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      </div>
     </div>
   );
 }
