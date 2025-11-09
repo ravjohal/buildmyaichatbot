@@ -276,29 +276,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         try {
           const subscription = await stripe.subscriptions.retrieve(user.stripeSubscriptionId);
           const product = subscription.items.data[0]?.price;
+          const subscriptionItem = subscription.items.data[0];
           
-          // Access fields directly - Stripe SDK types should have these
-          const currentPeriodStart = (subscription as any).current_period_start;
-          const currentPeriodEnd = (subscription as any).current_period_end;
-          const cancelAtPeriodEnd = (subscription as any).cancel_at_period_end;
-          const canceledAt = (subscription as any).canceled_at;
-          
-          console.log('[Account] Stripe subscription full object:', JSON.stringify(subscription, null, 2));
-          console.log('[Account] Stripe subscription data:', {
-            id: subscription.id,
-            status: subscription.status,
-            current_period_start: currentPeriodStart,
-            current_period_end: currentPeriodEnd,
-            cancel_at_period_end: cancelAtPeriodEnd,
-          });
+          // Period dates are in the subscription items, not at the subscription level
+          const currentPeriodStart = (subscriptionItem as any)?.current_period_start || 0;
+          const currentPeriodEnd = (subscriptionItem as any)?.current_period_end || 0;
+          const cancelAtPeriodEnd = subscription.cancel_at_period_end || false;
+          const canceledAt = subscription.canceled_at || null;
           
           subscriptionDetails = {
             id: subscription.id,
             status: subscription.status,
-            currentPeriodStart: currentPeriodStart || 0,
-            currentPeriodEnd: currentPeriodEnd || 0,
-            cancelAtPeriodEnd: cancelAtPeriodEnd || false,
-            canceledAt: canceledAt || null,
+            currentPeriodStart,
+            currentPeriodEnd,
+            cancelAtPeriodEnd,
+            canceledAt,
             billingCycle: product?.recurring?.interval || 'month',
             amount: product?.unit_amount ? product.unit_amount / 100 : 0,
             currency: product?.currency || 'usd',
