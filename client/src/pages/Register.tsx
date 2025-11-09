@@ -107,8 +107,9 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <Card className="w-full max-w-md">
+    <div className="min-h-screen bg-background flex flex-col">
+      <div className="flex-1 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
         <CardHeader className="text-center space-y-4">
           <div className="flex justify-center">
             <Logo size="md" />
@@ -235,6 +236,7 @@ export default function Register() {
           </p>
         </CardFooter>
       </Card>
+      </div>
       <Footer />
     </div>
   );
