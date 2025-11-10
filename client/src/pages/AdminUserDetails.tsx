@@ -50,7 +50,7 @@ interface AdminUserDetails {
 // Utility helper functions for rendering chatbot data
 const BooleanBadge = ({ value, trueLabel = "Enabled", falseLabel = "Disabled" }: { value: string | boolean | undefined | null, trueLabel?: string, falseLabel?: string }) => {
   // Handle both string "true"/"false" and actual boolean values
-  const isTrue = value === true || value === "true" || value === 1 || value === "1";
+  const isTrue = value === true || value === "true" || value === "1";
   return (
     <Badge variant={isTrue ? "outline" : "secondary"} className={isTrue ? "bg-green-50 dark:bg-green-950" : ""}>
       {isTrue ? <CheckCircle2 className="w-3 h-3 mr-1" /> : <XCircle className="w-3 h-3 mr-1" />}
@@ -404,54 +404,325 @@ export default function AdminUserDetails() {
           )}
 
           {/* Chatbots */}
-          {chatbots.length > 0 && (
-            <Card data-testid="card-chatbots">
-              <CardHeader>
-                <div className="flex items-center gap-2">
-                  <Bot className="w-5 h-5 text-primary" />
-                  <CardTitle>Chatbots ({chatbots.length})</CardTitle>
+          <Card data-testid="card-chatbots">
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <Bot className="w-5 h-5 text-primary" />
+                <CardTitle>Chatbots ({chatbots.length})</CardTitle>
+              </div>
+              <CardDescription>All chatbots created by this user - expand for full configuration details</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {chatbots.length === 0 ? (
+                <div className="text-center py-8" data-testid="empty-chatbots">
+                  <Bot className="w-12 h-12 mx-auto text-muted-foreground mb-3" />
+                  <p className="text-sm text-muted-foreground">This user has not created any chatbots yet.</p>
                 </div>
-                <CardDescription>All chatbots created by this user</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Questions</TableHead>
-                      <TableHead>Created</TableHead>
-                      <TableHead></TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {chatbots.map((chatbot) => (
-                      <TableRow key={chatbot.id} data-testid={`chatbot-row-${chatbot.id}`}>
-                        <TableCell className="font-medium">{chatbot.name}</TableCell>
-                        <TableCell>
-                          <Badge 
-                            variant={chatbot.indexingStatus === "completed" ? "outline" : chatbot.indexingStatus === "failed" ? "destructive" : "secondary"}
-                            data-testid={`badge-status-${chatbot.id}`}
-                          >
-                            {chatbot.indexingStatus}
-                          </Badge>
-                        </TableCell>
-                        <TableCell data-testid={`text-questions-${chatbot.id}`}>{chatbot.questionCount || 0}</TableCell>
-                        <TableCell>{chatbot.createdAt ? formatDistanceToNow(new Date(chatbot.createdAt), { addSuffix: true }) : "Unknown"}</TableCell>
-                        <TableCell>
-                          <Link href={`/view/${chatbot.id}`}>
-                            <Button variant="ghost" size="sm" data-testid={`button-view-${chatbot.id}`}>
-                              View
-                            </Button>
-                          </Link>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-          )}
+              ) : (
+                <Accordion type="multiple" className="space-y-2">
+                  {chatbots.map((chatbot) => (
+                    <AccordionItem 
+                      key={chatbot.id} 
+                      value={chatbot.id} 
+                      className="border rounded-lg px-4"
+                      data-testid={`accordion-item-chatbot-${chatbot.id}`}
+                    >
+                      <AccordionTrigger 
+                        className="hover:no-underline py-3"
+                        data-testid={`accordion-trigger-chatbot-${chatbot.id}`}
+                      >
+                        <div className="flex items-center gap-3 flex-1 text-left">
+                          <div className="flex-1">
+                            <div className="font-medium">{chatbot.name}</div>
+                            <div className="flex items-center gap-2 mt-1">
+                              <Badge 
+                                variant={chatbot.indexingStatus === "completed" ? "outline" : chatbot.indexingStatus === "failed" ? "destructive" : "secondary"}
+                                data-testid={`badge-status-${chatbot.id}`}
+                              >
+                                {chatbot.indexingStatus}
+                              </Badge>
+                              <span className="text-xs text-muted-foreground">
+                                {chatbot.questionCount || 0} questions
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent className="pt-3 pb-4">
+                        <div className="space-y-6">
+                          {/* Overview Section */}
+                          <div>
+                            <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                              <BarChart3 className="w-4 h-4" />
+                              Overview
+                            </h4>
+                            <div className="grid md:grid-cols-2 gap-4">
+                              <div>
+                                <p className="text-xs text-muted-foreground mb-1">Indexing Status</p>
+                                <Badge 
+                                  variant={chatbot.indexingStatus === "completed" ? "outline" : chatbot.indexingStatus === "failed" ? "destructive" : "secondary"}
+                                  data-testid={`text-indexing-status-${chatbot.id}`}
+                                >
+                                  {chatbot.indexingStatus}
+                                </Badge>
+                              </div>
+                              <div>
+                                <p className="text-xs text-muted-foreground mb-1">Questions Answered</p>
+                                <p className="text-sm font-medium" data-testid={`text-question-count-${chatbot.id}`}>
+                                  {chatbot.questionCount || 0}
+                                </p>
+                              </div>
+                              <div>
+                                <p className="text-xs text-muted-foreground mb-1">Created</p>
+                                <p className="text-sm" data-testid={`text-created-${chatbot.id}`}>
+                                  {chatbot.createdAt ? formatDistanceToNow(new Date(chatbot.createdAt), { addSuffix: true }) : "Unknown"}
+                                </p>
+                              </div>
+                              <div>
+                                <p className="text-xs text-muted-foreground mb-1">Last Knowledge Update</p>
+                                <p className="text-sm" data-testid={`text-last-update-${chatbot.id}`}>
+                                  {chatbot.lastKnowledgeUpdate ? formatDistanceToNow(new Date(chatbot.lastKnowledgeUpdate), { addSuffix: true }) : "Never"}
+                                </p>
+                              </div>
+                              {chatbot.lastIndexingJobId && (
+                                <div className="md:col-span-2">
+                                  <p className="text-xs text-muted-foreground mb-1">Last Indexing Job ID</p>
+                                  <p className="text-xs font-mono bg-muted px-2 py-1 rounded" data-testid={`text-job-id-${chatbot.id}`}>
+                                    {chatbot.lastIndexingJobId}
+                                  </p>
+                                </div>
+                              )}
+                              <div className="md:col-span-2">
+                                <Link href={`/view/${chatbot.id}`}>
+                                  <Button variant="outline" size="sm" data-testid={`button-view-${chatbot.id}`}>
+                                    View Analytics
+                                  </Button>
+                                </Link>
+                              </div>
+                            </div>
+                          </div>
+
+                          <Separator />
+
+                          {/* Knowledge Sources Section */}
+                          <div>
+                            <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                              <Globe className="w-4 h-4" />
+                              Knowledge Sources
+                            </h4>
+                            <div className="space-y-3">
+                              <div>
+                                <p className="text-xs text-muted-foreground mb-2">Website URLs</p>
+                                <ArrayTags items={chatbot.websiteUrls} emptyMessage="No websites configured" />
+                              </div>
+                              <div>
+                                <p className="text-xs text-muted-foreground mb-2">Documents</p>
+                                <ArrayTags items={chatbot.documents} emptyMessage="No documents uploaded" />
+                              </div>
+                            </div>
+                          </div>
+
+                          <Separator />
+
+                          {/* Visual & Messaging Section */}
+                          <div>
+                            <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                              <Palette className="w-4 h-4" />
+                              Visual & Messaging
+                            </h4>
+                            <div className="grid md:grid-cols-2 gap-4">
+                              <div>
+                                <p className="text-xs text-muted-foreground mb-2">Primary Color</p>
+                                <div className="flex items-center gap-2">
+                                  <div 
+                                    className="h-5 w-5 rounded border"
+                                    style={{ backgroundColor: chatbot.primaryColor }}
+                                    data-testid={`color-primary-${chatbot.id}`}
+                                  />
+                                  <span className="text-sm font-mono">{chatbot.primaryColor}</span>
+                                </div>
+                              </div>
+                              <div>
+                                <p className="text-xs text-muted-foreground mb-2">Accent Color</p>
+                                <div className="flex items-center gap-2">
+                                  <div 
+                                    className="h-5 w-5 rounded border"
+                                    style={{ backgroundColor: chatbot.accentColor }}
+                                    data-testid={`color-accent-${chatbot.id}`}
+                                  />
+                                  <span className="text-sm font-mono">{chatbot.accentColor}</span>
+                                </div>
+                              </div>
+                              <div>
+                                <p className="text-xs text-muted-foreground mb-2">Logo URL</p>
+                                {chatbot.logoUrl ? (
+                                  <a 
+                                    href={chatbot.logoUrl} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    className="text-sm text-primary hover:underline truncate block"
+                                    data-testid={`link-logo-${chatbot.id}`}
+                                  >
+                                    {chatbot.logoUrl}
+                                  </a>
+                                ) : (
+                                  <span className="text-sm text-muted-foreground">No logo configured</span>
+                                )}
+                              </div>
+                              <div>
+                                <p className="text-xs text-muted-foreground mb-2">Suggested Questions</p>
+                                <BooleanBadge value={chatbot.enableSuggestedQuestions} trueLabel="Enabled" falseLabel="Disabled" />
+                              </div>
+                              <div className="md:col-span-2">
+                                <p className="text-xs text-muted-foreground mb-2">Welcome Message</p>
+                                <p className="text-sm" data-testid={`text-welcome-${chatbot.id}`}>{chatbot.welcomeMessage}</p>
+                              </div>
+                              {chatbot.enableSuggestedQuestions === "true" && chatbot.suggestedQuestions && chatbot.suggestedQuestions.length > 0 && (
+                                <div className="md:col-span-2">
+                                  <p className="text-xs text-muted-foreground mb-2">Suggested Question List</p>
+                                  <ArrayTags items={chatbot.suggestedQuestions} />
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          <Separator />
+
+                          {/* Lead Capture & Proactive Section */}
+                          <div>
+                            <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                              <Bell className="w-4 h-4" />
+                              Lead Capture & Proactive Chat
+                            </h4>
+                            <div className="grid md:grid-cols-2 gap-4">
+                              <div>
+                                <p className="text-xs text-muted-foreground mb-2">Lead Capture</p>
+                                <BooleanBadge value={chatbot.leadCaptureEnabled} trueLabel="Enabled" falseLabel="Disabled" />
+                              </div>
+                              {chatbot.leadCaptureEnabled === "true" && (
+                                <>
+                                  <div>
+                                    <p className="text-xs text-muted-foreground mb-2">Capture Type</p>
+                                    <Badge variant="secondary">{chatbot.leadCaptureType}</Badge>
+                                  </div>
+                                  {chatbot.leadCaptureType === "external_link" && chatbot.leadCaptureExternalUrl && (
+                                    <div className="md:col-span-2">
+                                      <p className="text-xs text-muted-foreground mb-2">External URL</p>
+                                      <a 
+                                        href={chatbot.leadCaptureExternalUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-sm text-primary hover:underline"
+                                      >
+                                        {chatbot.leadCaptureExternalUrl}
+                                      </a>
+                                    </div>
+                                  )}
+                                  {chatbot.leadCaptureType === "form" && (
+                                    <>
+                                      <div className="md:col-span-2">
+                                        <p className="text-xs text-muted-foreground mb-2">Form Fields</p>
+                                        <ArrayTags items={chatbot.leadCaptureFields} />
+                                      </div>
+                                      <div>
+                                        <p className="text-xs text-muted-foreground mb-2">Form Title</p>
+                                        <p className="text-sm">{chatbot.leadCaptureTitle}</p>
+                                      </div>
+                                      <div>
+                                        <p className="text-xs text-muted-foreground mb-2">Form Message</p>
+                                        <p className="text-sm">{chatbot.leadCaptureMessage}</p>
+                                      </div>
+                                    </>
+                                  )}
+                                </>
+                              )}
+                              <div>
+                                <p className="text-xs text-muted-foreground mb-2">Proactive Chat</p>
+                                <BooleanBadge value={chatbot.proactiveChatEnabled} trueLabel="Enabled" falseLabel="Disabled" />
+                              </div>
+                              {chatbot.proactiveChatEnabled === "true" && (
+                                <>
+                                  <div>
+                                    <p className="text-xs text-muted-foreground mb-2">Delay (seconds)</p>
+                                    <p className="text-sm">{chatbot.proactiveChatDelay || 5}</p>
+                                  </div>
+                                  <div className="md:col-span-2">
+                                    <p className="text-xs text-muted-foreground mb-2">Proactive Message</p>
+                                    <p className="text-sm">{chatbot.proactiveChatMessage}</p>
+                                  </div>
+                                  {chatbot.proactiveChatTriggerUrls && chatbot.proactiveChatTriggerUrls.length > 0 && (
+                                    <div className="md:col-span-2">
+                                      <p className="text-xs text-muted-foreground mb-2">Trigger URLs</p>
+                                      <ArrayTags items={chatbot.proactiveChatTriggerUrls} />
+                                    </div>
+                                  )}
+                                </>
+                              )}
+                            </div>
+                          </div>
+
+                          <Separator />
+
+                          {/* Support & AI Behavior Section */}
+                          <div>
+                            <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                              <Phone className="w-4 h-4" />
+                              Support & AI Behavior
+                            </h4>
+                            <div className="space-y-4">
+                              <div className="grid md:grid-cols-2 gap-4">
+                                <div>
+                                  <p className="text-xs text-muted-foreground mb-2">Support Phone</p>
+                                  <p className="text-sm">{chatbot.supportPhoneNumber || "Not configured"}</p>
+                                </div>
+                                <div>
+                                  <p className="text-xs text-muted-foreground mb-2">Live Agent Hours</p>
+                                  <BooleanBadge value={chatbot.liveAgentHoursEnabled} trueLabel="Enabled" falseLabel="Disabled" />
+                                </div>
+                                {chatbot.liveAgentHoursEnabled === "true" && (
+                                  <>
+                                    <div>
+                                      <p className="text-xs text-muted-foreground mb-2">Operating Hours</p>
+                                      <p className="text-sm">{chatbot.liveAgentStartTime} - {chatbot.liveAgentEndTime}</p>
+                                    </div>
+                                    <div>
+                                      <p className="text-xs text-muted-foreground mb-2">Timezone</p>
+                                      <p className="text-sm">{chatbot.liveAgentTimezone}</p>
+                                    </div>
+                                    <div className="md:col-span-2">
+                                      <p className="text-xs text-muted-foreground mb-2">Operating Days</p>
+                                      <ArrayTags items={chatbot.liveAgentDaysOfWeek} />
+                                    </div>
+                                  </>
+                                )}
+                              </div>
+                              
+                              <div>
+                                <p className="text-xs text-muted-foreground mb-2">Escalation Message</p>
+                                <p className="text-sm bg-muted p-2 rounded">{chatbot.escalationMessage}</p>
+                              </div>
+                              
+                              <div>
+                                <p className="text-xs text-muted-foreground mb-2">System Prompt</p>
+                                <ExpandableText text={chatbot.systemPrompt} label="System Prompt" />
+                              </div>
+                              
+                              {chatbot.customInstructions && (
+                                <div>
+                                  <p className="text-xs text-muted-foreground mb-2">Custom Instructions</p>
+                                  <ExpandableText text={chatbot.customInstructions} label="Custom Instructions" />
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+                  ))}
+                </Accordion>
+              )}
+            </CardContent>
+          </Card>
 
           {/* Recent Conversations */}
           {recentConversations.length > 0 && (
