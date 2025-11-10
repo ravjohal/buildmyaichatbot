@@ -200,7 +200,17 @@ export function DashboardHeader() {
                                     {formatDistanceToNow(new Date(trigger.triggeredAt), { addSuffix: true })}
                                   </span>
                                 </div>
-                                <p className="text-sm font-medium">{chatbot.name}</p>
+                                <div className="flex items-center gap-2">
+                                  <p className="text-sm font-medium">{chatbot.name}</p>
+                                  {trigger.conversationId && (
+                                    <>
+                                      <span className="text-xs text-muted-foreground">•</span>
+                                      <p className="text-xs text-muted-foreground font-mono" data-testid={`text-session-${trigger.conversationId}`}>
+                                        {trigger.conversationId.substring(0, 8)}...
+                                      </p>
+                                    </>
+                                  )}
+                                </div>
                                 <p className="text-sm text-muted-foreground line-clamp-2">
                                   {trigger.messageContent}
                                 </p>
