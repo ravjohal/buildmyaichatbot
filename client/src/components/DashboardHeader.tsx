@@ -18,6 +18,7 @@ interface KeywordAlertTrigger {
     messageContent: string;
     visitorName: string | null;
     visitorEmail: string | null;
+    conversationId: string | null;
     triggeredAt: string;
     read: string;
   };
@@ -179,46 +180,53 @@ export function DashboardHeader() {
                   ) : (
                     <div className="divide-y">
                       {unreadAlerts.map(({ trigger, chatbot }) => (
-                        <div
+                        <Link
                           key={trigger.id}
-                          className="p-4 hover-elevate transition-colors"
-                          data-testid={`alert-${trigger.id}`}
+                          href={trigger.conversationId ? `/analytics/${chatbot.id}?conversation=${trigger.conversationId}` : `/analytics/${chatbot.id}`}
+                          className="block"
+                          data-testid={`link-alert-${trigger.id}`}
                         >
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="flex-1 space-y-1">
-                              <div className="flex items-center gap-2">
-                                <Badge variant="secondary" data-testid={`badge-keyword-${trigger.keyword}`}>
-                                  {trigger.keyword}
-                                </Badge>
-                                <span className="text-xs text-muted-foreground">
-                                  {formatDistanceToNow(new Date(trigger.triggeredAt), { addSuffix: true })}
-                                </span>
-                              </div>
-                              <p className="text-sm font-medium">{chatbot.name}</p>
-                              <p className="text-sm text-muted-foreground line-clamp-2">
-                                {trigger.messageContent}
-                              </p>
-                              {trigger.visitorName && (
-                                <p className="text-xs text-muted-foreground">
-                                  From: {trigger.visitorName}
-                                  {trigger.visitorEmail && ` (${trigger.visitorEmail})`}
+                          <div
+                            className="p-4 hover-elevate transition-colors cursor-pointer"
+                            data-testid={`alert-${trigger.id}`}
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex-1 space-y-1">
+                                <div className="flex items-center gap-2">
+                                  <Badge variant="secondary" data-testid={`badge-keyword-${trigger.keyword}`}>
+                                    {trigger.keyword}
+                                  </Badge>
+                                  <span className="text-xs text-muted-foreground">
+                                    {formatDistanceToNow(new Date(trigger.triggeredAt), { addSuffix: true })}
+                                  </span>
+                                </div>
+                                <p className="text-sm font-medium">{chatbot.name}</p>
+                                <p className="text-sm text-muted-foreground line-clamp-2">
+                                  {trigger.messageContent}
                                 </p>
-                              )}
+                                {trigger.visitorName && (
+                                  <p className="text-xs text-muted-foreground">
+                                    From: {trigger.visitorName}
+                                    {trigger.visitorEmail && ` (${trigger.visitorEmail})`}
+                                  </p>
+                                )}
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  markAsReadMutation.mutate(trigger.id);
+                                }}
+                                disabled={markAsReadMutation.isPending}
+                                data-testid={`button-dismiss-${trigger.id}`}
+                              >
+                                <X className="w-4 h-4" />
+                              </Button>
                             </div>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                markAsReadMutation.mutate(trigger.id);
-                              }}
-                              disabled={markAsReadMutation.isPending}
-                              data-testid={`button-dismiss-${trigger.id}`}
-                            >
-                              <X className="w-4 h-4" />
-                            </Button>
                           </div>
-                        </div>
+                        </Link>
                       ))}
                     </div>
                   )}
