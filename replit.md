@@ -32,7 +32,7 @@ The backend is built using Express.js, Node.js, and TypeScript, adhering to a RE
 *   **On-Demand Knowledge Base Refresh:** Intelligently updates knowledge bases from website URLs by detecting content changes.
 *   **Analytics Dashboard:** Provides comprehensive chatbot analytics, including metrics, conversation transcripts, and performance breakdowns.
 *   **3-Tier Pricing System:** Implements Free, Pro, and Scale tiers with server-side enforcement of limits.
-*   **Admin System:** Offers full user management, system-wide statistics, and access to all chatbots for administrators.
+*   **Admin System:** Offers full user management, system-wide statistics, and access to all chatbots for administrators. Includes comprehensive user details view with accordion-based chatbot information display showing all configuration, visual settings, features, and AI behavior for each chatbot.
 *   **Account Management:** Users manage profile, subscription, and billing via an integrated Stripe portal.
 *   **Shareable Links & QR Codes:** Enables distribution of chatbots via direct links and QR codes with a full-page chat interface.
 *   **Intelligent SPA Crawler:** Dual-mode crawler automatically detects and renders JavaScript-heavy SPAs using Playwright.
