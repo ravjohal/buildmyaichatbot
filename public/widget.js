@@ -61,7 +61,7 @@
     bottom: 0;
     right: 0;
     width: 450px;
-    height: 650px;
+    height: 680px;
     border: none;
     background: transparent;
     z-index: 2147483647;
