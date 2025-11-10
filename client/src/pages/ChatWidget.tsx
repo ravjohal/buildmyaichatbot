@@ -1392,6 +1392,46 @@ export default function ChatWidget() {
 
           {renderLeadForm()}
 
+          {showHandoffButton && handoffStatus === "none" && (
+            <div className="p-4 border-t bg-muted/30">
+              {liveAgentAvailable ? (
+                <Button
+                  variant="default"
+                  className="w-full"
+                  style={{ backgroundColor: chatbot.accentColor }}
+                  onClick={handleRequestHandoff}
+                  disabled={handoffMutation.isPending}
+                  data-testid="button-request-handoff"
+                >
+                  <UserPlus className="w-4 h-4 mr-2" />
+                  {handoffMutation.isPending ? "Connecting..." : "Talk to a Human Agent"}
+                </Button>
+              ) : (
+                <div className="text-sm text-muted-foreground text-center" data-testid="text-agent-unavailable">
+                  {liveAgentMessage || "Live agents are currently unavailable. Please try again during business hours."}
+                </div>
+              )}
+            </div>
+          )}
+
+          {handoffStatus === "requested" && (
+            <div className="p-4 border-t bg-muted/30">
+              <div className="flex items-center gap-2 text-sm">
+                <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                <span>Connecting you with an agent...</span>
+              </div>
+            </div>
+          )}
+
+          {handoffStatus === "connected" && (
+            <div className="p-4 border-t bg-green-50 dark:bg-green-950">
+              <div className="flex items-center gap-2 text-sm text-green-700 dark:text-green-300">
+                <div className="w-2 h-2 rounded-full bg-green-500" />
+                <span>Connected to live agent</span>
+              </div>
+            </div>
+          )}
+
           {showRating && !hasRated && (
             <div className="p-3 border-t bg-muted/30">
               <p className="text-xs font-medium mb-2">How was your experience?</p>
