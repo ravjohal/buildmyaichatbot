@@ -2155,7 +2155,10 @@ Generate 3 short, natural questions that would help the user learn more. Return 
             console.log(`[ESCALATION] Escalation detected in cached answer. shouldEscalate=true, agentsAvailable=${liveAgentAvailability.available}`);
           }
           
-          res.write(`data: ${JSON.stringify({ 
+          console.log(`[ESCALATION] Final escalation status: shouldEscalate=${shouldEscalate}`);
+          console.log(`[ESCALATION] Response preview: ${aiMessage.substring(0, 200)}...`);
+          
+          const responsePayload = { 
             type: "complete",
             message: aiMessage,
             shouldEscalate,
@@ -2163,7 +2166,15 @@ Generate 3 short, natural questions that would help the user learn more. Return 
             liveAgentMessage: liveAgentAvailability.message,
             suggestedQuestions,
             images: relevantImages.length > 0 ? relevantImages : undefined,
-          })}\n\n`);
+          };
+          
+          console.log(`[SSE-SEND] Sending to frontend:`, JSON.stringify({
+            shouldEscalate: responsePayload.shouldEscalate,
+            liveAgentAvailable: responsePayload.liveAgentAvailable,
+            liveAgentMessage: responsePayload.liveAgentMessage,
+          }));
+          
+          res.write(`data: ${JSON.stringify(responsePayload)}\n\n`);
           
           storage.updateCacheHitCount(cachedAnswer.id).catch(() => {});
         } else {
