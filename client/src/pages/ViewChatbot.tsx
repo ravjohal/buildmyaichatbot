@@ -74,7 +74,7 @@ export default function ViewChatbot() {
                   <img 
                     src={chatbot.logoUrl} 
                     alt={chatbot.name}
-                    className="w-10 h-10 rounded-lg object-cover"
+                    className="h-10 max-w-[120px] rounded-lg object-contain"
                   />
                 ) : (
                   <div 
@@ -251,7 +251,7 @@ export default function ViewChatbot() {
                     <img 
                       src={chatbot.logoUrl} 
                       alt="Chatbot logo"
-                      className="w-12 h-12 rounded object-cover border"
+                      className="h-12 max-w-[160px] rounded object-contain border"
                       data-testid="img-logo"
                     />
                     <a 

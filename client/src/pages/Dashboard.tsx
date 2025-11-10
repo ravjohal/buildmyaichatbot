@@ -462,7 +462,7 @@ export default function Dashboard() {
                       <img 
                         src={chatbot.logoUrl} 
                         alt={chatbot.name}
-                        className="w-10 h-10 rounded-lg object-cover"
+                        className="h-10 max-w-[120px] rounded-lg object-contain"
                       />
                     ) : (
                       <div 
