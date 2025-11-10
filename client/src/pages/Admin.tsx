@@ -1,7 +1,7 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Shield, Users, MessageSquare, Bot, Trash2, Crown, AlertTriangle, ShieldCheck, ShieldOff } from "lucide-react";
+import { Shield, Users, MessageSquare, Bot, Trash2, Crown, AlertTriangle, ShieldCheck, ShieldOff, Eye } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
@@ -368,6 +368,15 @@ export default function Admin() {
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
                                   <DropdownMenuLabel>User Management</DropdownMenuLabel>
+                                  <DropdownMenuSeparator />
+                                  
+                                  <Link href={`/admin/users/${user.id}`}>
+                                    <DropdownMenuItem data-testid={`action-view-details-${user.id}`}>
+                                      <Eye className="w-4 h-4 mr-2" />
+                                      View Details
+                                    </DropdownMenuItem>
+                                  </Link>
+                                  
                                   <DropdownMenuSeparator />
                                   
                                   <DropdownMenuItem

@@ -4302,6 +4302,109 @@ INCORRECT citation examples (NEVER do this):
     }
   });
 
+  // Get detailed user account information (admin only)
+  app.get('/api/admin/users/:userId', isAdmin, async (req: any, res) => {
+    try {
+      const { userId } = req.params;
+
+      // Get user data
+      const userResult = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+      if (!userResult[0]) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      const user = sanitizeUser(userResult[0]);
+
+      // Get user's chatbots
+      const userChatbots = await db.select().from(chatbots).where(eq(chatbots.userId, userId));
+      const chatbotIds = userChatbots.map(c => c.id);
+
+      // Initialize stats with default values
+      let conversationStats = [{ totalConversations: 0, totalMessages: 0, escalatedCount: 0 }];
+      let leadStats = [{ totalLeads: 0 }];
+      let recentConversations: any[] = [];
+
+      // Only query stats if user has chatbots
+      if (chatbotIds.length > 0) {
+        // Get conversation statistics
+        conversationStats = await db
+          .select({
+            totalConversations: sql<number>`count(distinct ${conversations.id})::int`,
+            totalMessages: sql<number>`count(${conversationMessages.id})::int`,
+            escalatedCount: sql<number>`count(distinct case when ${conversations.wasEscalated} = 'true' then ${conversations.id} end)::int`,
+          })
+          .from(conversations)
+          .leftJoin(conversationMessages, eq(conversationMessages.conversationId, conversations.id))
+          .where(inArray(conversations.chatbotId, chatbotIds))
+          .execute();
+
+        // Get lead statistics
+        leadStats = await db
+          .select({
+            totalLeads: sql<number>`count(*)::int`,
+          })
+          .from(leads)
+          .where(inArray(leads.chatbotId, chatbotIds))
+          .execute();
+
+        // Get recent conversations (last 10)
+        recentConversations = await db
+          .select({
+            id: conversations.id,
+            chatbotId: conversations.chatbotId,
+            chatbotName: chatbots.name,
+            startedAt: conversations.startedAt,
+            wasEscalated: conversations.wasEscalated,
+            messageCount: sql<number>`count(${conversationMessages.id})::int`,
+          })
+          .from(conversations)
+          .leftJoin(chatbots, eq(chatbots.id, conversations.chatbotId))
+          .leftJoin(conversationMessages, eq(conversationMessages.conversationId, conversations.id))
+          .where(inArray(conversations.chatbotId, chatbotIds))
+          .groupBy(conversations.id, chatbots.name)
+          .orderBy(sql`${conversations.startedAt} DESC`)
+          .limit(10);
+      }
+
+      // Get team members if user is a parent/owner
+      const teamMembers = await db
+        .select()
+        .from(users)
+        .where(eq(users.parentUserId, userId));
+
+      // Get parent user if this is a team member
+      let parentUser = null;
+      if (userResult[0].parentUserId) {
+        const parentResult = await db
+          .select()
+          .from(users)
+          .where(eq(users.id, userResult[0].parentUserId))
+          .limit(1);
+        if (parentResult[0]) {
+          parentUser = sanitizeUser(parentResult[0]);
+        }
+      }
+
+      res.json({
+        user,
+        chatbots: userChatbots,
+        stats: {
+          totalChatbots: userChatbots.length,
+          totalConversations: conversationStats[0]?.totalConversations || 0,
+          totalMessages: conversationStats[0]?.totalMessages || 0,
+          escalatedConversations: conversationStats[0]?.escalatedCount || 0,
+          totalLeads: leadStats[0]?.totalLeads || 0,
+        },
+        teamMembers: teamMembers.map(sanitizeUser),
+        parentUser,
+        recentConversations,
+      });
+    } catch (error) {
+      console.error("Error fetching user details:", error);
+      res.status(500).json({ error: "Failed to fetch user details" });
+    }
+  });
+
   // Update user subscription tier (admin only)
   app.patch('/api/admin/users/:userId/subscription', isAdmin, async (req: any, res) => {
     try {
