@@ -55,6 +55,7 @@ The backend is built using Express.js, Node.js, and TypeScript, adhering to a RE
 *   **Authentication & Security:** Custom email/password authentication (passport-local, bcrypt, session-based), CSRF protection, and Zod input validation. Multi-tenant architecture.
 *   **Payment Processing:** Stripe integration with automatic subscription tier management via webhooks.
 *   **Deployment Architecture:** Frontend built with Vite, server code with esbuild, configured for development and production.
+*   **Static File Serving:** In development, Vite serves static files from `client/public/` (e.g., `widget.js`, `demo.html`). In production, the build output goes to `dist/public/`. The embeddable widget script (`widget.js`) must be updated in `client/public/` to see changes during development.
 
 ## External Dependencies
 
