@@ -2098,13 +2098,17 @@ Generate 3 short, natural questions that would help the user learn more. Return 
       // Check if user explicitly requested human support
       const userRequestsHuman = detectUserHandoffRequest(message);
       if (userRequestsHuman) {
-        console.log(`[ESCALATION] User explicitly requested human support in message`);
+        console.log(`[ESCALATION-DETECT] ✓ User explicitly requested human support`);
+        console.log(`[ESCALATION-DETECT] Trigger phrase detected in: "${message.substring(0, 100)}..."`);
+      } else {
+        console.log(`[ESCALATION-DETECT] ✗ No explicit human support request in message`);
       }
       
       // Check live agent availability
       liveAgentAvailability = isWithinLiveAgentHours(chatbot);
+      console.log(`[LIVE-AGENT-HOURS] Availability check: ${liveAgentAvailability.available ? 'OPEN' : 'CLOSED'}`);
       if (!liveAgentAvailability.available) {
-        console.log(`[LIVE-AGENT-HOURS] Outside configured hours: ${liveAgentAvailability.message}`);
+        console.log(`[LIVE-AGENT-HOURS] Status: ${liveAgentAvailability.message}`);
       }
       
       if (manualOverride) {
@@ -2113,14 +2117,10 @@ Generate 3 short, natural questions that would help the user learn more. Return 
         aiMessage = manualOverride.manualAnswer;
         
         const escalationDetected = userRequestsHuman || detectEscalation(aiMessage);
-        shouldEscalate = escalationDetected && liveAgentAvailability.available;
+        shouldEscalate = escalationDetected; // Show handoff UI even when agents offline
         
         if (escalationDetected) {
-          if (liveAgentAvailability.available) {
-            console.log(`[ESCALATION] Detected escalation in manual override. shouldEscalate=true`);
-          } else {
-            console.log(`[ESCALATION] Escalation detected but outside live agent hours. shouldEscalate=false`);
-          }
+          console.log(`[ESCALATION] Escalation detected in manual override. shouldEscalate=true, agentsAvailable=${liveAgentAvailability.available}`);
         }
         
         res.write(`data: ${JSON.stringify({ 
@@ -2149,14 +2149,10 @@ Generate 3 short, natural questions that would help the user learn more. Return 
           suggestedQuestions = cachedAnswer.suggestedQuestions || [];
           
           const escalationDetected = userRequestsHuman || detectEscalation(aiMessage);
-          shouldEscalate = escalationDetected && liveAgentAvailability.available;
+          shouldEscalate = escalationDetected; // Show handoff UI even when agents offline
           
           if (escalationDetected) {
-            if (liveAgentAvailability.available) {
-              console.log(`[ESCALATION] Detected escalation in cached answer. shouldEscalate=true`);
-            } else {
-              console.log(`[ESCALATION] Escalation detected but outside live agent hours. shouldEscalate=false`);
-            }
+            console.log(`[ESCALATION] Escalation detected in cached answer. shouldEscalate=true, agentsAvailable=${liveAgentAvailability.available}`);
           }
           
           res.write(`data: ${JSON.stringify({ 
@@ -2239,14 +2235,10 @@ INCORRECT citation examples (NEVER do this):
             
             // Check for escalation in the LLM response or user's explicit request
             const escalationDetected = userRequestsHuman || detectEscalation(aiMessage);
-            shouldEscalate = escalationDetected && liveAgentAvailability.available;
+            shouldEscalate = escalationDetected; // Show handoff UI even when agents offline
             
             if (escalationDetected) {
-              if (liveAgentAvailability.available) {
-                console.log(`[ESCALATION] Detected escalation in LLM response. shouldEscalate=true`);
-              } else {
-                console.log(`[ESCALATION] Escalation detected but outside live agent hours. shouldEscalate=false`);
-              }
+              console.log(`[ESCALATION] Escalation detected in LLM response. shouldEscalate=true, agentsAvailable=${liveAgentAvailability.available}`);
             }
             
             // DISABLED: Follow-up question generation (redundant with 20 rotating AI questions from DB)
