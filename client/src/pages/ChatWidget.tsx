@@ -1012,7 +1012,7 @@ export default function ChatWidget() {
             <img
               src={chatbot.logoUrl}
               alt={chatbot.name}
-              className="w-12 h-12 rounded-lg object-cover"
+              className="h-12 max-w-[140px] rounded-lg object-contain"
             />
           ) : (
             <div className="w-12 h-12 rounded-lg bg-white/20 flex items-center justify-center">
@@ -1263,7 +1263,7 @@ export default function ChatWidget() {
                 <img
                   src={chatbot.logoUrl}
                   alt={chatbot.name}
-                  className="w-10 h-10 rounded-lg object-cover"
+                  className="h-10 max-w-[120px] rounded-lg object-contain"
                 />
               ) : (
                 <div className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center">
