@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { useRoute, Link, useLocation } from "wouter";
+import { useRoute, Link } from "wouter";
 import { MessageSquare, TrendingUp, AlertCircle, Clock, Pencil, Trash2, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -32,7 +32,6 @@ interface ConversationDetail {
 export default function Analytics() {
   const [, params] = useRoute("/analytics/:id");
   const chatbotId = params?.id || "";
-  const [location] = useLocation();
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
   const [editingMessage, setEditingMessage] = useState<{ question: string; originalAnswer: string } | null>(null);
   const [editedAnswer, setEditedAnswer] = useState("");
@@ -40,12 +39,13 @@ export default function Analytics() {
 
   // Auto-open conversation dialog when coming from keyword alert
   useEffect(() => {
-    const searchParams = new URLSearchParams(location.split('?')[1]);
+    const searchParams = new URLSearchParams(window.location.search);
     const conversationId = searchParams.get('conversation');
     if (conversationId) {
+      console.log('[Analytics] Auto-opening conversation:', conversationId);
       setSelectedConversation(conversationId);
     }
-  }, [location]);
+  }, []);
 
   const { data: chatbot } = useQuery<Chatbot>({
     queryKey: [`/api/chatbots/${chatbotId}`],
