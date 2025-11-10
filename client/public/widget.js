@@ -39,7 +39,7 @@
   // CRITICAL: Use the chatbot server's origin, NOT the current page's origin
   iframe.src = `${chatbotServerOrigin}/widget/${chatbotId}`;
   
-  iframe.style.cssText = 'position: fixed; bottom: 0; right: 0; width: 450px; height: 650px; border: none; background: transparent; z-index: 2147483647; pointer-events: auto;';
+  iframe.style.cssText = 'position: fixed; bottom: 0; right: 0; width: 450px; height: 680px; border: none; background: transparent; z-index: 2147483647; pointer-events: auto;';
   iframe.setAttribute('allow', 'clipboard-write');
   iframe.id = 'chatbot-widget-iframe';
   
