@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useRoute, Link } from "wouter";
-import { ArrowLeft, User, CreditCard, BarChart3, Bot, Users, MessageSquare, Mail, Calendar, Shield, Crown, Building2 } from "lucide-react";
+import { ArrowLeft, User, CreditCard, BarChart3, Bot, Users, MessageSquare, Mail, Calendar, Shield, Crown, Building2, Globe, FileText, Palette, Bell, Phone, Clock, ChevronDown, Copy, CheckCircle2, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -17,6 +17,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import { useState } from "react";
 
 interface AdminUserDetails {
   user: UserType;
@@ -39,6 +46,64 @@ interface AdminUserDetails {
     messageCount: number;
   }>;
 }
+
+// Utility helper functions for rendering chatbot data
+const BooleanBadge = ({ value, trueLabel = "Enabled", falseLabel = "Disabled" }: { value: string | boolean | undefined | null, trueLabel?: string, falseLabel?: string }) => {
+  // Handle both string "true"/"false" and actual boolean values
+  const isTrue = value === true || value === "true" || value === 1 || value === "1";
+  return (
+    <Badge variant={isTrue ? "outline" : "secondary"} className={isTrue ? "bg-green-50 dark:bg-green-950" : ""}>
+      {isTrue ? <CheckCircle2 className="w-3 h-3 mr-1" /> : <XCircle className="w-3 h-3 mr-1" />}
+      {isTrue ? trueLabel : falseLabel}
+    </Badge>
+  );
+};
+
+const ArrayTags = ({ items, emptyMessage = "None configured" }: { items: string[] | undefined | null, emptyMessage?: string }) => {
+  if (!items || items.length === 0) {
+    return <span className="text-sm text-muted-foreground">{emptyMessage}</span>;
+  }
+  return (
+    <div className="flex flex-wrap gap-1">
+      {items.map((item, idx) => (
+        <Badge key={idx} variant="secondary" className="text-xs">{item}</Badge>
+      ))}
+    </div>
+  );
+};
+
+const ExpandableText = ({ text, label }: { text: string | undefined | null, label: string }) => {
+  const [copied, setCopied] = useState(false);
+  
+  const handleCopy = () => {
+    if (text) {
+      navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  if (!text) {
+    return <span className="text-sm text-muted-foreground">Not configured</span>;
+  }
+
+  return (
+    <div className="relative">
+      <Button
+        variant="ghost"
+        size="icon"
+        className="absolute top-1 right-1"
+        onClick={handleCopy}
+        data-testid={`button-copy-${label.toLowerCase().replace(/\s+/g, '-')}`}
+      >
+        <Copy className="w-3 h-3" />
+      </Button>
+      <pre className="text-xs bg-muted p-3 rounded border overflow-x-auto max-h-32 pr-10">
+        {text}
+      </pre>
+    </div>
+  );
+};
 
 export default function AdminUserDetails() {
   const [, params] = useRoute("/admin/users/:userId");
