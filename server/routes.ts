@@ -4567,7 +4567,8 @@ INCORRECT citation examples (NEVER do this):
           }
           // Handle active subscriptions (including those scheduled for cancellation)
           // User retains access until period ends even if cancel_at_period_end is true
-          else if (subscription.status === 'active' || subscription.status === 'trialing' || subscription.status === 'incomplete') {
+          // NOTE: Do NOT upgrade for 'incomplete' status - wait for payment confirmation
+          else if (subscription.status === 'active' || subscription.status === 'trialing') {
             // Determine tier from price ID
             const priceId = subscription.items.data[0]?.price.id;
             let tier: 'free' | 'starter' | 'business' | 'scale' = 'free';
