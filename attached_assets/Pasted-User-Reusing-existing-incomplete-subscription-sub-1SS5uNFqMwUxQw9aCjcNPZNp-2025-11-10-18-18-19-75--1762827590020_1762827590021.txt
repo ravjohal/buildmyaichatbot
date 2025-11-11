@@ -1,0 +1,115 @@
+User
+Reusing existing incomplete subscription: sub_1SS5uNFqMwUxQw9aCjcNPZNp
+
+2025-11-10 18:18:19.75
+90390401
+User
+Incomplete subscription sub_1SS5uNFqMwUxQw9aCjcNPZNp has no valid payment intent - canceling
+2025-11-10 18:18:20.44
+90390401
+User
+Using existing Stripe customer: cus_TLdNLNQthDkGev
+2025-11-10 18:18:20.44
+90390401
+User
+Creating subscription: tier=business, billingCycle=monthly, priceId=price_1SS5FDFqMwUxQw9aKwiSEsDH
+2025-11-10 18:18:21.98
+90390401
+User
+Manually creating PaymentIntent for invoice: {
+2025-11-10 18:18:21.98
+90390401
+User
+invoiceId: 'in_1SS7A0FqMwUxQw9auyCGeVnB',
+2025-11-10 18:18:21.98
+90390401
+User
+amount: 4900,
+2025-11-10 18:18:21.98
+90390401
+User
+currency: 'usd'
+2025-11-10 18:18:21.98
+90390401
+User
+}
+2025-11-10 18:18:22.22
+90390401
+User
+PaymentIntent created: { id: 'pi_3SS7A2FqMwUxQw9a0qYJuh5g', clientSecret: 'present' }
+2025-11-10 18:18:22.22
+90390401
+User
+Subscription created: {
+2025-11-10 18:18:22.22
+90390401
+User
+subscriptionId: 'sub_1SS7A0FqMwUxQw9akht2UbFr',
+2025-11-10 18:18:22.22
+90390401
+User
+status: 'incomplete',
+2025-11-10 18:18:22.22
+90390401
+User
+latestInvoiceType: 'object',
+2025-11-10 18:18:22.22
+90390401
+User
+latestInvoiceId: 'in_1SS7A0FqMwUxQw9auyCGeVnB',
+2025-11-10 18:18:22.22
+90390401
+User
+pendingSetupIntentType: 'object'
+2025-11-10 18:18:22.22
+90390401
+User
+}
+2025-11-10 18:18:22.22
+90390401
+User
+Invoice details: {
+2025-11-10 18:18:22.22
+90390401
+User
+invoiceId: 'in_1SS7A0FqMwUxQw9auyCGeVnB',
+2025-11-10 18:18:22.22
+90390401
+User
+status: 'open',
+2025-11-10 18:18:22.22
+90390401
+User
+total: 4900,
+2025-11-10 18:18:22.22
+90390401
+User
+paymentIntentType: 'object',
+2025-11-10 18:18:22.22
+90390401
+User
+paymentIntentId: 'pi_3SS7A2FqMwUxQw9a0qYJuh5g'
+2025-11-10 18:18:22.22
+90390401
+User
+}
+2025-11-10 18:18:22.22
+90390401
+User
+Checking for SetupIntent: {
+2025-11-10 18:18:22.22
+90390401
+User
+hasClientSecret: true,
+2025-11-10 18:18:22.22
+90390401
+User
+hasPendingSetupIntent: false,
+2025-11-10 18:18:22.22
+90390401
+User
+pendingSetupIntentValue: null
+2025-11-10 18:18:22.22
+90390401
+User
+}

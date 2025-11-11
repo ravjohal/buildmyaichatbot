@@ -3545,11 +3545,19 @@ INCORRECT citation examples (NEVER do this):
                 // Incomplete subscription but no valid payment intent - cancel it and create new one
                 console.log(`Incomplete subscription ${subscription.id} has no valid payment intent - canceling`);
                 await stripe.subscriptions.cancel(subscription.id);
+                // Clear the stored subscription ID so we create a fresh one
+                await db.update(users)
+                  .set({ stripeSubscriptionId: null })
+                  .where(eq(users.id, user.id));
               }
             } else {
               // Different tier/billing - cancel old incomplete subscription
               console.log(`Canceling old incomplete subscription ${subscription.id} (tier: ${subTier}, billing: ${subBillingCycle})`);
               await stripe.subscriptions.cancel(subscription.id);
+              // Clear the stored subscription ID so we create a fresh one
+              await db.update(users)
+                .set({ stripeSubscriptionId: null })
+                .where(eq(users.id, user.id));
             }
           }
         } catch (err: any) {
