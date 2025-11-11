@@ -276,11 +276,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         try {
           const subscription = await stripe.subscriptions.retrieve(user.stripeSubscriptionId);
           const product = subscription.items.data[0]?.price;
-          const subscriptionItem = subscription.items.data[0];
           
-          // Period dates are in the subscription items, not at the subscription level
-          const currentPeriodStart = (subscriptionItem as any)?.current_period_start || 0;
-          const currentPeriodEnd = (subscriptionItem as any)?.current_period_end || 0;
+          // Period dates are on the subscription object itself
+          const currentPeriodStart = subscription.current_period_start || 0;
+          const currentPeriodEnd = subscription.current_period_end || 0;
           const cancelAtPeriodEnd = subscription.cancel_at_period_end || false;
           const canceledAt = subscription.canceled_at || null;
           
