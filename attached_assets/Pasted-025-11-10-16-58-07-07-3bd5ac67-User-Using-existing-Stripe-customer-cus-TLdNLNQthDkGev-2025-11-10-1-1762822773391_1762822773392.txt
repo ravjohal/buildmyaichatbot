@@ -1,0 +1,117 @@
+025-11-10 16:58:07.07
+3bd5ac67
+User
+Using existing Stripe customer: cus_TLdNLNQthDkGev
+
+2025-11-10 16:58:07.07
+3bd5ac67
+User
+Creating subscription: tier=business, billingCycle=monthly, priceId=price_1SS5FDFqMwUxQw9aKwiSEsDH
+2025-11-10 16:58:08.33
+3bd5ac67
+User
+Manually creating PaymentIntent for invoice: {
+2025-11-10 16:58:08.33
+3bd5ac67
+User
+invoiceId: 'in_1SS5uNFqMwUxQw9a0xtf1PBV',
+2025-11-10 16:58:08.33
+3bd5ac67
+User
+amount: 4900,
+2025-11-10 16:58:08.33
+3bd5ac67
+User
+currency: 'usd'
+2025-11-10 16:58:08.33
+3bd5ac67
+User
+}
+2025-11-10 16:58:08.61
+3bd5ac67
+User
+PaymentIntent created: { id: 'pi_3SS5uOFqMwUxQw9a0gpfitcV', clientSecret: 'present' }
+2025-11-10 16:58:08.61
+3bd5ac67
+User
+Subscription created: {
+2025-11-10 16:58:08.61
+3bd5ac67
+User
+subscriptionId: 'sub_1SS5uNFqMwUxQw9aCjcNPZNp',
+2025-11-10 16:58:08.61
+3bd5ac67
+User
+status: 'incomplete',
+2025-11-10 16:58:08.61
+3bd5ac67
+User
+latestInvoiceType: 'object',
+2025-11-10 16:58:08.61
+3bd5ac67
+User
+latestInvoiceId: 'in_1SS5uNFqMwUxQw9a0xtf1PBV',
+2025-11-10 16:58:08.61
+3bd5ac67
+User
+pendingSetupIntentType: 'object'
+2025-11-10 16:58:08.61
+3bd5ac67
+User
+}
+2025-11-10 16:58:08.61
+3bd5ac67
+User
+Invoice details: {
+2025-11-10 16:58:08.61
+3bd5ac67
+User
+invoiceId: 'in_1SS5uNFqMwUxQw9a0xtf1PBV',
+2025-11-10 16:58:08.61
+3bd5ac67
+User
+status: 'open',
+2025-11-10 16:58:08.61
+3bd5ac67
+User
+total: 4900,
+2025-11-10 16:58:08.61
+3bd5ac67
+User
+paymentIntentType: 'object',
+2025-11-10 16:58:08.61
+3bd5ac67
+User
+paymentIntentId: 'pi_3SS5uOFqMwUxQw9a0gpfitcV'
+2025-11-10 16:58:08.61
+3bd5ac67
+User
+}
+2025-11-10 16:58:08.61
+3bd5ac67
+User
+Checking for SetupIntent: {
+2025-11-10 16:58:08.61
+3bd5ac67
+User
+hasClientSecret: true,
+2025-11-10 16:58:08.61
+3bd5ac67
+User
+hasPendingSetupIntent: false,
+2025-11-10 16:58:08.61
+3bd5ac67
+User
+pendingSetupIntentValue: null
+2025-11-10 16:58:08.61
+3bd5ac67
+User
+}
+2025-11-10 16:58:08.61
+3bd5ac67
+User
+Client secret extraction: { clientSecret: 'found', clientSecretPrefix: 'pi_3SS5...' }
+2025-11-10 16:58:08.64
+3bd5ac67
+User
+12:58:08 AM [express] POST /api/create-subscription 200 in 1879ms :: {"subscriptionId":"sub_1SS5uNFqM…
