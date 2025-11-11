@@ -4559,18 +4559,8 @@ INCORRECT citation examples (NEVER do this):
               })
               .where(eq(users.id, userId));
           }
-          // Handle subscriptions scheduled for cancellation - downgrade immediately for better UX
-          else if (subscription.cancel_at_period_end) {
-            console.log(`[Webhook] Subscription ${subscription.id} is scheduled for cancellation - downgrading user to free tier`);
-            await db.update(users)
-              .set({ 
-                subscriptionTier: 'free',
-                stripePriceId: null,
-                // Keep stripeSubscriptionId so we can still show subscription details until period ends
-              })
-              .where(eq(users.id, userId));
-          }
-          // Handle active subscriptions
+          // Handle active subscriptions (including those scheduled for cancellation)
+          // User retains access until period ends even if cancel_at_period_end is true
           else if (subscription.status === 'active' || subscription.status === 'trialing' || subscription.status === 'incomplete') {
             // Determine tier from price ID
             const priceId = subscription.items.data[0]?.price.id;
