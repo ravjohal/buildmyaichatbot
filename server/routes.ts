@@ -375,10 +375,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/chatbots/:id", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id;
-      const chatbot = await storage.getChatbot(req.params.id, userId);
+      const chatbotId = req.params.id;
+      
+      // First try to get chatbot as owner
+      let chatbot = await storage.getChatbot(chatbotId, userId);
+      
+      // If not found and user is admin, try to get chatbot without owner check
+      if (!chatbot) {
+        const user = await storage.getUser(userId);
+        if (user && user.isAdmin === "true") {
+          chatbot = await storage.getChatbotById(chatbotId);
+        }
+      }
+      
       if (!chatbot) {
         return res.status(404).json({ error: "Chatbot not found" });
       }
+      
       res.json(chatbot);
     } catch (error) {
       console.error("Error fetching chatbot:", error);
@@ -700,7 +713,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // No tier restrictions needed here
       
       // Get existing chatbot to compare knowledge sources
-      const existingChatbot = await storage.getChatbot(chatbotId, userId);
+      // First try as owner, then as admin if not found
+      let existingChatbot = await storage.getChatbot(chatbotId, userId);
+      if (!existingChatbot) {
+        const user = await storage.getUser(userId);
+        if (user && user.isAdmin === "true") {
+          existingChatbot = await storage.getChatbotById(chatbotId);
+        }
+      }
+      
       if (!existingChatbot) {
         return res.status(404).json({ error: "Chatbot not found" });
       }
