@@ -45,6 +45,7 @@ The backend is built using Express.js, Node.js, and TypeScript, adhering to a RE
 *   **CRM Integration:** Generic webhook-based system for sending captured leads to CRMs, supporting various authentication types, custom headers, field mapping, automatic retry, and real-time sync tracking.
 *   **Keyword Alerts:** Notifies chatbot owners when specific keywords are mentioned in chat. Features configurable keyword lists, dual-channel notifications (email/in-app), real-time detection, alert history, and a notifications panel.
 *   **In-App Help Center:** Comprehensive self-service documentation accessible to all users via DashboardHeader. Features 10 step-by-step guides covering Phase 1 features, organized into 4 categories. Includes real-time search, URL-based article routing, markdown rendering (react-markdown + remark-gfm), and mobile-responsive three-pane layout with manifest-driven architecture.
+*   **Tabbed Chatbot View:** Comprehensive read-only overview at `/view/:id` organizing all chatbot information into 6 tabs: Overview (basic info & statistics), Knowledge Base (URLs & documents), Personality (system prompt & custom instructions), Appearance (brand colors, logo, welcome message, suggested questions), Features (escalation & lead capture settings), and Analytics (metrics, conversation history, manual answer training). Supports `?tab=` query parameter for deep linking to specific tabs.
 
 ### System Design Choices
 
