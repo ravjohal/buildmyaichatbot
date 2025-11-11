@@ -1,7 +1,7 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Shield, Users, MessageSquare, Bot, Trash2, Crown, AlertTriangle, ShieldCheck, ShieldOff, Eye } from "lucide-react";
+import { Shield, Users, MessageSquare, Bot, Trash2, Crown, AlertTriangle, ShieldCheck, ShieldOff, Eye, Settings } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
@@ -472,6 +472,7 @@ export default function Admin() {
                       <TableHead>Questions</TableHead>
                       <TableHead>Owner Tier</TableHead>
                       <TableHead>Created</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -501,11 +502,19 @@ export default function Admin() {
                           <TableCell className="text-sm text-muted-foreground">
                             {formatDate(chatbot.createdAt)}
                           </TableCell>
+                          <TableCell className="text-right">
+                            <Link href={`/edit/${chatbot.id}`}>
+                              <Button variant="outline" size="sm" data-testid={`button-edit-chatbot-${chatbot.id}`}>
+                                <Settings className="w-4 h-4 mr-2" />
+                                Edit
+                              </Button>
+                            </Link>
+                          </TableCell>
                         </TableRow>
                       ))
                     ) : (
                       <TableRow>
-                        <TableCell colSpan={5} className="text-center text-muted-foreground">
+                        <TableCell colSpan={6} className="text-center text-muted-foreground">
                           No chatbots found
                         </TableCell>
                       </TableRow>
