@@ -280,20 +280,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
           const product = subscription.items.data[0]?.price;
           
-          console.log('[/api/account] Full Stripe subscription object keys:', Object.keys(subscription));
-          console.log('[/api/account] Stripe subscription raw data:', JSON.stringify({
-            id: subscription.id,
-            status: subscription.status,
-            current_period_start: subscription.current_period_start,
-            current_period_end: subscription.current_period_end,
-            cancel_at_period_end: subscription.cancel_at_period_end,
-            cancel_at: subscription.cancel_at,
-            canceled_at: subscription.canceled_at,
-          }, null, 2));
-          
-          // Access period dates - use cancel_at if cancel_at_period_end isn't set
-          const currentPeriodStart = (subscription as any).current_period_start || 0;
-          const currentPeriodEnd = (subscription as any).current_period_end || 0;
+          // Access billing period dates from subscription
+          // Note: Stripe subscriptions have billing_cycle_anchor and cancel_at, but not always current_period_*
+          const currentPeriodStart = (subscription as any).billing_cycle_anchor || (subscription as any).created || 0;
+          const currentPeriodEnd = (subscription as any).cancel_at || 0;
           
           // Check both cancel_at_period_end AND cancel_at to detect scheduled cancellations
           const cancelAtPeriodEnd = !!(subscription.cancel_at_period_end || subscription.cancel_at);
