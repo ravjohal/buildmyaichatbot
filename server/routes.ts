@@ -3498,7 +3498,8 @@ INCORRECT citation examples (NEVER do this):
             expand: ['latest_invoice.payment_intent'],
           });
           
-          if (subscription.status === 'active' || subscription.status === 'trialing') {
+          // Only reuse subscription if it's active AND not scheduled for cancellation
+          if ((subscription.status === 'active' || subscription.status === 'trialing') && !subscription.cancel_at && !subscription.cancel_at_period_end) {
             const latestInvoice: any = subscription.latest_invoice;
             return res.json({
               subscriptionId: subscription.id,
