@@ -280,6 +280,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
           const product = subscription.items.data[0]?.price;
           
+          console.log('[/api/account] Full Stripe subscription object keys:', Object.keys(subscription));
           console.log('[/api/account] Stripe subscription raw data:', JSON.stringify({
             id: subscription.id,
             status: subscription.status,
@@ -290,10 +291,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
             canceled_at: subscription.canceled_at,
           }, null, 2));
           
-          // Access period dates - they should be directly on subscription
+          // Access period dates - use cancel_at if cancel_at_period_end isn't set
           const currentPeriodStart = (subscription as any).current_period_start || 0;
           const currentPeriodEnd = (subscription as any).current_period_end || 0;
-          const cancelAtPeriodEnd = (subscription as any).cancel_at_period_end || false;
+          
+          // Check both cancel_at_period_end AND cancel_at to detect scheduled cancellations
+          const cancelAtPeriodEnd = !!(subscription.cancel_at_period_end || subscription.cancel_at);
           const canceledAt = (subscription as any).canceled_at || null;
           
           subscriptionDetails = {
