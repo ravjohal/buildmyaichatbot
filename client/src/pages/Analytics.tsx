@@ -277,9 +277,17 @@ export default function Analytics() {
                         <p className="text-sm font-medium truncate">
                           Session: {conversation.sessionId}
                         </p>
-                        <p className="text-xs text-muted-foreground">
-                          {conversation.messageCount} messages
-                        </p>
+                        <div className="space-y-0.5">
+                          <p className="text-xs text-muted-foreground">
+                            {conversation.messageCount} messages
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            Started {formatDistanceToNow(new Date(conversation.startedAt), { addSuffix: true })}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            Last message {formatDistanceToNow(new Date(conversation.lastMessageAt), { addSuffix: true })}
+                          </p>
+                        </div>
                       </div>
                       <div className="flex items-center gap-2 flex-shrink-0">
                         {conversation.wasEscalated === "true" && (
@@ -287,10 +295,6 @@ export default function Analytics() {
                             Escalated
                           </Badge>
                         )}
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                          <Clock className="w-3 h-3" />
-                          {formatDistanceToNow(new Date(conversation.lastMessageAt), { addSuffix: true })}
-                        </div>
                       </div>
                     </div>
                   </div>

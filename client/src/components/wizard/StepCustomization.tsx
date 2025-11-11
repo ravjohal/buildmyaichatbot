@@ -146,7 +146,7 @@ export function StepCustomization({ formData, updateFormData, isFreeTier = false
                       url: data.uploadURL,
                     };
                   }}
-                  onComplete={(result: UploadResult) => {
+                  onComplete={(result: UploadResult<Record<string, unknown>, Record<string, unknown>>) => {
                     if (result.successful && result.successful.length > 0) {
                       const uploadURL = result.successful[0].uploadURL;
                       if (uploadURL) {
