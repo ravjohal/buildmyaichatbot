@@ -4547,56 +4547,82 @@ INCORRECT citation examples (NEVER do this):
         const subscription = event.data.object as Stripe.Subscription;
         const userId = subscription.metadata?.userId;
         
-        // Accept 'active', 'trialing', or 'incomplete' status (incomplete becomes active after payment)
-        if (userId && (subscription.status === 'active' || subscription.status === 'trialing' || subscription.status === 'incomplete')) {
-          // Determine tier from price ID
-          const priceId = subscription.items.data[0]?.price.id;
-          let tier: 'free' | 'starter' | 'business' | 'scale' = 'free';
-          
-          // Map price IDs to tiers - check both test and live price IDs
-          const starterMonthlyTest = process.env.STRIPE_TEST_STARTER_MONTHLY_PRICE_ID;
-          const starterMonthlyLive = process.env.STRIPE_LIVE_STARTER_MONTHLY_PRICE_ID;
-          const starterAnnualTest = process.env.STRIPE_TEST_STARTER_ANNUAL_PRICE_ID;
-          const starterAnnualLive = process.env.STRIPE_LIVE_STARTER_ANNUAL_PRICE_ID;
-          
-          const businessMonthlyTest = process.env.STRIPE_TEST_BUSINESS_MONTHLY_PRICE_ID;
-          const businessMonthlyLive = process.env.STRIPE_LIVE_BUSINESS_MONTHLY_PRICE_ID;
-          const businessAnnualTest = process.env.STRIPE_TEST_BUSINESS_ANNUAL_PRICE_ID;
-          const businessAnnualLive = process.env.STRIPE_LIVE_BUSINESS_ANNUAL_PRICE_ID;
-          
-          const scaleMonthlyTest = process.env.STRIPE_TEST_SCALE_MONTHLY_PRICE_ID;
-          const scaleMonthlyLive = process.env.STRIPE_LIVE_SCALE_MONTHLY_PRICE_ID;
-          const scaleAnnualTest = process.env.STRIPE_TEST_SCALE_ANNUAL_PRICE_ID;
-          const scaleAnnualLive = process.env.STRIPE_LIVE_SCALE_ANNUAL_PRICE_ID;
-          
-          // Check if price ID matches Starter tier (either test or live)
-          if (priceId === starterMonthlyTest || priceId === starterMonthlyLive || 
-              priceId === starterAnnualTest || priceId === starterAnnualLive) {
-            tier = 'starter';
-            console.log(`[Webhook] Subscription assigned to Starter tier (priceId: ${priceId})`);
-          } 
-          // Check if price ID matches Business tier (either test or live)
-          else if (priceId === businessMonthlyTest || priceId === businessMonthlyLive || 
-                   priceId === businessAnnualTest || priceId === businessAnnualLive) {
-            tier = 'business';
-            console.log(`[Webhook] Subscription assigned to Business tier (priceId: ${priceId})`);
-          } 
-          // Check if price ID matches Scale tier (either test or live)
-          else if (priceId === scaleMonthlyTest || priceId === scaleMonthlyLive || 
-                   priceId === scaleAnnualTest || priceId === scaleAnnualLive) {
-            tier = 'scale';
-            console.log(`[Webhook] Subscription assigned to Scale tier (priceId: ${priceId})`);
-          } 
-          else {
-            console.log(`[Webhook] Unknown price ID ${priceId}, defaulting to free tier`);
+        if (userId) {
+          // Handle canceled subscriptions - downgrade to free immediately
+          if (subscription.status === 'canceled' || subscription.status === 'unpaid' || subscription.status === 'incomplete_expired') {
+            console.log(`[Webhook] Subscription ${subscription.id} is ${subscription.status} - downgrading user to free tier`);
+            await db.update(users)
+              .set({ 
+                subscriptionTier: 'free',
+                stripeSubscriptionId: null,
+                stripePriceId: null,
+              })
+              .where(eq(users.id, userId));
           }
-          
-          await db.update(users)
-            .set({ 
-              subscriptionTier: tier,
-              stripePriceId: priceId || null,
-            })
-            .where(eq(users.id, userId));
+          // Handle subscriptions scheduled for cancellation - downgrade immediately for better UX
+          else if (subscription.cancel_at_period_end) {
+            console.log(`[Webhook] Subscription ${subscription.id} is scheduled for cancellation - downgrading user to free tier`);
+            await db.update(users)
+              .set({ 
+                subscriptionTier: 'free',
+                stripePriceId: null,
+                // Keep stripeSubscriptionId so we can still show subscription details until period ends
+              })
+              .where(eq(users.id, userId));
+          }
+          // Handle active subscriptions
+          else if (subscription.status === 'active' || subscription.status === 'trialing' || subscription.status === 'incomplete') {
+            // Determine tier from price ID
+            const priceId = subscription.items.data[0]?.price.id;
+            let tier: 'free' | 'starter' | 'business' | 'scale' = 'free';
+            
+            // Map price IDs to tiers - check both test and live price IDs
+            const starterMonthlyTest = process.env.STRIPE_TEST_STARTER_MONTHLY_PRICE_ID;
+            const starterMonthlyLive = process.env.STRIPE_LIVE_STARTER_MONTHLY_PRICE_ID;
+            const starterAnnualTest = process.env.STRIPE_TEST_STARTER_ANNUAL_PRICE_ID;
+            const starterAnnualLive = process.env.STRIPE_LIVE_STARTER_ANNUAL_PRICE_ID;
+            
+            const businessMonthlyTest = process.env.STRIPE_TEST_BUSINESS_MONTHLY_PRICE_ID;
+            const businessMonthlyLive = process.env.STRIPE_LIVE_BUSINESS_MONTHLY_PRICE_ID;
+            const businessAnnualTest = process.env.STRIPE_TEST_BUSINESS_ANNUAL_PRICE_ID;
+            const businessAnnualLive = process.env.STRIPE_LIVE_BUSINESS_ANNUAL_PRICE_ID;
+            
+            const scaleMonthlyTest = process.env.STRIPE_TEST_SCALE_MONTHLY_PRICE_ID;
+            const scaleMonthlyLive = process.env.STRIPE_LIVE_SCALE_MONTHLY_PRICE_ID;
+            const scaleAnnualTest = process.env.STRIPE_TEST_SCALE_ANNUAL_PRICE_ID;
+            const scaleAnnualLive = process.env.STRIPE_LIVE_SCALE_ANNUAL_PRICE_ID;
+            
+            // Check if price ID matches Starter tier (either test or live)
+            if (priceId === starterMonthlyTest || priceId === starterMonthlyLive || 
+                priceId === starterAnnualTest || priceId === starterAnnualLive) {
+              tier = 'starter';
+              console.log(`[Webhook] Subscription assigned to Starter tier (priceId: ${priceId})`);
+            } 
+            // Check if price ID matches Business tier (either test or live)
+            else if (priceId === businessMonthlyTest || priceId === businessMonthlyLive || 
+                     priceId === businessAnnualTest || priceId === businessAnnualLive) {
+              tier = 'business';
+              console.log(`[Webhook] Subscription assigned to Business tier (priceId: ${priceId})`);
+            } 
+            // Check if price ID matches Scale tier (either test or live)
+            else if (priceId === scaleMonthlyTest || priceId === scaleMonthlyLive || 
+                     priceId === scaleAnnualTest || priceId === scaleAnnualLive) {
+              tier = 'scale';
+              console.log(`[Webhook] Subscription assigned to Scale tier (priceId: ${priceId})`);
+            } 
+            else {
+              console.log(`[Webhook] Unknown price ID ${priceId}, defaulting to free tier`);
+            }
+            
+            // Always update both subscription ID and price ID for reactivation support
+            await db.update(users)
+              .set({ 
+                subscriptionTier: tier,
+                stripeSubscriptionId: subscription.id,
+                stripePriceId: priceId || null,
+              })
+              .where(eq(users.id, userId));
+          }
         }
         break;
         
