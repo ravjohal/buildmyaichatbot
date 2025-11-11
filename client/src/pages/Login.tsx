@@ -9,6 +9,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { LogIn } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { Footer } from "@/components/Footer";
+import { SEO } from "@/components/SEO";
 
 export default function Login() {
   const [, navigate] = useLocation();
@@ -63,6 +64,11 @@ export default function Login() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      <SEO
+        title="Sign In - BuildMyChatbot.Ai"
+        description="Sign in to your BuildMyChatbot.Ai account to manage your chatbots."
+        noindex={true}
+      />
       <div className="flex-1 flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center space-y-4">

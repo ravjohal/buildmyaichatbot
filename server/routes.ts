@@ -241,6 +241,31 @@ const sanitizeUser = (user: any) => {
 };
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Sitemap.xml for SEO
+  app.get('/sitemap.xml', (req, res) => {
+    const baseUrl = 'https://buildmychatbot.ai';
+    const pages = [
+      { url: '/', priority: '1.0', changefreq: 'weekly' },
+      { url: '/pricing', priority: '0.9', changefreq: 'monthly' },
+      { url: '/terms-of-service', priority: '0.5', changefreq: 'monthly' },
+      { url: '/privacy-policy', priority: '0.5', changefreq: 'monthly' },
+      { url: '/acceptable-use-policy', priority: '0.5', changefreq: 'monthly' },
+    ];
+
+    const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${pages.map(page => `  <url>
+    <loc>${baseUrl}${page.url}</loc>
+    <changefreq>${page.changefreq}</changefreq>
+    <priority>${page.priority}</priority>
+    <lastmod>${new Date().toISOString().split('T')[0]}</lastmod>
+  </url>`).join('\n')}
+</urlset>`;
+
+    res.header('Content-Type', 'application/xml');
+    res.send(sitemap);
+  });
+
   // Get authenticated user (NOT protected - returns null if not authenticated)
   app.get('/api/auth/user', async (req: any, res) => {
     try {

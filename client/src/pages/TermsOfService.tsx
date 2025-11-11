@@ -1,6 +1,13 @@
+import { SEO } from "@/components/SEO";
+
 export default function TermsOfService() {
   return (
     <div className="min-h-screen bg-background">
+      <SEO
+        title="Terms of Service - BuildMyChatbot.Ai"
+        description="Read the Terms of Service for BuildMyChatbot.Ai. Learn about account usage, subscription plans, acceptable use, and service guidelines."
+        keywords="terms of service, terms and conditions, user agreement, legal terms"
+      />
       <div className="max-w-4xl mx-auto px-6 py-12">
         <h1 className="text-4xl font-bold mb-2" data-testid="text-page-title">Terms of Service</h1>
         <p className="text-muted-foreground mb-8">Last Updated: November 2, 2024</p>

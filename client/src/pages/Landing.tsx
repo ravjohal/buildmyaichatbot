@@ -4,10 +4,106 @@ import { Link } from "wouter";
 import { Logo } from "@/components/Logo";
 import { Footer } from "@/components/Footer";
 import { PRICING_PLANS } from "../../../shared/pricing";
+import { SEO } from "@/components/SEO";
 
 export default function Landing() {
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "BuildMyChatbot.Ai",
+    "applicationCategory": "BusinessApplication",
+    "description": "Create AI-powered customer support chatbots for your website. No coding required. Train on your content, customize design, and deploy in minutes with BuildMyChatbot.Ai",
+    "operatingSystem": "Web browser",
+    "url": "https://buildmychatbot.ai",
+    "offers": [
+      {
+        "@type": "Offer",
+        "name": "Free Plan",
+        "price": "0",
+        "priceCurrency": "USD",
+        "description": "Perfect for trying out BuildMyChatbot.Ai"
+      },
+      {
+        "@type": "Offer",
+        "name": "Starter Plan",
+        "price": "24.99",
+        "priceCurrency": "USD",
+        "priceSpecification": {
+          "@type": "UnitPriceSpecification",
+          "price": "24.99",
+          "priceCurrency": "USD",
+          "billingIncrement": 1,
+          "billingPeriod": "P1M",
+          "referenceQuantity": {
+            "@type": "QuantitativeValue",
+            "value": "1",
+            "unitCode": "MON"
+          }
+        }
+      },
+      {
+        "@type": "Offer",
+        "name": "Business Plan",
+        "price": "49",
+        "priceCurrency": "USD",
+        "priceSpecification": {
+          "@type": "UnitPriceSpecification",
+          "price": "49",
+          "priceCurrency": "USD",
+          "billingIncrement": 1,
+          "billingPeriod": "P1M",
+          "referenceQuantity": {
+            "@type": "QuantitativeValue",
+            "value": "1",
+            "unitCode": "MON"
+          }
+        }
+      },
+      {
+        "@type": "Offer",
+        "name": "Scale Plan",
+        "price": "129",
+        "priceCurrency": "USD",
+        "priceSpecification": {
+          "@type": "UnitPriceSpecification",
+          "price": "129",
+          "priceCurrency": "USD",
+          "billingIncrement": 1,
+          "billingPeriod": "P1M",
+          "referenceQuantity": {
+            "@type": "QuantitativeValue",
+            "value": "1",
+            "unitCode": "MON"
+          }
+        }
+      }
+    ],
+    "featureList": [
+      "AI-powered chatbot builder",
+      "Train on website content and documents",
+      "Customizable design and branding",
+      "One-click deployment",
+      "Lead capture and CRM integration",
+      "Live agent handoff",
+      "Analytics and conversation tracking",
+      "Multi-language support",
+      "No coding required"
+    ],
+    "aggregateRating": {
+      "@type": "AggregateRating",
+      "ratingValue": "4.8",
+      "ratingCount": "127"
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
+      <SEO
+        title="AI Chatbot Builder | Create Custom Support Bots in Minutes - BuildMyChatbot.Ai"
+        description="Build AI-powered customer support chatbots for your website without coding. Train on your content, customize appearance, capture leads, and deploy instantly. Start free today!"
+        keywords="AI chatbot builder, customer support automation, chatbot software, AI customer service, website chatbot, no-code chatbot, chatbot platform, live chat alternative"
+        structuredData={structuredData}
+      />
       {/* Header Navigation */}
       <header className="border-b sticky top-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-50">
         <div className="container mx-auto px-4 py-4">

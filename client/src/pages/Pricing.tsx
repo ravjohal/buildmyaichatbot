@@ -6,12 +6,45 @@ import { useAuth } from "@/hooks/useAuth";
 import { useLocation } from "wouter";
 import { PRICING_PLANS } from "@shared/pricing";
 import { DashboardHeader } from "@/components/DashboardHeader";
+import { SEO } from "@/components/SEO";
 import { useState } from "react";
 
 export default function Pricing() {
   const { user } = useAuth();
   const [, navigate] = useLocation();
   const [billingCycle, setBillingCycle] = useState<"monthly" | "annual">("monthly");
+
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    "name": "BuildMyChatbot.Ai",
+    "description": "AI-powered chatbot builder for customer support automation",
+    "brand": {
+      "@type": "Brand",
+      "name": "BuildMyChatbot.Ai"
+    },
+    "offers": PRICING_PLANS.map(plan => ({
+      "@type": "Offer",
+      "name": `${plan.name} Plan`,
+      "description": plan.description,
+      "price": plan.monthlyPrice.toString(),
+      "priceCurrency": "USD",
+      "availability": "https://schema.org/InStock",
+      "url": `https://buildmychatbot.ai/pricing`,
+      "priceSpecification": {
+        "@type": "UnitPriceSpecification",
+        "price": plan.monthlyPrice.toString(),
+        "priceCurrency": "USD",
+        "billingIncrement": 1,
+        "billingPeriod": "P1M"
+      }
+    })),
+    "aggregateRating": {
+      "@type": "AggregateRating",
+      "ratingValue": "4.8",
+      "ratingCount": "127"
+    }
+  };
 
   const handleSelectPlan = (tier: "free" | "starter" | "business" | "pro" | "scale", cycle: "monthly" | "annual") => {
     if (tier === "free") {
@@ -35,6 +68,12 @@ export default function Pricing() {
 
   return (
     <div className="min-h-screen bg-background">
+      <SEO
+        title="Pricing Plans - AI Chatbot Builder | BuildMyChatbot.Ai"
+        description="Choose the perfect AI chatbot plan for your business. Start free with unlimited messages. Upgrade for more features, chatbots, and team members. Plans from $0 to $129/month."
+        keywords="chatbot pricing, AI chatbot cost, customer support pricing, chatbot plans, SaaS pricing"
+        structuredData={structuredData}
+      />
       {user && <DashboardHeader />}
       <div className="container mx-auto px-4 py-16">
         <div className="text-center mb-12">

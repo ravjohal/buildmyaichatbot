@@ -1,6 +1,13 @@
+import { SEO } from "@/components/SEO";
+
 export default function AcceptableUsePolicy() {
   return (
     <div className="min-h-screen bg-background">
+      <SEO
+        title="Acceptable Use Policy - BuildMyChatbot.Ai"
+        description="Review the Acceptable Use Policy for BuildMyChatbot.Ai. Learn about prohibited content, activities, and usage guidelines for our platform."
+        keywords="acceptable use policy, AUP, usage guidelines, prohibited content"
+      />
       <div className="max-w-4xl mx-auto px-6 py-12">
         <h1 className="text-4xl font-bold mb-2" data-testid="text-page-title">
           Acceptable Use Policy

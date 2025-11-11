@@ -11,6 +11,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { UserPlus } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { Footer } from "@/components/Footer";
+import { SEO } from "@/components/SEO";
 
 export default function Register() {
   const [, navigate] = useLocation();
@@ -108,6 +109,11 @@ export default function Register() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      <SEO
+        title="Create Account - BuildMyChatbot.Ai"
+        description="Create your free BuildMyChatbot.Ai account and start building AI chatbots today."
+        noindex={true}
+      />
       <div className="flex-1 flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
         <CardHeader className="text-center space-y-4">

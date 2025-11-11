@@ -9,6 +9,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { Mail } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { Footer } from "@/components/Footer";
+import { SEO } from "@/components/SEO";
 
 export default function ForgotPassword() {
   const [, navigate] = useLocation();
@@ -53,6 +54,11 @@ export default function ForgotPassword() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      <SEO
+        title="Forgot Password - BuildMyChatbot.Ai"
+        description="Reset your BuildMyChatbot.Ai account password."
+        noindex={true}
+      />
       <div className="flex-1 flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center space-y-4">

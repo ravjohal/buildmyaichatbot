@@ -1,6 +1,13 @@
+import { SEO } from "@/components/SEO";
+
 export default function PrivacyPolicy() {
   return (
     <div className="min-h-screen bg-background">
+      <SEO
+        title="Privacy Policy - BuildMyChatbot.Ai"
+        description="Learn how BuildMyChatbot.Ai collects, uses, and protects your personal information. Read our Privacy Policy for complete details on data protection."
+        keywords="privacy policy, data protection, GDPR, data privacy, personal information"
+      />
       <div className="max-w-4xl mx-auto px-6 py-12">
         <h1 className="text-4xl font-bold mb-2" data-testid="text-page-title">
           Privacy Policy

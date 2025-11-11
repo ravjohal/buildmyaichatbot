@@ -9,6 +9,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { Lock, CheckCircle } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { Footer } from "@/components/Footer";
+import { SEO } from "@/components/SEO";
 
 export default function ResetPassword() {
   const [, navigate] = useLocation();
@@ -141,6 +142,11 @@ export default function ResetPassword() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      <SEO
+        title="Reset Password - BuildMyChatbot.Ai"
+        description="Create a new password for your BuildMyChatbot.Ai account."
+        noindex={true}
+      />
       <div className="flex-1 flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center space-y-4">
