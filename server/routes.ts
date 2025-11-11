@@ -3500,6 +3500,52 @@ INCORRECT citation examples (NEVER do this):
               clientSecret: latestInvoice?.payment_intent?.client_secret,
             });
           }
+          
+          // If subscription is incomplete and matches the requested tier/billing, reuse it
+          if (subscription.status === 'incomplete' || subscription.status === 'incomplete_expired') {
+            const subTier = subscription.metadata.tier;
+            const subBillingCycle = subscription.metadata.billingCycle;
+            
+            if (subTier === tier && subBillingCycle === billingCycle) {
+              console.log(`Reusing existing incomplete subscription: ${subscription.id}`);
+              const latestInvoice: any = subscription.latest_invoice;
+              
+              // Get payment intent client secret
+              let clientSecret: string | null = null;
+              if (typeof latestInvoice === 'object' && latestInvoice !== null) {
+                const paymentIntent = latestInvoice.payment_intent;
+                if (typeof paymentIntent === 'object' && paymentIntent !== null) {
+                  clientSecret = paymentIntent.client_secret;
+                } else if (typeof paymentIntent === 'string') {
+                  const pi = await stripe.paymentIntents.retrieve(paymentIntent);
+                  clientSecret = pi.client_secret;
+                }
+              } else if (typeof latestInvoice === 'string') {
+                const invoice: any = await stripe.invoices.retrieve(latestInvoice, {
+                  expand: ['payment_intent'],
+                });
+                const paymentIntent = invoice.payment_intent;
+                if (typeof paymentIntent === 'object' && paymentIntent !== null) {
+                  clientSecret = paymentIntent.client_secret;
+                }
+              }
+              
+              if (clientSecret) {
+                return res.json({
+                  subscriptionId: subscription.id,
+                  clientSecret,
+                });
+              } else {
+                // Incomplete subscription but no valid payment intent - cancel it and create new one
+                console.log(`Incomplete subscription ${subscription.id} has no valid payment intent - canceling`);
+                await stripe.subscriptions.cancel(subscription.id);
+              }
+            } else {
+              // Different tier/billing - cancel old incomplete subscription
+              console.log(`Canceling old incomplete subscription ${subscription.id} (tier: ${subTier}, billing: ${subBillingCycle})`);
+              await stripe.subscriptions.cancel(subscription.id);
+            }
+          }
         } catch (err: any) {
           // Subscription doesn't exist (likely from different Stripe account)
           if (err.code === 'resource_missing') {
