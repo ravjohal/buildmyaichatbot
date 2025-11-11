@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useRoute, Link } from "wouter";
-import { ArrowLeft, User, CreditCard, BarChart3, Bot, Users, MessageSquare, Mail, Calendar, Shield, Crown, Building2, Globe, FileText, Palette, Bell, Phone, Clock, ChevronDown, Copy, CheckCircle2, XCircle } from "lucide-react";
+import { ArrowLeft, User, CreditCard, BarChart3, Bot, Users, MessageSquare, Mail, Calendar, Shield, Crown, Building2, Globe, FileText, Palette, Bell, Phone, Clock, ChevronDown, Copy, CheckCircle2, XCircle, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -492,10 +492,16 @@ export default function AdminUserDetails() {
                                   </p>
                                 </div>
                               )}
-                              <div className="md:col-span-2">
+                              <div className="md:col-span-2 flex gap-2">
                                 <Link href={`/view/${chatbot.id}`}>
                                   <Button variant="outline" size="sm" data-testid={`button-view-${chatbot.id}`}>
                                     View Analytics
+                                  </Button>
+                                </Link>
+                                <Link href={`/edit/${chatbot.id}`}>
+                                  <Button variant="default" size="sm" data-testid={`button-edit-${chatbot.id}`}>
+                                    <Settings className="w-4 h-4 mr-2" />
+                                    Edit Chatbot
                                   </Button>
                                 </Link>
                               </div>
