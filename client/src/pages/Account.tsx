@@ -423,12 +423,12 @@ export default function Account() {
                   <Separator />
                   <div className="text-center py-8">
                     <p className="text-muted-foreground mb-4">
-                      You're currently on the Free plan with limited features.
+                      You're currently on the Free plan with limited features. Upgrade to unlock paid features starting with the Starter plan ($24.99/mo).
                     </p>
                     <Link href="/pricing">
-                      <Button data-testid="button-upgrade-pro">
+                      <Button data-testid="button-upgrade">
                         <Crown className="w-4 h-4 mr-2" />
-                        Upgrade to Pro
+                        View Plans
                       </Button>
                     </Link>
                   </div>

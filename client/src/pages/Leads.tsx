@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Download, UserPlus, Mail, Phone, Building2, MessageSquare, Calendar, ExternalLink, Link as LinkIcon, TestTube } from "lucide-react";
+import { Download, UserPlus, Mail, Phone, Building2, MessageSquare, Calendar, ExternalLink, Link as LinkIcon, TestTube, Crown } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -118,7 +118,7 @@ export default function Leads() {
   };
 
   const selectedChatbot = chatbots?.find((c) => c.id.toString() === selectedChatbotId);
-  const canViewLeads = user?.subscriptionTier === "paid" || user?.isAdmin === "true";
+  const canViewLeads = user?.subscriptionTier !== "free" || user?.isAdmin === "true";
 
   if (loadingChatbots) {
     return (
@@ -153,16 +153,19 @@ export default function Leads() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <UserPlus className="w-5 h-5" />
-              Upgrade to Pro
+              Unlock Lead Capture
             </CardTitle>
             <CardDescription>
-              Lead capture and analytics are only available on the Pro plan. Upgrade to unlock this feature.
+              Lead capture and analytics are available on Starter and higher plans. Upgrade to unlock this feature.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button data-testid="button-upgrade-pro">
-              Upgrade to Pro
-            </Button>
+            <Link href="/pricing">
+              <Button data-testid="button-upgrade">
+                <Crown className="w-4 h-4 mr-2" />
+                View Plans
+              </Button>
+            </Link>
           </CardContent>
         </Card>
       )}

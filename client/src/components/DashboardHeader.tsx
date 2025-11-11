@@ -134,9 +134,9 @@ export function DashboardHeader() {
             </Link>
             {isFreeTier && (
               <Link href="/pricing">
-                <Button size="default" variant="default" data-testid="button-upgrade-pro">
+                <Button size="default" variant="default" data-testid="button-upgrade">
                   <Crown className="w-4 h-4 mr-2" />
-                  Upgrade to Pro
+                  View Plans
                 </Button>
               </Link>
             )}

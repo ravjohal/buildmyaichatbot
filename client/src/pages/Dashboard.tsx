@@ -397,8 +397,8 @@ export default function Dashboard() {
                   <TooltipContent>
                     <p>
                       {userTier === "free" 
-                        ? "Free tier is limited to 1 chatbot. Upgrade to Pro for 5 chatbots." 
-                        : `Pro tier is limited to ${TIER_LIMITS.pro.chatbots} chatbots. Upgrade to Scale for unlimited chatbots.`}
+                        ? "Free tier is limited to 1 chatbot. Upgrade to create more chatbots." 
+                        : `${userTier.charAt(0).toUpperCase() + userTier.slice(1)} tier is limited to ${TIER_LIMITS[userTier].chatbots} chatbots. Upgrade to Scale for unlimited chatbots.`}
                     </p>
                   </TooltipContent>
                 )}

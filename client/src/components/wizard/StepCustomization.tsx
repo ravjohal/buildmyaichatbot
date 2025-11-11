@@ -39,7 +39,7 @@ export function StepCustomization({ formData, updateFormData, isFreeTier = false
         <h2 className="text-2xl font-semibold">Customize Appearance</h2>
         <p className="text-muted-foreground mt-2">
           {isFreeTier 
-            ? "Upgrade to Pro to customize colors and logo. Welcome messages and welcome questions are available on all plans."
+            ? "Upgrade to customize branding—Starter and higher tiers unlock color and logo controls. Welcome messages and welcome questions are available on all plans."
             : "Make the chatbot widget match your brand with custom colors and messaging."
           }
         </p>
