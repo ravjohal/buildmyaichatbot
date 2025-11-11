@@ -12,8 +12,8 @@ import { Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 // Automatically choose test or live Stripe key based on environment
-// Use hostname detection since REPLIT_DEPLOYMENT is not exposed to Vite frontend
-const isProduction = window.location.hostname.includes('.replit.app') || window.location.hostname.includes('.repl.co');
+// Vite sets import.meta.env.PROD = true when built for production (works with all domains)
+const isProduction = import.meta.env.PROD;
 
 const stripePublicKey = isProduction
   ? (import.meta.env.VITE_STRIPE_LIVE_PUBLIC_KEY || import.meta.env.VITE_STRIPE_PUBLIC_KEY)  // Production: use live key
@@ -23,7 +23,7 @@ if (!stripePublicKey) {
   throw new Error('Missing required Stripe public key. Set VITE_STRIPE_TEST_PUBLIC_KEY or VITE_STRIPE_LIVE_PUBLIC_KEY');
 }
 
-console.log(`[Stripe] Using ${isProduction ? 'LIVE' : 'TEST'} mode public key (hostname: ${window.location.hostname})`);
+console.log(`[Stripe] Using ${isProduction ? 'LIVE' : 'TEST'} mode public key (mode: ${import.meta.env.MODE})`);
 const stripePromise = loadStripe(stripePublicKey);
 
 const SubscribeForm = ({ billingCycle, tier }: { billingCycle: "monthly" | "annual", tier: "starter" | "business" | "scale" }) => {
