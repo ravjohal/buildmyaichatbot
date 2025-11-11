@@ -14,7 +14,8 @@ import {
   Crown,
   ExternalLink,
   Bell,
-  Lock
+  Lock,
+  AlertTriangle
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -377,11 +378,34 @@ export default function Account() {
                     </div>
 
                     {account.subscription.cancelAtPeriodEnd && (
-                      <div className="rounded-md bg-muted p-4" data-testid="alert-cancel-at-period-end">
-                        <p className="text-sm font-medium">Subscription Ending</p>
-                        <p className="text-sm text-muted-foreground">
-                          Your subscription will end on {formatDate(account.subscription.currentPeriodEnd)}
-                        </p>
+                      <div className="rounded-lg border-2 border-destructive/50 bg-destructive/5 p-4 space-y-3" data-testid="alert-cancel-at-period-end">
+                        <div className="flex items-start gap-3">
+                          <AlertTriangle className="w-5 h-5 text-destructive mt-0.5" />
+                          <div className="flex-1">
+                            <p className="font-semibold text-destructive">Subscription Canceled</p>
+                            <p className="text-sm text-muted-foreground mt-1">
+                              Your subscription will end on <span className="font-medium text-foreground">{formatDate(account.subscription.currentPeriodEnd)}</span>. You'll lose access to all paid features and your account will be downgraded to the Free plan.
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex gap-2 pt-2">
+                          <Link href="/pricing" className="flex-1">
+                            <Button className="w-full gap-2" data-testid="button-resubscribe">
+                              <Crown className="w-4 h-4" />
+                              Re-Subscribe
+                            </Button>
+                          </Link>
+                          <Button 
+                            variant="outline" 
+                            className="gap-2" 
+                            data-testid="button-manage-cancellation"
+                            onClick={() => billingPortalMutation.mutate()}
+                            disabled={billingPortalMutation.isPending}
+                          >
+                            <ExternalLink className="w-4 h-4" />
+                            Manage in Stripe
+                          </Button>
+                        </div>
                       </div>
                     )}
 

@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
-import { Plus, Bot, Trash2, ExternalLink, Copy, Pencil, MessageSquare, FileText, BarChart3, Globe, Crown, Share2, QrCode, UserPlus, RefreshCw, Loader2, CheckCircle, XCircle, Workflow } from "lucide-react";
+import { Plus, Bot, Trash2, ExternalLink, Copy, Pencil, MessageSquare, FileText, BarChart3, Globe, Crown, Share2, QrCode, UserPlus, RefreshCw, Loader2, CheckCircle, XCircle, Workflow, AlertTriangle } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
@@ -218,6 +218,17 @@ export default function Dashboard() {
     queryKey: ["/api/auth/user"],
   });
 
+  // Fetch account details to check for canceled subscription
+  const { data: account } = useQuery<{
+    subscription: {
+      status: string;
+      cancelAtPeriodEnd: boolean;
+      currentPeriodEnd: number;
+    } | null;
+  }>({
+    queryKey: ["/api/account"],
+  });
+
   const isAdmin = user?.isAdmin === "true";
   const userTier = (user?.subscriptionTier ?? "free") as "free" | "pro" | "scale";
   const hasReachedChatbotLimit = !isAdmin && !canCreateChatbot(userTier, chatbots?.length ?? 0);
@@ -363,9 +374,50 @@ export default function Dashboard() {
     );
   }
 
+  const formatDate = (timestamp: number) => {
+    if (!timestamp || timestamp === 0) return "Unknown date";
+    const date = new Date(timestamp * 1000);
+    if (isNaN(date.getTime())) return "Invalid date";
+    return date.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <DashboardHeader />
+      
+      {/* Subscription Cancellation Banner */}
+      {account?.subscription?.cancelAtPeriodEnd && (
+        <div className="bg-destructive/10 border-b-2 border-destructive/50">
+          <div className="max-w-7xl mx-auto px-6 md:px-12 py-4">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="w-5 h-5 text-destructive mt-0.5 flex-shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-destructive">Subscription Canceled</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Your subscription ends on <span className="font-medium text-foreground">{formatDate(account.subscription.currentPeriodEnd)}</span>. You'll lose access to all paid features.
+                </p>
+              </div>
+              <div className="flex gap-2 flex-shrink-0">
+                <Link href="/pricing">
+                  <Button size="sm" className="gap-2" data-testid="button-dashboard-resubscribe">
+                    <Crown className="w-4 h-4" />
+                    Re-Subscribe
+                  </Button>
+                </Link>
+                <Link href="/account">
+                  <Button size="sm" variant="outline" data-testid="button-view-account">
+                    View Details
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       
       <div className="border-b">
         <div className="max-w-7xl mx-auto px-6 md:px-12 py-6">
