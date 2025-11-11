@@ -273,7 +273,7 @@ export default function ViewChatbot() {
 
       <div className="max-w-7xl mx-auto px-6 md:px-12 py-8">
         <Tabs defaultValue={(new URLSearchParams(window.location.search).get('tab')) || "overview"} className="w-full">
-          <TabsList className="grid w-full grid-cols-6 mb-8">
+          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 mb-8">
             <TabsTrigger value="overview" data-testid="tab-overview">
               <Settings className="w-4 h-4 mr-2" />
               Overview
