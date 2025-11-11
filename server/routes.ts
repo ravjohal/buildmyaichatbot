@@ -274,23 +274,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // If user has a Stripe subscription, fetch details from Stripe
       if (user.stripeSubscriptionId && stripe) {
         try {
-          const subscription = await stripe.subscriptions.retrieve(user.stripeSubscriptionId);
+          // Retrieve subscription with expanded data
+          const subscription = await stripe.subscriptions.retrieve(user.stripeSubscriptionId, {
+            expand: ['latest_invoice', 'default_payment_method']
+          });
           const product = subscription.items.data[0]?.price;
           
-          console.log('[/api/account] Stripe subscription data:', {
+          console.log('[/api/account] Stripe subscription raw data:', JSON.stringify({
             id: subscription.id,
             status: subscription.status,
             current_period_start: subscription.current_period_start,
             current_period_end: subscription.current_period_end,
             cancel_at_period_end: subscription.cancel_at_period_end,
+            cancel_at: subscription.cancel_at,
             canceled_at: subscription.canceled_at,
-          });
+          }, null, 2));
           
-          // Period dates are on the subscription object itself
-          const currentPeriodStart = subscription.current_period_start || 0;
-          const currentPeriodEnd = subscription.current_period_end || 0;
-          const cancelAtPeriodEnd = subscription.cancel_at_period_end || false;
-          const canceledAt = subscription.canceled_at || null;
+          // Access period dates - they should be directly on subscription
+          const currentPeriodStart = (subscription as any).current_period_start || 0;
+          const currentPeriodEnd = (subscription as any).current_period_end || 0;
+          const cancelAtPeriodEnd = (subscription as any).cancel_at_period_end || false;
+          const canceledAt = (subscription as any).canceled_at || null;
           
           subscriptionDetails = {
             id: subscription.id,
