@@ -19,6 +19,7 @@ export default function Pricing() {
     "@type": "Product",
     "name": "BuildMyChatbot.Ai",
     "description": "AI-powered chatbot builder for customer support automation",
+    "image": "https://buildmychatbot.ai/og-image.png",
     "brand": {
       "@type": "Brand",
       "name": "BuildMyChatbot.Ai"
@@ -32,6 +33,46 @@ export default function Pricing() {
       "priceValidUntil": "2026-12-31",
       "availability": "https://schema.org/InStock",
       "url": `https://buildmychatbot.ai/pricing`,
+      "shippingDetails": {
+        "@type": "OfferShippingDetails",
+        "shippingRate": {
+          "@type": "MonetaryAmount",
+          "value": "0",
+          "currency": "USD"
+        },
+        "deliveryTime": {
+          "@type": "ShippingDeliveryTime",
+          "businessDays": {
+            "@type": "OpeningHoursSpecification",
+            "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+          },
+          "cutoffTime": "23:59:59",
+          "handlingTime": {
+            "@type": "QuantitativeValue",
+            "minValue": 0,
+            "maxValue": 0,
+            "unitCode": "DAY"
+          },
+          "transitTime": {
+            "@type": "QuantitativeValue",
+            "minValue": 0,
+            "maxValue": 0,
+            "unitCode": "DAY"
+          }
+        },
+        "shippingDestination": {
+          "@type": "DefinedRegion",
+          "addressCountry": "Worldwide"
+        }
+      },
+      "hasMerchantReturnPolicy": {
+        "@type": "MerchantReturnPolicy",
+        "applicableCountry": "US",
+        "returnPolicyCategory": "https://schema.org/MerchantReturnFiniteReturnWindow",
+        "merchantReturnDays": 30,
+        "returnMethod": "https://schema.org/ReturnByMail",
+        "returnFees": "https://schema.org/FreeReturn"
+      },
       "priceSpecification": {
         "@type": "UnitPriceSpecification",
         "price": plan.monthlyPrice.toString(),
