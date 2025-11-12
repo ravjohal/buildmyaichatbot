@@ -29,6 +29,7 @@ export default function Pricing() {
       "description": plan.description,
       "price": plan.monthlyPrice.toString(),
       "priceCurrency": "USD",
+      "priceValidUntil": "2026-12-31",
       "availability": "https://schema.org/InStock",
       "url": `https://buildmychatbot.ai/pricing`,
       "priceSpecification": {

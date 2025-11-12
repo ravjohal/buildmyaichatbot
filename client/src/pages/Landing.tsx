@@ -21,13 +21,17 @@ export default function Landing() {
         "name": "Free Plan",
         "price": "0",
         "priceCurrency": "USD",
-        "description": "Perfect for trying out BuildMyChatbot.Ai"
+        "description": "Perfect for trying out BuildMyChatbot.Ai",
+        "priceValidUntil": "2026-12-31",
+        "availability": "https://schema.org/InStock"
       },
       {
         "@type": "Offer",
         "name": "Starter Plan",
         "price": "24.99",
         "priceCurrency": "USD",
+        "priceValidUntil": "2026-12-31",
+        "availability": "https://schema.org/InStock",
         "priceSpecification": {
           "@type": "UnitPriceSpecification",
           "price": "24.99",
@@ -46,6 +50,8 @@ export default function Landing() {
         "name": "Business Plan",
         "price": "49",
         "priceCurrency": "USD",
+        "priceValidUntil": "2026-12-31",
+        "availability": "https://schema.org/InStock",
         "priceSpecification": {
           "@type": "UnitPriceSpecification",
           "price": "49",
@@ -64,6 +70,8 @@ export default function Landing() {
         "name": "Scale Plan",
         "price": "129",
         "priceCurrency": "USD",
+        "priceValidUntil": "2026-12-31",
+        "availability": "https://schema.org/InStock",
         "priceSpecification": {
           "@type": "UnitPriceSpecification",
           "price": "129",
