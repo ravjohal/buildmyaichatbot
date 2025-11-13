@@ -62,7 +62,7 @@ export default function Pricing() {
         },
         "shippingDestination": {
           "@type": "DefinedRegion",
-          "addressCountry": "Worldwide"
+          "addressCountry": "US"
         }
       },
       "hasMerchantReturnPolicy": {

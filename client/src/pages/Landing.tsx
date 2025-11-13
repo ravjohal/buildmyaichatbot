@@ -54,7 +54,7 @@ export default function Landing() {
           },
           "shippingDestination": {
             "@type": "DefinedRegion",
-            "addressCountry": "Worldwide"
+            "addressCountry": "US"
           }
         },
         "hasMerchantReturnPolicy": {
@@ -102,7 +102,7 @@ export default function Landing() {
           },
           "shippingDestination": {
             "@type": "DefinedRegion",
-            "addressCountry": "Worldwide"
+            "addressCountry": "US"
           }
         },
         "hasMerchantReturnPolicy": {
@@ -162,7 +162,7 @@ export default function Landing() {
           },
           "shippingDestination": {
             "@type": "DefinedRegion",
-            "addressCountry": "Worldwide"
+            "addressCountry": "US"
           }
         },
         "hasMerchantReturnPolicy": {
@@ -222,7 +222,7 @@ export default function Landing() {
           },
           "shippingDestination": {
             "@type": "DefinedRegion",
-            "addressCountry": "Worldwide"
+            "addressCountry": "US"
           }
         },
         "hasMerchantReturnPolicy": {
