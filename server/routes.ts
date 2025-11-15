@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertChatbotSchema, insertLeadSchema, type ChatRequest, type ChatResponse, chatbots, conversations, conversationMessages, users, leads, urlCrawlMetadata, manualQaOverrides, conversationRatings, knowledgeChunks, liveAgentHandoffs, agentMessages, insertLiveAgentHandoffSchema, insertAgentMessageSchema, teamInvitations, insertTeamInvitationSchema, scrapedImages, crmIntegrations, insertCrmIntegrationSchema, keywordAlerts, keywordAlertTriggers, insertKeywordAlertSchema } from "@shared/schema";
+import { insertChatbotSchema, insertLeadSchema, type ChatRequest, type ChatResponse, chatbots, conversations, conversationMessages, users, leads, urlCrawlMetadata, manualQaOverrides, conversationRatings, knowledgeChunks, liveAgentHandoffs, agentMessages, insertLiveAgentHandoffSchema, insertAgentMessageSchema, teamInvitations, insertTeamInvitationSchema, scrapedImages, crmIntegrations, insertCrmIntegrationSchema, keywordAlerts, keywordAlertTriggers, insertKeywordAlertSchema, blogPosts } from "@shared/schema";
 import { crmWebhookService } from "./crm-webhook";
 import { ZodError } from "zod";
 import { GoogleGenAI } from "@google/genai";
@@ -5603,6 +5603,48 @@ INCORRECT citation examples (NEVER do this):
     } catch (error) {
       console.error("Error resolving handoff:", error);
       res.status(500).json({ error: "Failed to resolve handoff" });
+    }
+  });
+
+  // ============================================
+  // BLOG ROUTES (Public)
+  // ============================================
+
+  // Get all published blog posts
+  app.get("/api/blog/posts", async (req, res) => {
+    try {
+      const posts = await db.select()
+        .from(blogPosts)
+        .where(eq(blogPosts.published, true))
+        .orderBy(desc(blogPosts.publishedAt));
+      
+      res.json(posts);
+    } catch (error) {
+      console.error("Error fetching blog posts:", error);
+      res.status(500).json({ error: "Failed to fetch blog posts" });
+    }
+  });
+
+  // Get single blog post by slug
+  app.get("/api/blog/posts/:slug", async (req, res) => {
+    try {
+      const { slug } = req.params;
+      const post = await db.select()
+        .from(blogPosts)
+        .where(and(
+          eq(blogPosts.slug, slug),
+          eq(blogPosts.published, true)
+        ))
+        .limit(1);
+      
+      if (!post[0]) {
+        return res.status(404).json({ error: "Blog post not found" });
+      }
+      
+      res.json(post[0]);
+    } catch (error) {
+      console.error("Error fetching blog post:", error);
+      res.status(500).json({ error: "Failed to fetch blog post" });
     }
   });
 

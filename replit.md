@@ -25,6 +25,17 @@ BuildMyChatbot.Ai is a SaaS web application designed to empower non-technical bu
 - Fixed addressCountry from "Worldwide" to "US" (ISO 3166-1 alpha-2 compliance)
 - Both Landing and Pricing pages now fully compliant with Google merchant listing requirements
 
+**Blog System Implementation:**
+- Created public-facing blog for SEO content marketing and educational resources
+- PostgreSQL database schema with support for markdown content, SEO metadata, and publishing workflow
+- Public API endpoints: GET /api/blog/posts (listing) and GET /api/blog/posts/:slug (single post)
+- Responsive blog listing page with card-based grid layout at /blog
+- Individual blog post pages at /blog/:slug with react-markdown rendering and remark-gfm
+- Integrated blog navigation in Landing page header and Footer
+- First published article: "10 Ways AI Chatbots Transform Customer Support in 2025" (8 min read)
+- SEO-optimized with unique meta descriptions, keywords, and Open Graph tags per article
+- Public routes requiring no authentication for maximum reach and search engine visibility
+
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
@@ -67,6 +78,7 @@ The backend is built using Express.js, Node.js, and TypeScript, adhering to a RE
 *   **Keyword Alerts:** Notifies chatbot owners when specific keywords are mentioned in chat. Features configurable keyword lists, dual-channel notifications (email/in-app), real-time detection, alert history, and a notifications panel.
 *   **In-App Help Center:** Comprehensive self-service documentation accessible to all users via DashboardHeader. Features 10 step-by-step guides covering Phase 1 features, organized into 4 categories. Includes real-time search, URL-based article routing, markdown rendering (react-markdown + remark-gfm), and mobile-responsive three-pane layout with manifest-driven architecture.
 *   **Tabbed Chatbot View:** Comprehensive read-only overview at `/view/:id` organizing all chatbot information into 6 tabs: Overview (basic info & statistics), Knowledge Base (URLs & documents), Personality (system prompt & custom instructions), Appearance (brand colors, logo, welcome message, suggested questions), Features (escalation & lead capture settings), and Analytics (metrics, conversation history, manual answer training). Supports `?tab=` query parameter for deep linking to specific tabs.
+*   **Blog System:** Public-facing blog for SEO content marketing and thought leadership. Features PostgreSQL-backed content management, markdown article rendering with remark-gfm, SEO metadata support, blog listing page at `/blog` with card-based grid, individual article pages at `/blog/:slug`, and integrated navigation in Landing header and Footer. Articles include author attribution, read time estimates, published dates, and conversion-optimized CTAs.
 
 ### System Design Choices
 

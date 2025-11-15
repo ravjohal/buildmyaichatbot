@@ -31,6 +31,8 @@ import ResetPassword from "@/pages/ResetPassword";
 import TermsOfService from "@/pages/TermsOfService";
 import PrivacyPolicy from "@/pages/PrivacyPolicy";
 import AcceptableUsePolicy from "@/pages/AcceptableUsePolicy";
+import Blog from "@/pages/Blog";
+import BlogPost from "@/pages/BlogPost";
 import NotFound from "@/pages/not-found";
 import { useAuth } from "@/hooks/useAuth";
 import { CookieConsent } from "@/components/CookieConsent";
@@ -44,6 +46,8 @@ function PublicRouter() {
       <Route path="/forgot-password" component={ForgotPassword} />
       <Route path="/reset-password" component={ResetPassword} />
       <Route path="/pricing" component={Pricing} />
+      <Route path="/blog" component={Blog} />
+      <Route path="/blog/:slug" component={BlogPost} />
       <Route path="/terms-of-service" component={TermsOfService} />
       <Route path="/privacy-policy" component={PrivacyPolicy} />
       <Route path="/acceptable-use-policy" component={AcceptableUsePolicy} />
@@ -106,6 +110,7 @@ function Router() {
   // Public routes that don't require authentication
   const isPublicRoute = location.startsWith('/widget/') || 
                         location.startsWith('/chat/') ||
+                        location.startsWith('/blog') ||
                         location === '/pricing' || 
                         location === '/login' || 
                         location === '/register' ||

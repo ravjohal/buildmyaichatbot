@@ -281,6 +281,11 @@ export default function Landing() {
           <div className="flex items-center justify-between">
             <Logo size="sm" />
             <nav className="flex items-center gap-4">
+              <Link href="/blog">
+                <Button variant="ghost" data-testid="link-blog">
+                  Blog
+                </Button>
+              </Link>
               <Link href="/pricing">
                 <Button variant="ghost" data-testid="link-pricing">
                   Pricing

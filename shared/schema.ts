@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, timestamp, index, jsonb, vector, customType } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, timestamp, index, jsonb, vector, customType, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 
 // Custom type for PostgreSQL tsvector
@@ -665,3 +665,26 @@ export const insertScrapedImageSchema = createInsertSchema(scrapedImages).omit({
 
 export type ScrapedImage = typeof scrapedImages.$inferSelect;
 export type InsertScrapedImage = z.infer<typeof insertScrapedImageSchema>;
+
+// Blog Posts - for marketing content
+export const blogPosts = pgTable("blog_posts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  title: text("title").notNull(),
+  slug: varchar("slug").notNull().unique(),
+  excerpt: text("excerpt").notNull(),
+  content: text("content").notNull(),
+  author: varchar("author").notNull().default("BuildMyChatbot.Ai Team"),
+  publishedAt: timestamp("published_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  metaDescription: text("meta_description"),
+  metaKeywords: text("meta_keywords"),
+  readTimeMinutes: text("read_time_minutes").notNull().default("5"),
+  published: boolean("published").notNull().default(false),
+});
+
+export const insertBlogPostSchema = createInsertSchema(blogPosts).omit({
+  id: true,
+});
+
+export type BlogPost = typeof blogPosts.$inferSelect;
+export type InsertBlogPost = z.infer<typeof insertBlogPostSchema>;
