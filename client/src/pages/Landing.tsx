@@ -14,7 +14,7 @@ export default function Landing() {
     "@type": "WebApplication",
     "name": "BuildMyChatbot.Ai",
     "applicationCategory": "BusinessApplication",
-    "description": "Create AI-powered customer support chatbots for your website. No coding required. Train on your content, customize design, and deploy in minutes with BuildMyChatbot.Ai",
+    "description": "Replace your website search bar with intelligent AI that gives direct answers, not link lists. Train on your content in minutes and turn your website into an interactive expert. Perfect for content publishers, e-commerce, documentation sites, and knowledge bases.",
     "operatingSystem": "Web browser",
     "url": "https://buildmychatbot.ai",
     "image": "https://buildmychatbot.ai/og-image.png",
@@ -250,14 +250,14 @@ export default function Landing() {
       }
     ],
     "featureList": [
-      "AI-powered chatbot builder",
-      "Train on website content and documents",
+      "Intelligent AI search that gives answers, not link lists",
+      "Natural language question understanding",
+      "Train on website URLs and documents in minutes",
+      "Advanced SPA crawler for JavaScript-heavy sites",
       "Customizable design and branding",
-      "One-click deployment",
       "Lead capture and CRM integration",
-      "Live agent handoff",
+      "Live agent handoff for complex queries",
       "Analytics and conversation tracking",
-      "Multi-language support",
       "No coding required"
     ],
     "aggregateRating": {

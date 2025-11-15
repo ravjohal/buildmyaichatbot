@@ -31,7 +31,7 @@ The backend is built with Express.js, Node.js, and TypeScript, following a RESTf
 *   **Lead Capture System:** Collects visitor contact information via configurable forms, with a dashboard and CSV export.
 *   **On-Demand Knowledge Base Refresh:** Intelligently updates knowledge bases from website URLs.
 *   **Analytics Dashboard:** Provides metrics, conversation transcripts, and performance breakdowns.
-*   **3-Tier Pricing System:** Free, Pro, and Scale tiers with server-side limit enforcement.
+*   **4-Tier Pricing System:** Free, Starter ($24.99/month), Business ($49/month), and Scale ($129/month) tiers with server-side limit enforcement.
 *   **Admin System:** Full user management, system-wide statistics, and access to all chatbots for administrators.
 *   **Account Management:** Users manage profile, subscription, and billing via an integrated Stripe portal.
 *   **Shareable Links & QR Codes:** For chatbot distribution via direct links and full-page chat interfaces.
