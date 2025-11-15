@@ -1,10 +1,12 @@
 import { Button } from "@/components/ui/button";
-import { Bot, MessageSquare, Sparkles, Zap, DollarSign, Check } from "lucide-react";
+import { Bot, MessageSquare, Sparkles, Zap, DollarSign, Check, Clock, TrendingUp, Users, Shield, ArrowRight, Star } from "lucide-react";
 import { Link } from "wouter";
 import { Logo } from "@/components/Logo";
 import { Footer } from "@/components/Footer";
 import { PRICING_PLANS } from "../../../shared/pricing";
 import { SEO } from "@/components/SEO";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Card, CardContent } from "@/components/ui/card";
 
 export default function Landing() {
   const structuredData = {
@@ -297,73 +299,288 @@ export default function Landing() {
       </header>
 
       {/* Hero Section */}
-      <div className="container mx-auto px-4 py-16">
-        <div className="max-w-4xl mx-auto text-center space-y-8">
-          <div className="space-y-4">
-            <h1 className="text-5xl font-bold tracking-tight">
-              Build Your AI Support Assistant
-              <span className="block text-primary mt-2">In Minutes</span>
+      <div className="container mx-auto px-4 py-20">
+        <div className="max-w-5xl mx-auto text-center space-y-8">
+          <div className="space-y-6">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-4">
+              <Star className="w-4 h-4 fill-current" />
+              Trusted by businesses worldwide
+            </div>
+            <h1 className="text-5xl md:text-6xl font-bold tracking-tight leading-tight">
+              Stop Making Customers Search.
+              <span className="block text-primary mt-2">Let Them Ask.</span>
             </h1>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Create intelligent chatbots for your website with BuildMyChatbot.Ai. Train on your content,
-              customize the design, and deploy with a single line of code.
+            <p className="text-xl md:text-2xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
+              Our AI chatbot trains on your website, documents, or knowledge base to give 
+              <span className="font-semibold text-foreground"> instant, accurate answers 24/7</span>. 
+              No coding. No headaches. Just happier customers.
             </p>
           </div>
 
-          <div className="flex justify-center gap-4">
+          <div className="flex flex-col sm:flex-row justify-center gap-4">
             <Button
               size="lg"
+              className="text-lg px-8 py-6 h-auto"
               onClick={() => window.location.href = "/register"}
               data-testid="button-get-started"
             >
-              Get Started Free
+              Start Free in 5 Minutes
+              <ArrowRight className="ml-2 w-5 h-5" />
             </Button>
             <Link href="/pricing">
-              <Button size="lg" variant="outline" data-testid="button-view-pricing">
-                View Pricing
+              <Button size="lg" variant="outline" className="text-lg px-8 py-6 h-auto" data-testid="button-view-pricing">
+                See Pricing
               </Button>
             </Link>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8 mt-16">
-            <div className="space-y-3 p-6 rounded-lg border bg-card">
-              <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
-                <Bot className="w-6 h-6 text-primary" />
-              </div>
-              <h3 className="text-lg font-semibold">AI-Powered Responses</h3>
-              <p className="text-sm text-muted-foreground">
-                Powered by Google Gemini AI to provide intelligent, context-aware answers to your customers.
-              </p>
+          {/* Trust Indicators */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 pt-12 border-t">
+            <div className="space-y-1" data-testid="stat-availability">
+              <div className="text-3xl font-bold text-primary">24/7</div>
+              <div className="text-sm text-muted-foreground">Always Available</div>
+            </div>
+            <div className="space-y-1" data-testid="stat-response-time">
+              <div className="text-3xl font-bold text-primary">&lt;2s</div>
+              <div className="text-sm text-muted-foreground">Avg Response Time</div>
+            </div>
+            <div className="space-y-1" data-testid="stat-satisfaction">
+              <div className="text-3xl font-bold text-primary">95%</div>
+              <div className="text-sm text-muted-foreground">Customer Satisfaction</div>
+            </div>
+            <div className="space-y-1" data-testid="stat-free-start">
+              <div className="text-3xl font-bold text-primary">$0</div>
+              <div className="text-sm text-muted-foreground">To Get Started</div>
+            </div>
+          </div>
+
+        </div>
+
+        {/* Pain Points & Solutions Section */}
+        <div className="max-w-6xl mx-auto mt-32">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold mb-4">The Problem With Traditional Support</h2>
+            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+              Your customers shouldn't have to wait, search through FAQs, or repeat themselves. They deserve better.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-12 items-start">
+            {/* Pain Points */}
+            <div className="space-y-6">
+              <h3 className="text-2xl font-bold text-destructive mb-6">Without AI Support:</h3>
+              <Card className="border-destructive/30">
+                <CardContent className="p-6 space-y-4">
+                  <div className="flex gap-3">
+                    <div className="w-2 h-2 rounded-full bg-destructive mt-2 flex-shrink-0" />
+                    <div>
+                      <div className="font-semibold mb-1">Customers leave frustrated</div>
+                      <div className="text-sm text-muted-foreground">Lost sales when they can't find answers fast</div>
+                    </div>
+                  </div>
+                  <div className="flex gap-3">
+                    <div className="w-2 h-2 rounded-full bg-destructive mt-2 flex-shrink-0" />
+                    <div>
+                      <div className="font-semibold mb-1">Support tickets pile up</div>
+                      <div className="text-sm text-muted-foreground">Your team drowns in repetitive questions</div>
+                    </div>
+                  </div>
+                  <div className="flex gap-3">
+                    <div className="w-2 h-2 rounded-full bg-destructive mt-2 flex-shrink-0" />
+                    <div>
+                      <div className="font-semibold mb-1">After-hours = lost business</div>
+                      <div className="text-sm text-muted-foreground">No one there when customers need help most</div>
+                    </div>
+                  </div>
+                  <div className="flex gap-3">
+                    <div className="w-2 h-2 rounded-full bg-destructive mt-2 flex-shrink-0" />
+                    <div>
+                      <div className="font-semibold mb-1">Scaling costs skyrocket</div>
+                      <div className="text-sm text-muted-foreground">More customers = more support staff needed</div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
 
-            <div className="space-y-3 p-6 rounded-lg border bg-card">
-              <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
-                <Sparkles className="w-6 h-6 text-primary" />
-              </div>
-              <h3 className="text-lg font-semibold">Easy Customization</h3>
-              <p className="text-sm text-muted-foreground">
-                Customize colors, upload your logo, and configure personality to match your brand perfectly.
-              </p>
-            </div>
-
-            <div className="space-y-3 p-6 rounded-lg border bg-card">
-              <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
-                <Zap className="w-6 h-6 text-primary" />
-              </div>
-              <h3 className="text-lg font-semibold">One-Click Deploy</h3>
-              <p className="text-sm text-muted-foreground">
-                Copy the embed code and add it to any website. Your chatbot will be live instantly.
-              </p>
+            {/* Solutions */}
+            <div className="space-y-6">
+              <h3 className="text-2xl font-bold text-primary mb-6">With BuildMyChatbot.Ai:</h3>
+              <Card className="border-primary/30">
+                <CardContent className="p-6 space-y-4">
+                  <div className="flex gap-3">
+                    <Check className="w-5 h-5 text-primary mt-1 flex-shrink-0" />
+                    <div>
+                      <div className="font-semibold mb-1">Customers get instant answers</div>
+                      <div className="text-sm text-muted-foreground">Higher satisfaction, more conversions</div>
+                    </div>
+                  </div>
+                  <div className="flex gap-3">
+                    <Check className="w-5 h-5 text-primary mt-1 flex-shrink-0" />
+                    <div>
+                      <div className="font-semibold mb-1">80% fewer support tickets</div>
+                      <div className="text-sm text-muted-foreground">AI handles common questions automatically</div>
+                    </div>
+                  </div>
+                  <div className="flex gap-3">
+                    <Check className="w-5 h-5 text-primary mt-1 flex-shrink-0" />
+                    <div>
+                      <div className="font-semibold mb-1">24/7 availability</div>
+                      <div className="text-sm text-muted-foreground">Never miss a lead, even at 3am</div>
+                    </div>
+                  </div>
+                  <div className="flex gap-3">
+                    <Check className="w-5 h-5 text-primary mt-1 flex-shrink-0" />
+                    <div>
+                      <div className="font-semibold mb-1">Scale without hiring</div>
+                      <div className="text-sm text-muted-foreground">Handle 10x more customers at the same cost</div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
           </div>
         </div>
 
-        {/* Pricing Preview Section */}
-        <div className="max-w-7xl mx-auto mt-24">
+        {/* How It Works Section */}
+        <div className="max-w-6xl mx-auto mt-32">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold mb-4">Get Your AI Chatbot in 3 Simple Steps</h2>
+            <p className="text-xl text-muted-foreground">
+              No technical skills required. Seriously.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8">
+            <div className="space-y-4 p-6 rounded-lg border bg-card relative">
+              <div className="w-12 h-12 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xl font-bold">
+                1
+              </div>
+              <h3 className="text-xl font-semibold">Train Your Bot</h3>
+              <p className="text-muted-foreground">
+                Add your website URL or upload documents. Our AI reads everything and learns your business in seconds.
+              </p>
+            </div>
+
+            <div className="space-y-4 p-6 rounded-lg border bg-card relative">
+              <div className="w-12 h-12 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xl font-bold">
+                2
+              </div>
+              <h3 className="text-xl font-semibold">Customize Your Brand</h3>
+              <p className="text-muted-foreground">
+                Match your colors, add your logo, set the personality. Make it feel like your brand in minutes.
+              </p>
+            </div>
+
+            <div className="space-y-4 p-6 rounded-lg border bg-card relative">
+              <div className="w-12 h-12 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xl font-bold">
+                3
+              </div>
+              <h3 className="text-xl font-semibold">Deploy Instantly</h3>
+              <p className="text-muted-foreground">
+                Copy one line of code. Paste it on your site. Your AI assistant is now live and helping customers.
+              </p>
+            </div>
+          </div>
+
+          <div className="text-center mt-12">
+            <Button
+              size="lg"
+              className="text-lg px-8 py-6 h-auto"
+              onClick={() => window.location.href = "/register"}
+              data-testid="button-get-started-middle"
+            >
+              Start Building Your Chatbot Now
+              <ArrowRight className="ml-2 w-5 h-5" />
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* FAQ Section */}
+      <div className="container mx-auto px-4 py-16 bg-muted/30">
+        <div className="max-w-3xl mx-auto">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold mb-4">Simple, Transparent Pricing</h2>
-            <p className="text-lg text-muted-foreground">
-              Start free, upgrade as you grow
+            <h2 className="text-4xl font-bold mb-4">Frequently Asked Questions</h2>
+            <p className="text-xl text-muted-foreground">
+              Everything you need to know about BuildMyChatbot.Ai
+            </p>
+          </div>
+
+          <Accordion type="single" collapsible className="w-full">
+            <AccordionItem value="item-1">
+              <AccordionTrigger className="text-left">
+                Do I need coding skills to create a chatbot?
+              </AccordionTrigger>
+              <AccordionContent>
+                Absolutely not! BuildMyChatbot.Ai is designed for business owners, not developers. Our wizard guides you through every step, and you can have a chatbot live on your site in just 5 minutes by copying a single line of code.
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="item-2">
+              <AccordionTrigger className="text-left">
+                How does the AI learn about my business?
+              </AccordionTrigger>
+              <AccordionContent>
+                Simply provide your website URL or upload documents (PDFs, Word files, etc.). Our AI automatically reads and understands your content, creating a knowledge base that lets your chatbot answer customer questions accurately based on YOUR information.
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="item-3">
+              <AccordionTrigger className="text-left">
+                Can I try it for free?
+              </AccordionTrigger>
+              <AccordionContent>
+                Yes! Our Free plan gives you 1 chatbot with 3 total questions and 100 MB knowledge base forever. No credit card required. Start building and see how it works before upgrading.
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="item-4">
+              <AccordionTrigger className="text-left">
+                What if the chatbot doesn't know an answer?
+              </AccordionTrigger>
+              <AccordionContent>
+                The chatbot can be configured to escalate to human support when it encounters questions it can't answer confidently. You can also enable lead capture forms and live agent handoff to ensure no customer inquiry goes unanswered.
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="item-5">
+              <AccordionTrigger className="text-left">
+                Can I customize how the chatbot looks and sounds?
+              </AccordionTrigger>
+              <AccordionContent>
+                Absolutely! You control the colors, logo, welcome message, and even the chatbot's personality and tone. Make it formal, friendly, professional, or playful - whatever matches your brand. You can also add custom instructions to guide how the AI responds.
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="item-6">
+              <AccordionTrigger className="text-left">
+                What happens if I exceed my plan limits?
+              </AccordionTrigger>
+              <AccordionContent>
+                Your chatbot will continue working, but you'll be prompted to upgrade to keep full functionality. We'll never shut down your chatbot mid-conversation with a customer. You can upgrade anytime with a few clicks.
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="item-7">
+              <AccordionTrigger className="text-left">
+                Is there a money-back guarantee?
+              </AccordionTrigger>
+              <AccordionContent>
+                Yes! We offer a 30-day money-back guarantee on all paid plans. If you're not satisfied, just contact us at support@buildmychatbot.ai for a full refund - no questions asked.
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
+        </div>
+      </div>
+
+      {/* Pricing Preview Section */}
+      <div className="container mx-auto px-4 py-20">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-12">
+            <h2 className="text-4xl font-bold mb-4">Choose Your Plan</h2>
+            <p className="text-xl text-muted-foreground">
+              Start free. Scale as you grow. Cancel anytime.
             </p>
           </div>
 
@@ -428,6 +645,45 @@ export default function Landing() {
           </div>
         </div>
       </div>
+
+      {/* Final CTA Section */}
+      <div className="container mx-auto px-4 py-20">
+        <div className="max-w-4xl mx-auto">
+          <Card className="border-primary/30 bg-gradient-to-br from-primary/5 to-primary/10">
+            <CardContent className="p-12 text-center space-y-6">
+              <h2 className="text-4xl font-bold">Ready to Transform Your Customer Support?</h2>
+              <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+                Join hundreds of businesses using AI to provide instant, 24/7 support. 
+                Start free in 5 minutes. No credit card required.
+              </p>
+              <div className="flex flex-col sm:flex-row justify-center gap-4 pt-4">
+                <Button
+                  size="lg"
+                  className="text-lg px-8 py-6 h-auto"
+                  onClick={() => window.location.href = "/register"}
+                  data-testid="button-get-started-bottom"
+                >
+                  Start Free Now
+                  <ArrowRight className="ml-2 w-5 h-5" />
+                </Button>
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="text-lg px-8 py-6 h-auto"
+                  onClick={() => window.location.href = "/login"}
+                  data-testid="button-sign-in-bottom"
+                >
+                  Sign In
+                </Button>
+              </div>
+              <p className="text-sm text-muted-foreground pt-4">
+                ✓ No credit card required  ✓ 5-minute setup  ✓ Cancel anytime
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
       <Footer />
     </div>
   );
