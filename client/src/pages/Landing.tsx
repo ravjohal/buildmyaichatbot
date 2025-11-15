@@ -270,9 +270,9 @@ export default function Landing() {
   return (
     <div className="min-h-screen bg-background">
       <SEO
-        title="AI Chatbot Builder | Create Custom Support Bots in Minutes - BuildMyChatbot.Ai"
-        description="Build AI-powered customer support chatbots for your website without coding. Train on your content, customize appearance, capture leads, and deploy instantly. Start free today!"
-        keywords="AI chatbot builder, customer support automation, chatbot software, AI customer service, website chatbot, no-code chatbot, chatbot platform, live chat alternative"
+        title="Replace Your Search Bar with Intelligent AI | BuildMyChatbot.Ai"
+        description="Stop giving users link lists. Train an AI on your website that gives direct answers to questions. Intelligent search powered by AI—index your content in 5 minutes, deploy instantly. Start free!"
+        keywords="intelligent search, AI search, website search replacement, conversational search, AI chatbot builder, RAG chatbot, natural language search, search optimization, answer engine"
         structuredData={structuredData}
       />
       {/* Header Navigation */}
@@ -312,13 +312,13 @@ export default function Landing() {
               Trusted by businesses worldwide
             </div>
             <h1 className="text-5xl md:text-6xl font-bold tracking-tight leading-tight">
-              Stop Making Customers Search.
-              <span className="block text-primary mt-2">Let Them Ask.</span>
+              Replace Your Search Bar with an AI
+              <span className="block text-primary mt-2">That Actually Answers Questions</span>
             </h1>
             <p className="text-xl md:text-2xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
-              Our AI chatbot trains on your website, documents, or knowledge base to give 
-              <span className="font-semibold text-foreground"> instant, accurate answers 24/7</span>. 
-              No coding. No headaches. Just happier customers.
+              Your website has the answers. Your search bar just can't deliver them.
+              <span className="font-semibold text-foreground"> Train an AI on your content in 5 minutes</span> and give users 
+              direct answers, not homework assignments.
             </p>
           </div>
 
@@ -367,44 +367,44 @@ export default function Landing() {
         {/* Pain Points & Solutions Section */}
         <div className="max-w-6xl mx-auto mt-32">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold mb-4">The Problem With Traditional Support</h2>
+            <h2 className="text-4xl font-bold mb-4">Your Search Bar Is Failing Your Users</h2>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Your customers shouldn't have to wait, search through FAQs, or repeat themselves. They deserve better.
+              You have 500 pages of valuable content. Your users find 3 of them. Here's why traditional search doesn't work.
             </p>
           </div>
 
           <div className="grid md:grid-cols-2 gap-12 items-start">
             {/* Pain Points */}
             <div className="space-y-6">
-              <h3 className="text-2xl font-bold text-destructive mb-6">Without AI Support:</h3>
+              <h3 className="text-2xl font-bold text-destructive mb-6">The "Onus Boomerang":</h3>
               <Card className="border-destructive/30">
                 <CardContent className="p-6 space-y-4">
                   <div className="flex gap-3">
                     <div className="w-2 h-2 rounded-full bg-destructive mt-2 flex-shrink-0" />
                     <div>
-                      <div className="font-semibold mb-1">Customers leave frustrated</div>
-                      <div className="text-sm text-muted-foreground">Lost sales when they can't find answers fast</div>
+                      <div className="font-semibold mb-1">Returns lists, not answers</div>
+                      <div className="text-sm text-muted-foreground">47 search results? That's not helping—that's homework</div>
                     </div>
                   </div>
                   <div className="flex gap-3">
                     <div className="w-2 h-2 rounded-full bg-destructive mt-2 flex-shrink-0" />
                     <div>
-                      <div className="font-semibold mb-1">Support tickets pile up</div>
-                      <div className="text-sm text-muted-foreground">Your team drowns in repetitive questions</div>
+                      <div className="font-semibold mb-1">Users click, scroll, give up, leave</div>
+                      <div className="text-sm text-muted-foreground">High bounce rates because they can't find what they need</div>
                     </div>
                   </div>
                   <div className="flex gap-3">
                     <div className="w-2 h-2 rounded-full bg-destructive mt-2 flex-shrink-0" />
                     <div>
-                      <div className="font-semibold mb-1">After-hours = lost business</div>
-                      <div className="text-sm text-muted-foreground">No one there when customers need help most</div>
+                      <div className="font-semibold mb-1">Keyword-based, not intent-based</div>
+                      <div className="text-sm text-muted-foreground">Can't tell "buy shoes" from "recycle shoes"</div>
                     </div>
                   </div>
                   <div className="flex gap-3">
                     <div className="w-2 h-2 rounded-full bg-destructive mt-2 flex-shrink-0" />
                     <div>
-                      <div className="font-semibold mb-1">Scaling costs skyrocket</div>
-                      <div className="text-sm text-muted-foreground">More customers = more support staff needed</div>
+                      <div className="font-semibold mb-1">Your content's value is hidden</div>
+                      <div className="text-sm text-muted-foreground">Years of work users can't access</div>
                     </div>
                   </div>
                 </CardContent>
@@ -413,35 +413,35 @@ export default function Landing() {
 
             {/* Solutions */}
             <div className="space-y-6">
-              <h3 className="text-2xl font-bold text-primary mb-6">With BuildMyChatbot.Ai:</h3>
+              <h3 className="text-2xl font-bold text-primary mb-6">Intelligent Search with AI:</h3>
               <Card className="border-primary/30">
                 <CardContent className="p-6 space-y-4">
                   <div className="flex gap-3">
                     <Check className="w-5 h-5 text-primary mt-1 flex-shrink-0" />
                     <div>
-                      <div className="font-semibold mb-1">Customers get instant answers</div>
-                      <div className="text-sm text-muted-foreground">Higher satisfaction, more conversions</div>
+                      <div className="font-semibold mb-1">Gives answers, not link lists</div>
+                      <div className="text-sm text-muted-foreground">Direct responses users can actually use</div>
                     </div>
                   </div>
                   <div className="flex gap-3">
                     <Check className="w-5 h-5 text-primary mt-1 flex-shrink-0" />
                     <div>
-                      <div className="font-semibold mb-1">70% fewer support tickets</div>
-                      <div className="text-sm text-muted-foreground">AI handles common questions automatically</div>
+                      <div className="font-semibold mb-1">Understands natural language</div>
+                      <div className="text-sm text-muted-foreground">Users ask questions like they're talking to an expert</div>
                     </div>
                   </div>
                   <div className="flex gap-3">
                     <Check className="w-5 h-5 text-primary mt-1 flex-shrink-0" />
                     <div>
-                      <div className="font-semibold mb-1">24/7 availability</div>
-                      <div className="text-sm text-muted-foreground">Never miss a lead, even at 3am</div>
+                      <div className="font-semibold mb-1">Finds specific data instantly</div>
+                      <div className="text-sm text-muted-foreground">Searches your entire site in milliseconds</div>
                     </div>
                   </div>
                   <div className="flex gap-3">
                     <Check className="w-5 h-5 text-primary mt-1 flex-shrink-0" />
                     <div>
-                      <div className="font-semibold mb-1">Scale without hiring</div>
-                      <div className="text-sm text-muted-foreground">Handle 10x more customers at the same cost</div>
+                      <div className="font-semibold mb-1">Works 24/7, never sleeps</div>
+                      <div className="text-sm text-muted-foreground">Instant expertise at any hour</div>
                     </div>
                   </div>
                 </CardContent>
