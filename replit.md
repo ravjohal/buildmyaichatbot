@@ -27,12 +27,14 @@ BuildMyChatbot.Ai is a SaaS web application designed to empower non-technical bu
 
 **Blog System Implementation:**
 - Created public-facing blog for SEO content marketing and educational resources
-- PostgreSQL database schema with support for markdown content, SEO metadata, and publishing workflow
+- PostgreSQL database schema with boolean published field for secure draft management
 - Public API endpoints: GET /api/blog/posts (listing) and GET /api/blog/posts/:slug (single post)
 - Responsive blog listing page with card-based grid layout at /blog
 - Individual blog post pages at /blog/:slug with react-markdown rendering and remark-gfm
 - Integrated blog navigation in Landing page header and Footer
-- First published article: "10 Ways AI Chatbots Transform Customer Support in 2025" (8 min read)
+- Published articles:
+  - "10 Ways AI Chatbots Transform Customer Support in 2025" (8 min read)
+  - "The Hybrid Advantage: A 2026 Playbook for Blending AI Chatbots and Human Experts" (11 min read)
 - SEO-optimized with unique meta descriptions, keywords, and Open Graph tags per article
 - Public routes requiring no authentication for maximum reach and search engine visibility
 
