@@ -1,12 +1,12 @@
 import { Button } from "@/components/ui/button";
-import { Bot, MessageSquare, Sparkles, Zap, DollarSign, Check, Clock, TrendingUp, Users, Shield, ArrowRight, Star } from "lucide-react";
+import { Bot, MessageSquare, Sparkles, Zap, DollarSign, Check, Clock, TrendingUp, Users, Shield, ArrowRight, Star, FileText, ShoppingCart, Code, BookOpen } from "lucide-react";
 import { Link } from "wouter";
 import { Logo } from "@/components/Logo";
 import { Footer } from "@/components/Footer";
 import { PRICING_PLANS } from "../../../shared/pricing";
 import { SEO } from "@/components/SEO";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function Landing() {
   const structuredData = {
@@ -453,9 +453,9 @@ export default function Landing() {
         {/* How It Works Section */}
         <div className="max-w-6xl mx-auto mt-32">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold mb-4">Get Your AI Chatbot in 3 Simple Steps</h2>
+            <h2 className="text-4xl font-bold mb-4">Replace Your Search Bar in 3 Simple Steps</h2>
             <p className="text-xl text-muted-foreground">
-              No technical skills required. Seriously.
+              From traditional search to intelligent answers in under 10 minutes.
             </p>
           </div>
 
@@ -464,9 +464,9 @@ export default function Landing() {
               <div className="w-12 h-12 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xl font-bold">
                 1
               </div>
-              <h3 className="text-xl font-semibold">Train Your Bot</h3>
+              <h3 className="text-xl font-semibold">Index Your Content</h3>
               <p className="text-muted-foreground">
-                Add your website URL or upload documents. Our AI reads everything and learns your business in seconds.
+                Add your website URL or upload documents. Our AI reads everything—even complex SPAs—and builds a searchable knowledge base in seconds.
               </p>
             </div>
 
@@ -474,9 +474,9 @@ export default function Landing() {
               <div className="w-12 h-12 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xl font-bold">
                 2
               </div>
-              <h3 className="text-xl font-semibold">Customize Your Brand</h3>
+              <h3 className="text-xl font-semibold">Customize the Experience</h3>
               <p className="text-muted-foreground">
-                Match your colors, add your logo, set the personality. Make it feel like your brand in minutes.
+                Match your brand colors, set the AI's personality, and configure when to escalate to humans. No coding required.
               </p>
             </div>
 
@@ -484,9 +484,9 @@ export default function Landing() {
               <div className="w-12 h-12 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xl font-bold">
                 3
               </div>
-              <h3 className="text-xl font-semibold">Deploy Instantly</h3>
+              <h3 className="text-xl font-semibold">Deploy Everywhere</h3>
               <p className="text-muted-foreground">
-                Copy one line of code. Paste it on your site. Your AI assistant is now live and helping customers.
+                Embed on your site with one line of code, share a direct link, or generate a QR code. Your intelligent search is now live.
               </p>
             </div>
           </div>
@@ -498,7 +498,131 @@ export default function Landing() {
               onClick={() => window.location.href = "/register"}
               data-testid="button-get-started-middle"
             >
-              Start Building Your Chatbot Now
+              Start Building Your AI Search Now
+              <ArrowRight className="ml-2 w-5 h-5" />
+            </Button>
+          </div>
+        </div>
+
+        {/* Use Cases by Industry Section */}
+        <div className="max-w-6xl mx-auto mt-32">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold mb-4">Who Benefits from Intelligent Search?</h2>
+            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+              From content publishers to e-commerce—any site with valuable content can turn it into an interactive expert.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-8">
+            {/* Content Publishers */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <FileText className="w-5 h-5 text-primary" />
+                  </div>
+                  <CardTitle className="text-2xl">Content Publishers</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <p className="text-muted-foreground">
+                  <span className="font-semibold text-foreground">The Challenge:</span> Readers land on your site looking for specific information buried in hundreds of articles. They skim headlines, bounce after 30 seconds.
+                </p>
+                <p className="text-muted-foreground">
+                  <span className="font-semibold text-foreground">The Solution:</span> Let them ask "What were the top NFL draft picks in 2023?" and get instant answers with source links—keeping them engaged and on your site longer.
+                </p>
+                <div className="pt-2 flex items-center gap-2 text-sm text-primary">
+                  <Check className="w-4 h-4" />
+                  <span>Lower bounce rates, higher engagement</span>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* E-commerce */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <ShoppingCart className="w-5 h-5 text-primary" />
+                  </div>
+                  <CardTitle className="text-2xl">E-commerce</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <p className="text-muted-foreground">
+                  <span className="font-semibold text-foreground">The Challenge:</span> Shoppers can't find the right product from your catalog. They search "waterproof hiking boots size 10" and get 200 results.
+                </p>
+                <p className="text-muted-foreground">
+                  <span className="font-semibold text-foreground">The Solution:</span> AI understands intent, narrows options instantly, and can even capture their email if they need to think it over—turning browsers into buyers.
+                </p>
+                <div className="pt-2 flex items-center gap-2 text-sm text-primary">
+                  <Check className="w-4 h-4" />
+                  <span>Faster product discovery, more conversions</span>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* SaaS / Documentation */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <Code className="w-5 h-5 text-primary" />
+                  </div>
+                  <CardTitle className="text-2xl">SaaS & Documentation</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <p className="text-muted-foreground">
+                  <span className="font-semibold text-foreground">The Challenge:</span> Developers need answers from your API docs but your search returns page after page of endpoints. Support tickets pile up.
+                </p>
+                <p className="text-muted-foreground">
+                  <span className="font-semibold text-foreground">The Solution:</span> AI delivers precise code examples and explanations instantly, escalating to live support only when truly needed.
+                </p>
+                <div className="pt-2 flex items-center gap-2 text-sm text-primary">
+                  <Check className="w-4 h-4" />
+                  <span>70% fewer support tickets, happier developers</span>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Knowledge Bases */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <BookOpen className="w-5 h-5 text-primary" />
+                  </div>
+                  <CardTitle className="text-2xl">Knowledge Bases & Wikis</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <p className="text-muted-foreground">
+                  <span className="font-semibold text-foreground">The Challenge:</span> Employees waste hours hunting through HR policies, company wikis, and internal docs for simple answers.
+                </p>
+                <p className="text-muted-foreground">
+                  <span className="font-semibold text-foreground">The Solution:</span> Ask "What's our remote work policy?" and get the exact section, cited and accurate—without reading 47 PDFs.
+                </p>
+                <div className="pt-2 flex items-center gap-2 text-sm text-primary">
+                  <Check className="w-4 h-4" />
+                  <span>Instant answers, massive time savings</span>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="text-center mt-12">
+            <p className="text-lg text-muted-foreground mb-6">
+              And that's just the beginning. Anywhere you have content, you can have an intelligent search experience.
+            </p>
+            <Button
+              size="lg"
+              variant="outline"
+              className="text-lg px-8 py-6 h-auto"
+              onClick={() => window.location.href = "/register"}
+              data-testid="button-get-started-use-cases"
+            >
+              Try It Free
               <ArrowRight className="ml-2 w-5 h-5" />
             </Button>
           </div>
