@@ -354,7 +354,7 @@ export default function Landing() {
             </div>
           </div>
           <p className="text-xs text-muted-foreground text-center mt-4">
-            * Industry average based on AI chatbot case studies (Chatbase, Wonderchat, Klarna)
+            * Industry average based on AI chatbot deployment case studies
           </p>
 
         </div>
