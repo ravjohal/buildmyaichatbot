@@ -344,15 +344,18 @@ export default function Landing() {
               <div className="text-3xl font-bold text-primary">&lt;2s</div>
               <div className="text-sm text-muted-foreground">Avg Response Time</div>
             </div>
-            <div className="space-y-1" data-testid="stat-satisfaction">
-              <div className="text-3xl font-bold text-primary">95%</div>
-              <div className="text-sm text-muted-foreground">Customer Satisfaction</div>
+            <div className="space-y-1" data-testid="stat-ticket-reduction">
+              <div className="text-3xl font-bold text-primary">70%</div>
+              <div className="text-sm text-muted-foreground">Fewer Support Tickets*</div>
             </div>
             <div className="space-y-1" data-testid="stat-free-start">
               <div className="text-3xl font-bold text-primary">$0</div>
               <div className="text-sm text-muted-foreground">To Get Started</div>
             </div>
           </div>
+          <p className="text-xs text-muted-foreground text-center mt-4">
+            * Industry average based on AI chatbot case studies (Chatbase, Wonderchat, Klarna)
+          </p>
 
         </div>
 
@@ -418,7 +421,7 @@ export default function Landing() {
                   <div className="flex gap-3">
                     <Check className="w-5 h-5 text-primary mt-1 flex-shrink-0" />
                     <div>
-                      <div className="font-semibold mb-1">80% fewer support tickets</div>
+                      <div className="font-semibold mb-1">70% fewer support tickets</div>
                       <div className="text-sm text-muted-foreground">AI handles common questions automatically</div>
                     </div>
                   </div>

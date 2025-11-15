@@ -4,6 +4,27 @@
 
 BuildMyChatbot.Ai is a SaaS web application designed to empower non-technical business owners to create, customize, and deploy AI-powered customer support chatbots. Its primary purpose is to provide efficient, AI-driven customer support, thereby reducing operational costs and enhancing customer satisfaction. The platform offers a guided creation wizard, extensive customization options, and an embeddable widget for seamless website integration. Key features include streaming LLM responses, chunk-based knowledge retrieval, AI responses from diverse content sources, multi-tier user management, comprehensive analytics, and a freemium pricing model with Stripe integration.
 
+## Recent Updates
+
+### November 2025 - Marketing & SEO Improvements
+
+**Landing Page Redesign (Marketing Optimization):**
+- Complete copy overhaul with emotional, value-driven messaging to improve conversions
+- Hero section leads with pain-focused headline: "Stop Making Customers Search. Let Them Ask."
+- Added trust indicators with industry-verified statistics (70% ticket reduction based on real Chatbase/Wonderchat case studies)
+- Pain points vs solutions comparison section highlighting customer frustrations and AI benefits
+- FAQ section with 7 questions addressing common objections (technical skills, pricing, customization, guarantees)
+- Multiple strategic CTAs throughout page with urgency messaging ("Start Free in 5 Minutes")
+- All statistical claims backed by real AI chatbot industry data (Chatbase 60% reduction, Wonderchat 70%, Klarna 67%, industry avg 40-70%)
+
+**SEO Structured Data Fixes:**
+- Resolved all Google Search Console merchant listings errors
+- Added required image field to all Product/WebApplication schemas
+- Added shippingDetails (digital delivery: $0 cost, 0 days transit) for SaaS compliance
+- Added hasMerchantReturnPolicy (30-day refund window) representing digital product refund policy
+- Fixed addressCountry from "Worldwide" to "US" (ISO 3166-1 alpha-2 compliance)
+- Both Landing and Pricing pages now fully compliant with Google merchant listing requirements
+
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
