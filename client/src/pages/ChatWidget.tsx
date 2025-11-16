@@ -1240,6 +1240,17 @@ export default function ChatWidget() {
                 <Send className="w-5 h-5" />
               </Button>
             </div>
+            <div className="mt-3 text-center">
+              <a
+                href="https://buildmychatbot.ai"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+                data-testid="link-powered-by"
+              >
+                Powered by BuildMyChatbot.AI
+              </a>
+            </div>
           </div>
         </div>
       </div>
@@ -1494,6 +1505,17 @@ export default function ChatWidget() {
               >
                 <Send className="w-4 h-4" />
               </Button>
+            </div>
+            <div className="mt-2 text-center">
+              <a
+                href="https://buildmychatbot.ai"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+                data-testid="link-powered-by"
+              >
+                Powered by BuildMyChatbot.AI
+              </a>
             </div>
           </div>
         </div>

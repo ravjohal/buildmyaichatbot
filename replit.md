@@ -47,6 +47,7 @@ The backend is built with Express.js, Node.js, and TypeScript, following a RESTf
 *   **In-App Help Center:** Comprehensive self-service documentation with search, article routing, and markdown rendering.
 *   **Tabbed Chatbot View:** Read-only overview (`/view/:id`) organizing chatbot information into 6 tabs: Overview, Knowledge Base, Personality, Appearance, Features, and Analytics.
 *   **Blog System:** Public-facing blog for SEO and content marketing, featuring PostgreSQL-backed content, markdown rendering, and SEO metadata.
+*   **Branded Chat Widgets:** All chatbot widgets display "Powered by BuildMyChatbot.AI" branding at the bottom, with a clickable link to buildmychatbot.ai. Appears in embedded widgets, full-page chat interfaces, shareable links, and customization previews.
 
 ### System Design Choices
 
