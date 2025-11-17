@@ -44,17 +44,30 @@ export default function Login() {
           navigate("/");
         }
       } else {
-        const error = await response.json();
+        // Handle login failure
+        let errorMessage = "Incorrect email or password";
+        
+        try {
+          const errorData = await response.json();
+          if (errorData.message) {
+            errorMessage = errorData.message;
+          }
+        } catch (parseError) {
+          // If we can't parse the response, use default message
+          console.error("Error parsing login error response:", parseError);
+        }
+        
         toast({
           title: "Login Failed",
-          description: error.message || "Invalid email or password",
+          description: errorMessage,
           variant: "destructive",
         });
       }
     } catch (error) {
+      console.error("Login error:", error);
       toast({
-        title: "Error",
-        description: "An unexpected error occurred. Please try again.",
+        title: "Login Failed",
+        description: "Unable to connect to server. Please check your internet connection and try again.",
         variant: "destructive",
       });
     } finally {
