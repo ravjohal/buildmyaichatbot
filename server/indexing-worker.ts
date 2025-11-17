@@ -11,7 +11,7 @@ import { PerformanceMonitor, getEnvironmentConfig } from "./performance-monitor"
 
 const POLL_INTERVAL_MS = 3000; // Check for new jobs every 3 seconds
 const MAX_RETRY_COUNT = 3;
-const HEARTBEAT_INTERVAL_MS = 30000; // Log heartbeat every 30 seconds
+const HEARTBEAT_INTERVAL_MS = 5 * 60 * 1000; // Log heartbeat every 5 minutes
 const JOB_TIMEOUT_MS = 15 * 60 * 1000; // 15 minutes max per job
 const CANCELLATION_CHECK_INTERVAL_MS = 5000; // Check for cancellation every 5 seconds
 
@@ -19,6 +19,7 @@ let isWorkerRunning = false;
 let lastHeartbeat = Date.now();
 let heartbeatInterval: NodeJS.Timeout | null = null;
 let totalJobsProcessed = 0;
+let lastJobsProcessed = 0; // Track last count to detect activity
 
 // In-memory map of cancelled jobs for immediate notification
 const cancelledJobs = new Map<string, boolean>();
@@ -157,10 +158,16 @@ async function checkPlaywrightHealth(): Promise<{ available: boolean; error?: st
   }
 }
 
-// Worker heartbeat logging
+// Worker heartbeat logging - only log if there's activity
 function logHeartbeat(): void {
-  const uptime = Math.floor((Date.now() - lastHeartbeat) / 1000);
-  console.log(`[WORKER-HEARTBEAT] Worker alive | Jobs processed: ${totalJobsProcessed} | Uptime: ${uptime}s`);
+  // Only log if jobs were processed since last heartbeat
+  if (totalJobsProcessed > lastJobsProcessed) {
+    const uptime = Math.floor((Date.now() - lastHeartbeat) / 1000);
+    const jobsSinceLastHeartbeat = totalJobsProcessed - lastJobsProcessed;
+    console.log(`[WORKER-HEARTBEAT] Processed ${jobsSinceLastHeartbeat} job(s) | Total: ${totalJobsProcessed} | Uptime: ${uptime}s`);
+    lastJobsProcessed = totalJobsProcessed;
+  }
+  // Silent when idle - no console spam
 }
 
 // Generate suggested questions using Gemini
@@ -812,7 +819,8 @@ export async function startIndexingWorker(): Promise<void> {
   console.log("[WORKER] ========================================");
   console.log("[WORKER] Starting indexing worker...");
   console.log("[WORKER] Environment:", process.env.NODE_ENV);
-  console.log("[WORKER] Poll interval:", POLL_INTERVAL_MS, "ms");
+  console.log("[WORKER] Poll interval:", POLL_INTERVAL_MS / 1000, "seconds");
+  console.log("[WORKER] Heartbeat interval:", HEARTBEAT_INTERVAL_MS / 1000 / 60, "minutes (only when active)");
   console.log("[WORKER] Job timeout:", JOB_TIMEOUT_MS / 1000 / 60, "minutes");
   console.log("[WORKER] ========================================");
   
