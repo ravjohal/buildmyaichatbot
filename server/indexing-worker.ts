@@ -214,14 +214,14 @@ Return ONLY a valid JSON array of EXACTLY 20 question strings, nothing else. Exa
 ["Question 1?", "Question 2?", ..., "Question 20?"]`;
 
     console.log(`[LLM] ========== SUGGESTED QUESTIONS GENERATION (INDEXING) ==========`);
-    console.log(`[LLM] Model: gemini-2.5-flash`);
+    console.log(`[LLM] Model: gemini-2.5-pro`);
     console.log(`[LLM] Chatbot ID: ${chatbotId}`);
     console.log(`[LLM] Prompt length: ${prompt.length} chars`);
     console.log(`[LLM] Prompt preview: ${prompt.substring(0, 500)}...`);
     
     const llmStart = Date.now();
     const result = await genAI.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-2.5-pro",
       contents: prompt,
     });
     const llmTime = Date.now() - llmStart;

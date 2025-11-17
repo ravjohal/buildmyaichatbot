@@ -1660,7 +1660,7 @@ Please answer based on the knowledge base provided. If you cannot find the answe
 
         // Call LLM for main response, and optionally for suggested questions in parallel
         console.log(`[LLM] ========== REGULAR CHAT REQUEST ==========`);
-        console.log(`[LLM] Model: gemini-2.5-flash`);
+        console.log(`[LLM] Model: gemini-2.5-pro`);
         console.log(`[LLM] Main prompt length: ${fullPrompt.length} chars`);
         console.log(`[LLM] Main prompt preview: ${fullPrompt.substring(0, 500)}...`);
         
@@ -1668,7 +1668,7 @@ Please answer based on the knowledge base provided. If you cannot find the answe
         const requests = [
           // Main response
           genAI.models.generateContent({
-            model: "gemini-2.5-flash",
+            model: "gemini-2.5-pro",
             contents: fullPrompt,
           })
         ];
@@ -1687,7 +1687,7 @@ Generate 3 short, natural questions that would help the user learn more. Return 
           console.log(`[LLM] Suggestions prompt length: ${suggestionsPrompt.length} chars`);
           requests.push(
             genAI.models.generateContent({
-              model: "gemini-2.5-flash",
+              model: "gemini-2.5-pro",
               contents: suggestionsPrompt,
             }).catch(err => {
               console.error("[LLM] Error generating suggested questions:", err);
@@ -2279,13 +2279,13 @@ INCORRECT citation examples (NEVER do this):
               }
               
               console.log(`[LLM] ========== STREAMING REQUEST ==========`);
-              console.log(`[LLM] Model: gemini-2.5-flash`);
+              console.log(`[LLM] Model: gemini-2.5-pro`);
               console.log(`[LLM] Prompt length: ${fullPrompt.length} chars`);
               console.log(`[LLM] Prompt preview: ${fullPrompt.substring(0, 500)}...`);
               console.log(`[LLM] Starting streaming...`);
               
               const stream = await genAI.models.generateContentStream({
-                model: "gemini-2.5-flash",
+                model: "gemini-2.5-pro",
                 contents: fullPrompt,
               });
 

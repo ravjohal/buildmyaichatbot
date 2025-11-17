@@ -52,7 +52,7 @@ The backend is built with Express.js, Node.js, and TypeScript, following a RESTf
 ### System Design Choices
 
 *   **Data Storage:** PostgreSQL with Drizzle ORM.
-*   **AI Integration:** Google Gemini AI (gemini-2.5-flash) via `@google/genai` SDK for NLP, streaming API, system prompt engineering, and chunk-based retrieval. Response priority: Manual Override → Exact Cache → Semantic Cache → LLM with Chunks.
+*   **AI Integration:** Google Gemini AI (gemini-2.5-pro) via `@google/genai` SDK for NLP, streaming API, system prompt engineering, and chunk-based retrieval. Response priority: Manual Override → Exact Cache → Semantic Cache → LLM with Chunks.
 *   **Knowledge Base Architecture:** Custom Playwright-based crawler with pgvector embeddings (via `@xenova/transformers`) for website content.
 *   **File Storage:** Google Cloud Storage (via Replit Object Storage) for user-uploaded files, with Uppy.js for client-side uploads.
 *   **Authentication & Security:** Custom email/password authentication (passport-local, bcrypt, session-based), CSRF protection, and Zod input validation in a multi-tenant architecture.
