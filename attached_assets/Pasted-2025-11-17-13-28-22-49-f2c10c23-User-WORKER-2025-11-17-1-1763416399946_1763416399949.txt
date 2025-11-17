@@ -1,0 +1,109 @@
+2025-11-17 13:28:22.49
+f2c10c23
+User
+[WORKER] ========================================
+
+2025-11-17 13:28:22.49
+f2c10c23
+User
+[WORKER-HEALTH] Environment: production
+2025-11-17 13:28:22.49
+f2c10c23
+User
+[WORKER-HEALTH] Testing Playwright/Chromium availability...
+2025-11-17 13:28:22.49
+f2c10c23
+User
+[WORKER] Job timeout: 15 minutes
+2025-11-17 13:28:22.51
+f2c10c23
+User
+[WORKER-HEALTH] System Chromium found: /nix/store/zi4f80l169xlmivz8vja8wlphq74qqk0-chromium-125.0.6422.141/bin/chromium-browser
+2025-11-17 13:28:22.51
+f2c10c23
+User
+[WORKER] Consider installing Chromium or checking Playwright installation
+2025-11-17 13:28:22.51
+f2c10c23
+User
+║ ║
+2025-11-17 13:28:22.51
+f2c10c23
+User
+║ npx playwright install ║
+2025-11-17 13:28:22.51
+f2c10c23
+User
+║ Looks like Playwright Test or Playwright was just installed or updated. ║
+2025-11-17 13:28:22.51
+f2c10c23
+User
+╔═════════════════════════════════════════════════════════════════════════╗
+2025-11-17 13:28:22.51
+f2c10c23
+User
+[WORKER] ✗ CRITICAL: Playwright/Chromium is not available!
+2025-11-17 13:28:22.51
+f2c10c23
+User
+[WORKER-HEALTH] ✗ Playwright/Chromium FAILED: browserType.launch: Executable doesn't exist at /home/runner/workspace/.cache/ms-playwright/chromium_headless_shell-1194/chrome-linux/headless_shell
+2025-11-17 13:28:22.51
+f2c10c23
+User
+║ Please run the following command to download new browsers: ║
+2025-11-17 13:28:22.51
+f2c10c23
+User
+║ ║
+2025-11-17 13:28:22.51
+f2c10c23
+User
+║ Please run the following command to download new browsers: ║
+2025-11-17 13:28:22.51
+f2c10c23
+User
+║ npx playwright install ║
+2025-11-17 13:28:22.51
+f2c10c23
+User
+╚═════════════════════════════════════════════════════════════════════════╝
+2025-11-17 13:28:22.51
+f2c10c23
+User
+[WORKER] Error: browserType.launch: Executable doesn't exist at /home/runner/workspace/.cache/ms-playwright/chromium_headless_shell-1194/chrome-linux/headless_shell
+2025-11-17 13:28:22.51
+f2c10c23
+User
+║ <3 Playwright Team ║
+2025-11-17 13:28:22.51
+f2c10c23
+User
+║ <3 Playwright Team ║
+2025-11-17 13:28:22.51
+f2c10c23
+User
+║ ║
+2025-11-17 13:28:22.51
+f2c10c23
+User
+╔═════════════════════════════════════════════════════════════════════════╗
+2025-11-17 13:28:22.51
+f2c10c23
+User
+╚═════════════════════════════════════════════════════════════════════════╝
+2025-11-17 13:28:22.51
+f2c10c23
+User
+[WORKER] Indexing jobs requiring website crawling will fail!
+2025-11-17 13:28:22.51
+f2c10c23
+User
+║ Looks like Playwright Test or Playwright was just installed or updated. ║
+2025-11-17 13:28:22.51
+f2c10c23
+User
+║ ║
+2025-11-17 13:28:22.51
+f2c10c23
+User
+[WORKER] ✓ Indexing worker started successfully

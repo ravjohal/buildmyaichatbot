@@ -110,11 +110,15 @@ async function checkPlaywrightHealth(): Promise<{ available: boolean; error?: st
     console.log('[WORKER-HEALTH] Default Chromium path:', chromium.executablePath());
     
     // Try to find system Chromium
+    let executablePath: string | undefined = undefined;
     if (process.env.NODE_ENV === 'production') {
       try {
         const { execSync } = await import('child_process');
         const chromiumPath = execSync('which chromium-browser || which chromium', { encoding: 'utf8' }).trim();
-        console.log('[WORKER-HEALTH] System Chromium found:', chromiumPath);
+        if (chromiumPath) {
+          executablePath = chromiumPath;
+          console.log('[WORKER-HEALTH] System Chromium found:', chromiumPath);
+        }
       } catch (error) {
         console.warn('[WORKER-HEALTH] System Chromium not found, will use Playwright browser');
       }
@@ -122,8 +126,15 @@ async function checkPlaywrightHealth(): Promise<{ available: boolean; error?: st
     
     // Try to launch browser for real health check
     const browser = await chromium.launch({
+      executablePath: executablePath || undefined,
       headless: true,
       timeout: 10000,
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-gpu',
+      ],
     });
     await browser.close();
     
