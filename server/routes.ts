@@ -1660,13 +1660,13 @@ Please answer based on the knowledge base provided. If you cannot find the answe
 
         // Call LLM for main response only (no AI-generated suggested questions during chat)
         console.log(`[LLM] ========== REGULAR CHAT REQUEST ==========`);
-        console.log(`[LLM] Model: gemini-2.5-pro`);
+        console.log(`[LLM] Model: ${chatbot.geminiModel}`);
         console.log(`[LLM] Main prompt length: ${fullPrompt.length} chars`);
         console.log(`[LLM] Main prompt preview: ${fullPrompt.substring(0, 500)}...`);
         
         const llmStart = Date.now();
         const mainResult = await genAI.models.generateContent({
-          model: "gemini-2.5-pro",
+          model: chatbot.geminiModel,
           contents: fullPrompt,
         });
         
@@ -2238,13 +2238,13 @@ INCORRECT citation examples (NEVER do this):
               }
               
               console.log(`[LLM] ========== STREAMING REQUEST ==========`);
-              console.log(`[LLM] Model: gemini-2.5-pro`);
+              console.log(`[LLM] Model: ${chatbot.geminiModel}`);
               console.log(`[LLM] Prompt length: ${fullPrompt.length} chars`);
               console.log(`[LLM] Prompt preview: ${fullPrompt.substring(0, 500)}...`);
               console.log(`[LLM] Starting streaming...`);
               
               const stream = await genAI.models.generateContentStream({
-                model: "gemini-2.5-pro",
+                model: chatbot.geminiModel,
                 contents: fullPrompt,
               });
 

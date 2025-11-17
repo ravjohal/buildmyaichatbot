@@ -171,7 +171,7 @@ function logHeartbeat(): void {
 }
 
 // Generate suggested questions using Gemini
-async function generateSuggestedQuestions(chatbotId: string): Promise<string[]> {
+async function generateSuggestedQuestions(chatbotId: string, geminiModel: string): Promise<string[]> {
   try {
     console.log(`[WORKER] Generating suggested questions for chatbot ${chatbotId}...`);
     
@@ -231,14 +231,14 @@ Return ONLY a valid JSON array of EXACTLY 20 question strings, nothing else. Exa
 ["Question 1?", "Question 2?", ..., "Question 20?"]`;
 
     console.log(`[LLM] ========== SUGGESTED QUESTIONS GENERATION (INDEXING) ==========`);
-    console.log(`[LLM] Model: gemini-2.5-pro`);
+    console.log(`[LLM] Model: ${geminiModel}`);
     console.log(`[LLM] Chatbot ID: ${chatbotId}`);
     console.log(`[LLM] Prompt length: ${prompt.length} chars`);
     console.log(`[LLM] Prompt preview: ${prompt.substring(0, 500)}...`);
     
     const llmStart = Date.now();
     const result = await genAI.models.generateContent({
-      model: "gemini-2.5-pro",
+      model: geminiModel,
       contents: prompt,
     });
     const llmTime = Date.now() - llmStart;
@@ -650,7 +650,15 @@ async function processIndexingJob(jobId: string): Promise<void> {
       try {
         perfMonitor.start('suggested-questions');
         console.log(`[WORKER] Generating suggested questions for chatbot ${job.chatbotId}...`);
-        const suggestedQuestions = await generateSuggestedQuestions(job.chatbotId);
+        
+        // Fetch chatbot to get its selected Gemini model
+        const chatbot = await storage.getChatbot(job.chatbotId);
+        if (!chatbot) {
+          console.error(`[WORKER] Chatbot ${job.chatbotId} not found, skipping question generation`);
+          return;
+        }
+        
+        const suggestedQuestions = await generateSuggestedQuestions(job.chatbotId, chatbot.geminiModel);
         
         if (suggestedQuestions.length > 0) {
           await storage.replaceSuggestedQuestions(job.chatbotId, suggestedQuestions);
