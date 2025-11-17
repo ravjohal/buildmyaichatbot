@@ -2258,86 +2258,126 @@ INCORRECT citation examples (NEVER do this):
 ✗ "According to Source 1..."
 ✗ "See Source for more details"`;
 
-          // Stream the main response
+          // Stream the main response with retry logic
           const llmStart = performance.now();
           let fullResponse = "";
-          try {
-            console.log(`[LLM] ========== STREAMING REQUEST ==========`);
-            console.log(`[LLM] Model: gemini-2.5-flash`);
-            console.log(`[LLM] Prompt length: ${fullPrompt.length} chars`);
-            console.log(`[LLM] Prompt preview: ${fullPrompt.substring(0, 500)}...`);
-            console.log(`[LLM] Starting streaming...`);
-            
-            const stream = await genAI.models.generateContentStream({
-              model: "gemini-2.5-flash",
-              contents: fullPrompt,
-            });
-
-            let chunkCount = 0;
-            for await (const chunk of stream) {
-              const chunkText = chunk.text || "";
-              if (chunkText) {
-                chunkCount++;
-                fullResponse += chunkText;
-                // Send chunk to client
-                res.write(`data: ${JSON.stringify({ 
-                  type: "chunk",
-                  content: chunkText,
-                })}\n\n`);
+          let aiMessage = "I apologize, but I couldn't generate a response."; // Default message
+          
+          // Retry configuration for handling 503 errors
+          const MAX_RETRIES = 3;
+          const INITIAL_BACKOFF_MS = 1000; // Start with 1 second
+          
+          let retryCount = 0;
+          let streamSuccess = false;
+          
+          while (retryCount <= MAX_RETRIES && !streamSuccess) {
+            try {
+              if (retryCount > 0) {
+                const backoffMs = INITIAL_BACKOFF_MS * Math.pow(2, retryCount - 1);
+                console.log(`[LLM] Retry attempt ${retryCount}/${MAX_RETRIES} after ${backoffMs}ms backoff...`);
+                await new Promise(resolve => setTimeout(resolve, backoffMs));
               }
-            }
-            perfTimings.llmStreaming = performance.now() - llmStart;
+              
+              console.log(`[LLM] ========== STREAMING REQUEST ==========`);
+              console.log(`[LLM] Model: gemini-2.5-flash`);
+              console.log(`[LLM] Prompt length: ${fullPrompt.length} chars`);
+              console.log(`[LLM] Prompt preview: ${fullPrompt.substring(0, 500)}...`);
+              console.log(`[LLM] Starting streaming...`);
+              
+              const stream = await genAI.models.generateContentStream({
+                model: "gemini-2.5-flash",
+                contents: fullPrompt,
+              });
 
-            console.log(`[LLM] Streaming complete: ${chunkCount} chunks, ${perfTimings.llmStreaming.toFixed(2)}ms`);
-            console.log(`[LLM] Response length: ${fullResponse.length} chars`);
-            console.log(`[LLM] Response preview: ${fullResponse.substring(0, 300)}...`);
-            console.log(`[LLM] ========================================`);
+              fullResponse = ""; // Reset response on retry
+              let chunkCount = 0;
+              for await (const chunk of stream) {
+                const chunkText = chunk.text || "";
+                if (chunkText) {
+                  chunkCount++;
+                  fullResponse += chunkText;
+                  // Send chunk to client
+                  res.write(`data: ${JSON.stringify({ 
+                    type: "chunk",
+                    content: chunkText,
+                  })}\n\n`);
+                }
+              }
+              perfTimings.llmStreaming = performance.now() - llmStart;
 
-            aiMessage = fullResponse || "I apologize, but I couldn't generate a response.";
-            
-            // Check for escalation in the LLM response or user's explicit request
-            const escalationDetected = userRequestsHuman || detectEscalation(aiMessage);
-            shouldEscalate = escalationDetected; // Show handoff UI even when agents offline
-            
-            if (escalationDetected) {
-              console.log(`[ESCALATION] Escalation detected in LLM response. shouldEscalate=true, agentsAvailable=${liveAgentAvailability.available}`);
+              console.log(`[LLM] Streaming complete: ${chunkCount} chunks, ${perfTimings.llmStreaming.toFixed(2)}ms`);
+              console.log(`[LLM] Response length: ${fullResponse.length} chars`);
+              console.log(`[LLM] Response preview: ${fullResponse.substring(0, 300)}...`);
+              console.log(`[LLM] ========================================`);
+
+              streamSuccess = true; // Mark as successful
+              
+              aiMessage = fullResponse || "I apologize, but I couldn't generate a response.";
+              
+              // Check for escalation in the LLM response or user's explicit request
+              const escalationDetected = userRequestsHuman || detectEscalation(aiMessage);
+              shouldEscalate = escalationDetected; // Show handoff UI even when agents offline
+              
+              if (escalationDetected) {
+                console.log(`[ESCALATION] Escalation detected in LLM response. shouldEscalate=true, agentsAvailable=${liveAgentAvailability.available}`);
+              }
+              
+              // DISABLED: Follow-up question generation (redundant with 20 rotating AI questions from DB)
+              // This was causing 11+ second delay after main response
+              // The widget already shows rotating questions from aiGeneratedQuestions array
+              // if (chatbot.enableSuggestedQuestions === "true") {
+              //   ... generate 3 follow-up questions ...
+              // }
+              
+              // Send completion event
+              res.write(`data: ${JSON.stringify({ 
+                type: "complete",
+                shouldEscalate,
+                liveAgentAvailable: liveAgentAvailability.available,
+                liveAgentMessage: liveAgentAvailability.message,
+                suggestedQuestions,
+                images: relevantImages.length > 0 ? relevantImages : undefined,
+              })}\n\n`);
+              
+              // Store in cache
+              storage.createCacheEntry({
+                chatbotId,
+                question: normalizedQuestion,
+                questionHash,
+                embedding: questionEmbedding || undefined,
+                answer: aiMessage,
+                suggestedQuestions,
+                lastUsedAt: new Date(),
+              }).catch(err => console.error("Error caching:", err));
+              
+            } catch (streamError: any) {
+              const isRateLimitError = streamError?.status === 503 || 
+                                      streamError?.message?.includes('503') ||
+                                      streamError?.message?.includes('overloaded') ||
+                                      streamError?.message?.includes('UNAVAILABLE');
+              
+              console.error(`[LLM] Streaming error (attempt ${retryCount + 1}/${MAX_RETRIES + 1}):`, streamError);
+              
+              // If it's a rate limit error and we have retries left, continue to retry
+              if (isRateLimitError && retryCount < MAX_RETRIES) {
+                retryCount++;
+                console.log(`[LLM] Rate limit error detected (503). Will retry...`);
+                continue;
+              }
+              
+              // If we've exhausted retries or it's a different error, send error to client
+              console.error(`[LLM] Final error after ${retryCount} retries:`, streamError);
+              res.write(`data: ${JSON.stringify({ 
+                type: "error",
+                message: isRateLimitError 
+                  ? "The AI service is temporarily busy. Please try again in a moment."
+                  : "I apologize, but I encountered an error. Please try again."
+              })}\n\n`);
+              aiMessage = isRateLimitError 
+                ? "The AI service is temporarily busy. Please try again in a moment."
+                : "I apologize, but I encountered an error. Please try again.";
+              break;
             }
-            
-            // DISABLED: Follow-up question generation (redundant with 20 rotating AI questions from DB)
-            // This was causing 11+ second delay after main response
-            // The widget already shows rotating questions from aiGeneratedQuestions array
-            // if (chatbot.enableSuggestedQuestions === "true") {
-            //   ... generate 3 follow-up questions ...
-            // }
-            
-            // Send completion event
-            res.write(`data: ${JSON.stringify({ 
-              type: "complete",
-              shouldEscalate,
-              liveAgentAvailable: liveAgentAvailability.available,
-              liveAgentMessage: liveAgentAvailability.message,
-              suggestedQuestions,
-              images: relevantImages.length > 0 ? relevantImages : undefined,
-            })}\n\n`);
-            
-            // Store in cache
-            storage.createCacheEntry({
-              chatbotId,
-              question: normalizedQuestion,
-              questionHash,
-              embedding: questionEmbedding || undefined,
-              answer: aiMessage,
-              suggestedQuestions,
-              lastUsedAt: new Date(),
-            }).catch(err => console.error("Error caching:", err));
-            
-          } catch (streamError) {
-            console.error("Streaming error:", streamError);
-            res.write(`data: ${JSON.stringify({ 
-              type: "error",
-              message: "I apologize, but I encountered an error. Please try again."
-            })}\n\n`);
-            aiMessage = "I apologize, but I encountered an error. Please try again.";
           }
         }
       }
