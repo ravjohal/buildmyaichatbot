@@ -5,7 +5,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
 import { LogIn } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { Footer } from "@/components/Footer";
@@ -23,9 +22,12 @@ export default function Login() {
     setIsLoading(true);
 
     try {
-      const response = await apiRequest("POST", "/api/auth/login", {
-        email,
-        password,
+      // Use raw fetch instead of apiRequest to properly handle 401 errors
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+        credentials: "include",
       });
 
       if (response.ok) {
@@ -44,7 +46,7 @@ export default function Login() {
           navigate("/");
         }
       } else {
-        // Handle login failure
+        // Handle login failure (401 or other errors)
         let errorMessage = "Incorrect email or password";
         
         try {
