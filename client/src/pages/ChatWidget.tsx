@@ -1054,9 +1054,17 @@ export default function ChatWidget() {
                       : undefined
                   }
                 >
-                  <p className="text-sm whitespace-pre-wrap" data-testid={`message-${message.id}`}>
-                    {linkifyText(message.content || "")}
-                  </p>
+                  {message.id === streamingMessageId && !message.content ? (
+                    <div className="flex gap-1">
+                      <div className="w-2 h-2 rounded-full bg-muted-foreground animate-bounce" />
+                      <div className="w-2 h-2 rounded-full bg-muted-foreground animate-bounce [animation-delay:0.2s]" />
+                      <div className="w-2 h-2 rounded-full bg-muted-foreground animate-bounce [animation-delay:0.4s]" />
+                    </div>
+                  ) : (
+                    <p className="text-sm whitespace-pre-wrap" data-testid={`message-${message.id}`}>
+                      {linkifyText(message.content || "")}
+                    </p>
+                  )}
                   {message.images && message.images.length > 0 && (
                     <div className="mt-3 space-y-2">
                       {message.images.map((img, idx) => (
@@ -1092,7 +1100,7 @@ export default function ChatWidget() {
               </div>
             ))}
 
-            {chatMutation.isPending && (
+            {chatMutation.isPending && !isStreaming && (
               <div className="flex gap-3">
                 <div
                   className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
@@ -1326,9 +1334,17 @@ export default function ChatWidget() {
                         : undefined
                     }
                   >
-                    <p className="text-sm whitespace-pre-wrap" data-testid={`message-${message.id}`}>
-                      {linkifyText(message.content || "")}
-                    </p>
+                    {message.id === streamingMessageId && !message.content ? (
+                      <div className="flex gap-1">
+                        <div className="w-2 h-2 rounded-full bg-muted-foreground animate-bounce" />
+                        <div className="w-2 h-2 rounded-full bg-muted-foreground animate-bounce [animation-delay:0.2s]" />
+                        <div className="w-2 h-2 rounded-full bg-muted-foreground animate-bounce [animation-delay:0.4s]" />
+                      </div>
+                    ) : (
+                      <p className="text-sm whitespace-pre-wrap" data-testid={`message-${message.id}`}>
+                        {linkifyText(message.content || "")}
+                      </p>
+                    )}
                     {message.images && message.images.length > 0 && (
                       <div className="mt-3 space-y-2">
                         {message.images.map((img, idx) => (
@@ -1364,7 +1380,7 @@ export default function ChatWidget() {
                 </div>
               ))}
 
-              {chatMutation.isPending && (
+              {chatMutation.isPending && !isStreaming && (
                 <div className="flex gap-3">
                   <div
                     className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
