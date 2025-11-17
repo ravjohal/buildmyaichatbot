@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles, Zap, Crown } from "lucide-react";
+import { Sparkles, Zap, Crown, Brain } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { InsertChatbot, SubscriptionTier } from "@shared/schema";
 import { hasFeatureAccess } from "@shared/pricing";
 import { Link } from "wouter";
@@ -89,6 +90,58 @@ export function StepPersonality({ formData, updateFormData, userTier, isAdmin }:
           />
           <p className="text-sm text-muted-foreground">
             Add specific behavioral rules. For example: "When discussing floor plans, focus only on layouts and room dimensions. Do not mention pricing." or "When asked about pricing, always highlight the lowest price available."
+          </p>
+        </div>
+
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <Brain className="w-5 h-5 text-primary" />
+            <Label htmlFor="geminiModel" className="text-base">
+              AI Model <span className="text-destructive">*</span>
+            </Label>
+          </div>
+          <Select
+            value={formData.geminiModel || "gemini-2.0-flash-exp"}
+            onValueChange={(value) => updateFormData({ geminiModel: value as "gemini-2.0-flash-exp" | "gemini-2.5-pro" | "gemini-2.5-flash" | "gemini-1.5-pro" | "gemini-1.5-flash" })}
+          >
+            <SelectTrigger id="geminiModel" data-testid="select-gemini-model">
+              <SelectValue placeholder="Select AI model" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="gemini-2.0-flash-exp" data-testid="option-gemini-2.0-flash-exp">
+                <div className="flex flex-col items-start">
+                  <span className="font-medium">Gemini 2.0 Flash (Experimental)</span>
+                  <span className="text-xs text-muted-foreground">Fastest, best value - Recommended</span>
+                </div>
+              </SelectItem>
+              <SelectItem value="gemini-1.5-flash" data-testid="option-gemini-1.5-flash">
+                <div className="flex flex-col items-start">
+                  <span className="font-medium">Gemini 1.5 Flash</span>
+                  <span className="text-xs text-muted-foreground">Fast and cost-effective</span>
+                </div>
+              </SelectItem>
+              <SelectItem value="gemini-1.5-pro" data-testid="option-gemini-1.5-pro">
+                <div className="flex flex-col items-start">
+                  <span className="font-medium">Gemini 1.5 Pro</span>
+                  <span className="text-xs text-muted-foreground">Balanced performance</span>
+                </div>
+              </SelectItem>
+              <SelectItem value="gemini-2.5-flash" data-testid="option-gemini-2.5-flash">
+                <div className="flex flex-col items-start">
+                  <span className="font-medium">Gemini 2.5 Flash</span>
+                  <span className="text-xs text-muted-foreground">Latest flash model</span>
+                </div>
+              </SelectItem>
+              <SelectItem value="gemini-2.5-pro" data-testid="option-gemini-2.5-pro">
+                <div className="flex flex-col items-start">
+                  <span className="font-medium">Gemini 2.5 Pro</span>
+                  <span className="text-xs text-muted-foreground">Most capable, higher cost</span>
+                </div>
+              </SelectItem>
+            </SelectContent>
+          </Select>
+          <p className="text-sm text-muted-foreground">
+            Choose which Google Gemini AI model powers your chatbot. Flash models are faster and more cost-effective for most use cases. Pro models offer higher accuracy for complex queries.
           </p>
         </div>
       </div>
