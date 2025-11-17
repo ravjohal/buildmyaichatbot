@@ -20,7 +20,7 @@ The backend is built with Express.js, Node.js, and TypeScript, following a RESTf
 
 ### Feature Specifications
 
-*   **Chatbot Creation Wizard:** A 7-step guide for configuration, knowledge base (URLs, documents), personality, visual customization, support escalation, lead capture, and CRM integration.
+*   **Chatbot Creation Wizard:** A 7-step guide for configuration, knowledge base (URLs, documents), personality (including Gemini model selection), visual customization, support escalation, lead capture, and CRM integration.
 *   **Chat Widget:** Embeddable, customizable, mobile-responsive AI chat with streaming responses, suggested questions, conversation history, escalation detection, and lead capture forms.
 *   **Smart Suggested Questions:** AI (Gemini) generates FAQ-style questions from indexed website content.
 *   **Streaming LLM Responses:** Uses Server-Sent Events (SSE) for real-time display.
@@ -52,7 +52,7 @@ The backend is built with Express.js, Node.js, and TypeScript, following a RESTf
 ### System Design Choices
 
 *   **Data Storage:** PostgreSQL with Drizzle ORM.
-*   **AI Integration:** Google Gemini AI (gemini-2.5-pro) via `@google/genai` SDK for NLP, streaming API, system prompt engineering, and chunk-based retrieval. Response priority: Manual Override → Exact Cache → Semantic Cache → LLM with Chunks.
+*   **AI Integration:** Google Gemini AI via `@google/genai` SDK for NLP, streaming API, system prompt engineering, and chunk-based retrieval. Supports model selection per chatbot with 5 options: gemini-2.0-flash-exp (default), gemini-2.5-flash, gemini-2.5-pro, gemini-1.5-flash, and gemini-1.5-pro. Response priority: Manual Override → Exact Cache → Semantic Cache → LLM with Chunks.
 *   **Knowledge Base Architecture:** Custom Playwright-based crawler with pgvector embeddings (via `@xenova/transformers`) for website content.
 *   **File Storage:** Google Cloud Storage (via Replit Object Storage) for user-uploaded files, with Uppy.js for client-side uploads.
 *   **Authentication & Security:** Custom email/password authentication (passport-local, bcrypt, session-based), CSRF protection, and Zod input validation in a multi-tenant architecture.
