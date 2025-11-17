@@ -2261,7 +2261,7 @@ INCORRECT citation examples (NEVER do this):
           // Stream the main response with retry logic
           const llmStart = performance.now();
           let fullResponse = "";
-          let aiMessage = "I apologize, but I couldn't generate a response."; // Default message
+          aiMessage = "I apologize, but I couldn't generate a response."; // Default message
           
           // Retry configuration for handling 503 errors
           const MAX_RETRIES = 3;
