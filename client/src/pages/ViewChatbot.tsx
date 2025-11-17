@@ -26,6 +26,7 @@ import {
   Clock,
   Pencil,
   Trash2,
+  Brain,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -480,6 +481,34 @@ export default function ViewChatbot() {
                 </CardContent>
               </Card>
             )}
+
+            <Card data-testid="card-ai-model">
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <Brain className="w-5 h-5 text-primary" />
+                  <CardTitle>AI Model</CardTitle>
+                </div>
+                <CardDescription>The Gemini model powering this chatbot</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center gap-3">
+                  <Badge variant="secondary" className="text-sm px-3 py-1">
+                    {chatbot.geminiModel === "gemini-2.0-flash-exp" && "Gemini 2.0 Flash (Experimental)"}
+                    {chatbot.geminiModel === "gemini-2.5-flash" && "Gemini 2.5 Flash"}
+                    {chatbot.geminiModel === "gemini-2.5-pro" && "Gemini 2.5 Pro"}
+                    {chatbot.geminiModel === "gemini-1.5-flash" && "Gemini 1.5 Flash"}
+                    {chatbot.geminiModel === "gemini-1.5-pro" && "Gemini 1.5 Pro"}
+                  </Badge>
+                  <span className="text-sm text-muted-foreground">
+                    {chatbot.geminiModel === "gemini-2.0-flash-exp" && "Fastest, best value"}
+                    {chatbot.geminiModel === "gemini-2.5-flash" && "Latest flash model"}
+                    {chatbot.geminiModel === "gemini-2.5-pro" && "Most capable, higher cost"}
+                    {chatbot.geminiModel === "gemini-1.5-flash" && "Fast and cost-effective"}
+                    {chatbot.geminiModel === "gemini-1.5-pro" && "Balanced performance"}
+                  </span>
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           {/* Customization Tab */}
