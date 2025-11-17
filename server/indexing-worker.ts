@@ -104,24 +104,32 @@ class CancellationMonitor {
 async function checkPlaywrightHealth(): Promise<{ available: boolean; error?: string }> {
   try {
     const { chromium } = await import('playwright');
+    const { execSync } = await import('child_process');
     
     console.log('[WORKER-HEALTH] Testing Playwright/Chromium availability...');
     console.log('[WORKER-HEALTH] Environment:', process.env.NODE_ENV);
     console.log('[WORKER-HEALTH] Default Chromium path:', chromium.executablePath());
     
-    // Try to find system Chromium
-    let executablePath: string | undefined = undefined;
-    if (process.env.NODE_ENV === 'production') {
-      try {
-        const { execSync } = await import('child_process');
-        const chromiumPath = execSync('which chromium-browser || which chromium', { encoding: 'utf8' }).trim();
-        if (chromiumPath) {
-          executablePath = chromiumPath;
-          console.log('[WORKER-HEALTH] System Chromium found:', chromiumPath);
-        }
-      } catch (error) {
-        console.warn('[WORKER-HEALTH] System Chromium not found, will use Playwright browser');
+    // Check for system Chromium (Nix/system installation)
+    let systemChromium: string | null = null;
+    try {
+      systemChromium = execSync('which chromium-browser || which chromium', { encoding: 'utf8' }).trim();
+      if (systemChromium) {
+        console.log('[WORKER-HEALTH] ✓ System Chromium found:', systemChromium);
       }
+    } catch {
+      console.log('[WORKER-HEALTH] System Chromium not found in PATH');
+    }
+    
+    // Use system Chromium in production if available, otherwise use Playwright's bundled version
+    const executablePath = (process.env.NODE_ENV === 'production' && systemChromium) 
+      ? systemChromium 
+      : undefined;
+    
+    if (executablePath) {
+      console.log('[WORKER-HEALTH] Testing with system Chromium:', executablePath);
+    } else {
+      console.log('[WORKER-HEALTH] Testing with Playwright Chromium');
     }
     
     // Try to launch browser for real health check
@@ -136,6 +144,8 @@ async function checkPlaywrightHealth(): Promise<{ available: boolean; error?: st
         '--disable-gpu',
       ],
     });
+    const version = await browser.version();
+    console.log('[WORKER-HEALTH] ✓ Chromium version:', version);
     await browser.close();
     
     console.log('[WORKER-HEALTH] ✓ Playwright/Chromium is operational');

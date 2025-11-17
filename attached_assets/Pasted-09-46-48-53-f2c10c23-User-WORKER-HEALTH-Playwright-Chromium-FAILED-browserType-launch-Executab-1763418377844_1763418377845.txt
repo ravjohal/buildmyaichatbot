@@ -1,0 +1,173 @@
+09:46:48.53
+f2c10c23
+User
+[WORKER-HEALTH] ✗ Playwright/Chromium FAILED: browserType.launch: Executable doesn't exist at /home/runner/workspace/.cache/ms-playwright/chromium_headless_shell-1194/chrome-linux/headless_shell
+
+2025-11-17 09:46:48.53
+f2c10c23
+User
+[WORKER] Indexing jobs requiring website crawling will fail!
+2025-11-17 09:46:48.53
+f2c10c23
+User
+║ Please run the following command to download new browsers: ║
+2025-11-17 09:46:48.53
+f2c10c23
+User
+║ <3 Playwright Team ║
+2025-11-17 09:46:48.53
+f2c10c23
+User
+║ ║
+2025-11-17 09:46:48.53
+f2c10c23
+User
+╚═════════════════════════════════════════════════════════════════════════╝
+2025-11-17 10:05:53.69
+f2c10c23
+User
+status: 503
+2025-11-17 10:05:53.69
+f2c10c23
+User
+Streaming error: ApiError: {"error":{"message":"{\n \"error\": {\n \"code\": 503,\n \"message\": \"The model is overloaded. Please try again later.\",\n \"status\": \"UNAVAILABLE\"\n }\n}\n","code":503,"status":"Service Unavailable"}}
+2025-11-17 10:05:53.69
+f2c10c23
+User
+}
+2025-11-17 10:05:53.69
+f2c10c23
+User
+at async Models.generateContentStream (file:///home/runner/workspace/node_modules/@google/genai/dist/node/index.mjs:12147:24)
+2025-11-17 10:05:53.69
+f2c10c23
+User
+at async file:///home/runner/workspace/node_modules/@google/genai/dist/node/index.mjs:10816:13
+2025-11-17 10:05:53.69
+f2c10c23
+User
+at async file:///home/runner/workspace/dist/index.js:6901:28 {
+2025-11-17 10:05:53.69
+f2c10c23
+User
+at throwErrorIfNotOK (file:///home/runner/workspace/node_modules/@google/genai/dist/node/index.mjs:11025:30)
+2025-11-17 10:05:53.69
+f2c10c23
+User
+at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+2025-11-17 10:09:24.57
+f2c10c23
+User
+at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+2025-11-17 10:09:24.57
+f2c10c23
+User
+at async Models.generateContentStream (file:///home/runner/workspace/node_modules/@google/genai/dist/node/index.mjs:12147:24)
+2025-11-17 10:09:24.57
+f2c10c23
+User
+Streaming error: ApiError: {"error":{"message":"{\n \"error\": {\n \"code\": 503,\n \"message\": \"The model is overloaded. Please try again later.\",\n \"status\": \"UNAVAILABLE\"\n }\n}\n","code":503,"status":"Service Unavailable"}}
+2025-11-17 10:09:24.57
+f2c10c23
+User
+status: 503
+2025-11-17 10:09:24.57
+f2c10c23
+User
+at async file:///home/runner/workspace/node_modules/@google/genai/dist/node/index.mjs:10816:13
+2025-11-17 10:09:24.57
+f2c10c23
+User
+at async file:///home/runner/workspace/dist/index.js:6901:28 {
+2025-11-17 10:09:24.57
+f2c10c23
+User
+}
+2025-11-17 10:09:24.57
+f2c10c23
+User
+at throwErrorIfNotOK (file:///home/runner/workspace/node_modules/@google/genai/dist/node/index.mjs:11025:30)
+2025-11-17 10:09:39.63
+f2c10c23
+User
+at fulfill (file:///home/runner/workspace/node_modules/@google/genai/dist/node/index.mjs:5817:31)
+2025-11-17 10:09:39.63
+f2c10c23
+User
+at resume (file:///home/runner/workspace/node_modules/@google/genai/dist/node/index.mjs:5815:44)
+2025-11-17 10:09:39.63
+f2c10c23
+User
+}
+2025-11-17 10:09:39.63
+f2c10c23
+User
+status: 503
+2025-11-17 10:09:39.63
+f2c10c23
+User
+Streaming error: ApiError: got status: UNAVAILABLE. {"error":{"code":503,"message":"The model is overloaded. Please try again later.","status":"UNAVAILABLE"}}
+2025-11-17 10:09:39.63
+f2c10c23
+User
+at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
+2025-11-17 10:09:39.63
+f2c10c23
+User
+at processStreamResponse_1.next ()
+2025-11-17 10:09:39.63
+f2c10c23
+User
+at ApiClient.processStreamResponse_1 (file:///home/runner/workspace/node_modules/@google/genai/dist/node/index.mjs:10856:50)
+2025-11-17 10:31:28.96
+f2c10c23
+User
+Streaming error: ApiError: {"error":{"message":"{\n \"error\": {\n \"code\": 503,\n \"message\": \"The model is overloaded. Please try again later.\",\n \"status\": \"UNAVAILABLE\"\n }\n}\n","code":503,"status":"Service Unavailable"}}
+2025-11-17 10:31:28.96
+f2c10c23
+User
+status: 503
+2025-11-17 10:31:28.96
+f2c10c23
+User
+at async file:///home/runner/workspace/node_modules/@google/genai/dist/node/index.mjs:10816:13
+2025-11-17 10:31:28.96
+f2c10c23
+User
+at throwErrorIfNotOK (file:///home/runner/workspace/node_modules/@google/genai/dist/node/index.mjs:11025:30)
+2025-11-17 10:31:28.96
+f2c10c23
+User
+at async Models.generateContentStream (file:///home/runner/workspace/node_modules/@google/genai/dist/node/index.mjs:12147:24)
+2025-11-17 10:31:28.96
+f2c10c23
+User
+}
+2025-11-17 10:31:28.96
+f2c10c23
+User
+at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+2025-11-17 10:31:28.96
+f2c10c23
+User
+at async file:///home/runner/workspace/dist/index.js:6901:28 {
+2025-11-17 12:22:12.97
+f2c10c23
+System
+command finished with error [npm run start]: signal: terminated
+2025-11-17 12:23:10.62
+f2c10c23
+User
+║ ║
+2025-11-17 12:23:10.62
+f2c10c23
+User
+║ npx playwright install ║
+2025-11-17 12:23:10.62
+f2c10c23
+User
+║ Please run the following command to download new browsers: ║
+2025-11-17 12:23:10.62
+f2c10c23
+User
+║ <3 Playwright Team ║
