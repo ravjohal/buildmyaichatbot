@@ -1658,76 +1658,35 @@ User Question: ${message}
 
 Please answer based on the knowledge base provided. If you cannot find the answer in the knowledge base, politely let the user know and suggest they contact support${chatbot.supportPhoneNumber ? ` at ${chatbot.supportPhoneNumber}` : ""}.`;
 
-        // Call LLM for main response, and optionally for suggested questions in parallel
+        // Call LLM for main response only (no AI-generated suggested questions during chat)
         console.log(`[LLM] ========== REGULAR CHAT REQUEST ==========`);
         console.log(`[LLM] Model: gemini-2.5-pro`);
         console.log(`[LLM] Main prompt length: ${fullPrompt.length} chars`);
         console.log(`[LLM] Main prompt preview: ${fullPrompt.substring(0, 500)}...`);
         
         const llmStart = Date.now();
-        const requests = [
-          // Main response
-          genAI.models.generateContent({
-            model: "gemini-2.5-pro",
-            contents: fullPrompt,
-          })
-        ];
-        
-        // Only generate suggested questions if enabled
-        if (chatbot.enableSuggestedQuestions === "true") {
-          const suggestionsPrompt = `Based on this conversation, suggest 3 relevant follow-up questions (each under 60 characters).
-
-Knowledge Base Topics:
-${knowledgeContext ? knowledgeContext.substring(0, 1500) : "General customer support"}
-
-User's Question: ${message}
-
-Generate 3 short, natural questions that would help the user learn more. Return only the questions, one per line, without numbering.`;
-          
-          console.log(`[LLM] Suggestions prompt length: ${suggestionsPrompt.length} chars`);
-          requests.push(
-            genAI.models.generateContent({
-              model: "gemini-2.5-pro",
-              contents: suggestionsPrompt,
-            }).catch(err => {
-              console.error("[LLM] Error generating suggested questions:", err);
-              return null;
-            })
-          );
-        }
-        
-        const results = await Promise.all(requests);
-        const mainResult = results[0];
-        const suggestionsResult = results[1] || null;
+        const mainResult = await genAI.models.generateContent({
+          model: "gemini-2.5-pro",
+          contents: fullPrompt,
+        });
         
         const llmTime = Date.now() - llmStart;
-        console.log(`[LLM] Requests complete in ${llmTime}ms`);
+        console.log(`[LLM] Request complete in ${llmTime}ms`);
 
         aiMessage = mainResult.text || "I apologize, but I couldn't generate a response.";
         console.log(`[LLM] Main response length: ${aiMessage.length} chars`);
         console.log(`[LLM] Main response preview: ${aiMessage.substring(0, 300)}...`);
         
-        if (suggestionsResult) {
-          try {
-            const suggestionsText = suggestionsResult.text || "";
-            suggestedQuestions = suggestionsText
-              .split('\n')
-              .map(q => q.trim())
-              .filter(q => q.length > 0 && q.length < 100)
-              .slice(0, 3);
-          } catch (error) {
-            console.error("Error parsing suggested questions:", error);
-          }
-        }
-        
           // Store in cache for future use (async, don't await)
+          // Note: We don't generate AI-powered suggested questions during chat anymore
+          // Only the 20 pre-generated questions from indexing are used
           storage.createCacheEntry({
             chatbotId,
             question: normalizedQuestion,
             questionHash,
             embedding: questionEmbedding || undefined,
             answer: aiMessage,
-            suggestedQuestions,
+            suggestedQuestions: [], // No AI-generated suggestions
             lastUsedAt: new Date(),
           }).catch(err => {
             console.error("Error storing answer in cache:", err);
@@ -2340,13 +2299,15 @@ INCORRECT citation examples (NEVER do this):
               })}\n\n`);
               
               // Store in cache
+              // Note: We don't generate AI-powered suggested questions during chat anymore
+              // Only the 20 pre-generated questions from indexing are used
               storage.createCacheEntry({
                 chatbotId,
                 question: normalizedQuestion,
                 questionHash,
                 embedding: questionEmbedding || undefined,
                 answer: aiMessage,
-                suggestedQuestions,
+                suggestedQuestions: [], // No AI-generated suggestions
                 lastUsedAt: new Date(),
               }).catch(err => console.error("Error caching:", err));
               
