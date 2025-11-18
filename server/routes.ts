@@ -1647,7 +1647,7 @@ ${pages.map(page => `  <url>
         
         // Create the full prompt for the main response
         const fullPrompt = `${chatbot.systemPrompt}
-
+${chatbot.customInstructions ? `\nCUSTOM GUIDELINES:\n${chatbot.customInstructions}\n` : ''}
 Knowledge Base:
 ${knowledgeContext || "No specific knowledge base provided."}
 
