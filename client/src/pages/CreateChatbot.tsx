@@ -99,7 +99,7 @@ export default function CreateChatbot() {
     proactiveChatEnabled: "false",
     proactiveChatDelay: "5",
     proactiveChatMessage: "Hi! Need any help?",
-    geminiModel: "gemini-2.0-flash-exp",
+    geminiModel: "gemini-2.5-flash",
     crmEnabled: "false",
     crmWebhookUrl: "",
     crmWebhookMethod: "POST",

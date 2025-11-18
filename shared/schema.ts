@@ -95,7 +95,7 @@ export const chatbots = pgTable("chatbots", {
   indexingStatus: varchar("indexing_status", { enum: ["pending", "processing", "completed", "failed"] }).notNull().default("completed"),
   lastIndexingJobId: varchar("last_indexing_job_id"),
   // AI Model selection
-  geminiModel: varchar("gemini_model", { enum: ["gemini-2.0-flash-exp", "gemini-2.5-pro", "gemini-2.5-flash", "gemini-1.5-pro", "gemini-1.5-flash"] }).notNull().default("gemini-2.0-flash-exp"),
+  geminiModel: varchar("gemini_model", { enum: ["gemini-2.0-flash-exp", "gemini-2.5-pro", "gemini-2.5-flash", "gemini-1.5-pro", "gemini-1.5-flash"] }).notNull().default("gemini-2.5-flash"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

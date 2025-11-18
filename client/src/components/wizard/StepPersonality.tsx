@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import { Sparkles, Zap, Crown, Brain } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { InsertChatbot, SubscriptionTier } from "@shared/schema";
@@ -27,7 +28,7 @@ export function StepPersonality({ formData, updateFormData, userTier, isAdmin }:
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div>
         <h2 className="text-2xl font-semibold">Define Personality & Instructions</h2>
         <p className="text-muted-foreground mt-2">
@@ -35,256 +36,272 @@ export function StepPersonality({ formData, updateFormData, userTier, isAdmin }:
         </p>
       </div>
 
-      <div className="space-y-4">
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <Label htmlFor="systemPrompt" className="text-base">
-              System Prompt <span className="text-destructive">*</span>
-            </Label>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={useTemplate}
-              data-testid="button-use-template"
-            >
-              <Sparkles className="w-4 h-4 mr-2" />
-              Use Template
-            </Button>
-          </div>
-          <Textarea
-            id="systemPrompt"
-            placeholder="Define how your chatbot should behave..."
-            value={formData.systemPrompt || ""}
-            onChange={(e) => updateFormData({ systemPrompt: e.target.value })}
-            rows={10}
-            className="font-mono text-sm"
-            data-testid="input-system-prompt"
-          />
-          <p className="text-sm text-muted-foreground">
-            This prompt guides your chatbot's behavior and response style. Be specific about tone, boundaries, and when to escalate.
-          </p>
-        </div>
-
-        <div className="bg-muted/50 rounded-lg p-4 space-y-2">
-          <h4 className="font-medium text-sm">Best Practices:</h4>
-          <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
-            <li>Instruct the bot to answer ONLY from provided knowledge</li>
-            <li>Define a clear tone (professional, friendly, casual)</li>
-            <li>Specify when to escalate to human support</li>
-            <li>Include any specific policies or guidelines</li>
-          </ul>
-        </div>
-
-        <div className="space-y-3">
-          <Label htmlFor="customInstructions" className="text-base">
-            Custom Instructions (Optional)
-          </Label>
-          <Textarea
-            id="customInstructions"
-            placeholder="Add specific rules for how the AI should behave in certain situations..."
-            value={formData.customInstructions || ""}
-            onChange={(e) => updateFormData({ customInstructions: e.target.value })}
-            rows={6}
-            className="font-mono text-sm"
-            data-testid="input-custom-instructions"
-          />
-          <p className="text-sm text-muted-foreground">
-            Add specific behavioral rules. For example: "When discussing floor plans, focus only on layouts and room dimensions. Do not mention pricing." or "When asked about pricing, always highlight the lowest price available."
-          </p>
-        </div>
-
-        <div className="space-y-3">
-          <div className="flex items-center gap-2">
-            <Brain className="w-5 h-5 text-primary" />
-            <Label htmlFor="geminiModel" className="text-base">
-              AI Model <span className="text-destructive">*</span>
-            </Label>
-          </div>
-          <Select
-            value={formData.geminiModel || "gemini-2.0-flash-exp"}
-            onValueChange={(value) => updateFormData({ geminiModel: value as "gemini-2.0-flash-exp" | "gemini-2.5-pro" | "gemini-2.5-flash" | "gemini-1.5-pro" | "gemini-1.5-flash" })}
-          >
-            <SelectTrigger id="geminiModel" data-testid="select-gemini-model">
-              <SelectValue placeholder="Select AI model" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="gemini-2.0-flash-exp" data-testid="option-gemini-2.0-flash-exp">
-                <div className="flex flex-col items-start">
-                  <span className="font-medium">Gemini 2.0 Flash (Experimental)</span>
-                  <span className="text-xs text-muted-foreground">Fastest, best value - Recommended</span>
-                </div>
-              </SelectItem>
-              <SelectItem value="gemini-1.5-flash" data-testid="option-gemini-1.5-flash">
-                <div className="flex flex-col items-start">
-                  <span className="font-medium">Gemini 1.5 Flash</span>
-                  <span className="text-xs text-muted-foreground">Fast and cost-effective</span>
-                </div>
-              </SelectItem>
-              <SelectItem value="gemini-1.5-pro" data-testid="option-gemini-1.5-pro">
-                <div className="flex flex-col items-start">
-                  <span className="font-medium">Gemini 1.5 Pro</span>
-                  <span className="text-xs text-muted-foreground">Balanced performance</span>
-                </div>
-              </SelectItem>
-              <SelectItem value="gemini-2.5-flash" data-testid="option-gemini-2.5-flash">
-                <div className="flex flex-col items-start">
-                  <span className="font-medium">Gemini 2.5 Flash</span>
-                  <span className="text-xs text-muted-foreground">Latest flash model</span>
-                </div>
-              </SelectItem>
-              <SelectItem value="gemini-2.5-pro" data-testid="option-gemini-2.5-pro">
-                <div className="flex flex-col items-start">
-                  <span className="font-medium">Gemini 2.5 Pro</span>
-                  <span className="text-xs text-muted-foreground">Most capable, higher cost</span>
-                </div>
-              </SelectItem>
-            </SelectContent>
-          </Select>
-          <p className="text-sm text-muted-foreground">
-            Choose which Google Gemini AI model powers your chatbot. Flash models are faster and more cost-effective for most use cases. Pro models offer higher accuracy for complex queries.
-          </p>
-        </div>
-      </div>
-
-      <div className="border-t pt-6 space-y-4">
-        <div className="flex items-center gap-2">
-          <Sparkles className="w-5 h-5 text-primary" />
-          <h3 className="text-lg font-semibold">AI-Generated Suggested Questions</h3>
-          {!hasAutoQuestions && (
-            <Badge variant="secondary" className="ml-2" data-testid="badge-premium-feature">
-              <Crown className="w-3 h-3 mr-1" />
-              Starter+
-            </Badge>
-          )}
-        </div>
-        <p className="text-sm text-muted-foreground">
-          After visitors ask their first question, the chatbot can display AI-generated suggested questions based on your content to help guide the conversation.
-        </p>
-
-        {!hasAutoQuestions ? (
-          <div className="rounded-lg border border-muted bg-muted/30 p-6 space-y-4">
-            <div className="flex items-start gap-3">
-              <Crown className="w-5 h-5 text-primary mt-0.5" />
-              <div className="space-y-2 flex-1">
-                <h4 className="font-medium">Upgrade to use AI-Generated Questions</h4>
-                <p className="text-sm text-muted-foreground">
-                  Unlock intelligent question suggestions that help guide visitor conversations and improve engagement. Available on Starter, Business, and Scale plans.
-                </p>
-                <Button asChild variant="default" size="sm" className="mt-2" data-testid="button-upgrade-auto-questions">
-                  <Link href="/pricing">
-                    <Crown className="w-4 h-4 mr-2" />
-                    Upgrade Plan
-                  </Link>
+      <div className="space-y-8">
+        <Card className="border-2">
+          <CardContent className="p-6 space-y-4">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="systemPrompt" className="text-base font-semibold">
+                  System Prompt <span className="text-destructive">*</span>
+                </Label>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={useTemplate}
+                  data-testid="button-use-template"
+                >
+                  <Sparkles className="w-4 h-4 mr-2" />
+                  Use Template
                 </Button>
               </div>
+              <Textarea
+                id="systemPrompt"
+                placeholder="Define how your chatbot should behave..."
+                value={formData.systemPrompt || ""}
+                onChange={(e) => updateFormData({ systemPrompt: e.target.value })}
+                rows={10}
+                className="font-mono text-sm"
+                data-testid="input-system-prompt"
+              />
+              <p className="text-sm text-muted-foreground">
+                This prompt guides your chatbot's behavior and response style. Be specific about tone, boundaries, and when to escalate.
+              </p>
             </div>
-          </div>
-        ) : (
-          <>
-            <div className="flex items-center justify-between rounded-lg border p-4">
-              <div className="space-y-0.5">
-                <Label htmlFor="enableSuggestedQuestions" className="text-base font-medium">
-                  Enable AI-Generated Suggested Questions
+
+            <div className="bg-muted/50 rounded-lg p-4 space-y-2">
+              <h4 className="font-medium text-sm">Best Practices:</h4>
+              <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
+                <li>Instruct the bot to answer ONLY from provided knowledge</li>
+                <li>Define a clear tone (professional, friendly, casual)</li>
+                <li>Specify when to escalate to human support</li>
+                <li>Include any specific policies or guidelines</li>
+              </ul>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-2">
+          <CardContent className="p-6 space-y-4">
+            <div className="space-y-3">
+              <Label htmlFor="customInstructions" className="text-base font-semibold">
+                Custom Instructions (Optional)
+              </Label>
+              <Textarea
+                id="customInstructions"
+                placeholder="Add specific rules for how the AI should behave in certain situations..."
+                value={formData.customInstructions || ""}
+                onChange={(e) => updateFormData({ customInstructions: e.target.value })}
+                rows={6}
+                className="font-mono text-sm"
+                data-testid="input-custom-instructions"
+              />
+              <p className="text-sm text-muted-foreground">
+                Add specific behavioral rules. For example: "When discussing floor plans, focus only on layouts and room dimensions. Do not mention pricing." or "When asked about pricing, always highlight the lowest price available."
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-2">
+          <CardContent className="p-6 space-y-4">
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <Brain className="w-5 h-5 text-primary" />
+                <Label htmlFor="geminiModel" className="text-base font-semibold">
+                  AI Model <span className="text-destructive">*</span>
                 </Label>
+              </div>
+              <Select
+                value={formData.geminiModel || "gemini-2.5-flash"}
+                onValueChange={(value) => updateFormData({ geminiModel: value as "gemini-2.0-flash-exp" | "gemini-2.5-pro" | "gemini-2.5-flash" | "gemini-1.5-pro" | "gemini-1.5-flash" })}
+              >
+                <SelectTrigger id="geminiModel" data-testid="select-gemini-model">
+                  <SelectValue placeholder="Select AI model" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="gemini-2.5-flash" data-testid="option-gemini-2.5-flash">
+                    <div className="flex flex-col items-start">
+                      <span className="font-medium">Gemini 2.5 Flash</span>
+                      <span className="text-xs text-muted-foreground">Latest flash model - Recommended</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="gemini-2.0-flash-exp" data-testid="option-gemini-2.0-flash-exp">
+                    <div className="flex flex-col items-start">
+                      <span className="font-medium">Gemini 2.0 Flash (Experimental)</span>
+                      <span className="text-xs text-muted-foreground">Experimental, fastest responses</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="gemini-1.5-flash" data-testid="option-gemini-1.5-flash">
+                    <div className="flex flex-col items-start">
+                      <span className="font-medium">Gemini 1.5 Flash</span>
+                      <span className="text-xs text-muted-foreground">Fast and reliable</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="gemini-1.5-pro" data-testid="option-gemini-1.5-pro">
+                    <div className="flex flex-col items-start">
+                      <span className="font-medium">Gemini 1.5 Pro</span>
+                      <span className="text-xs text-muted-foreground">Balanced performance</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="gemini-2.5-pro" data-testid="option-gemini-2.5-pro">
+                    <div className="flex flex-col items-start">
+                      <span className="font-medium">Gemini 2.5 Pro</span>
+                      <span className="text-xs text-muted-foreground">Most capable model</span>
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-sm text-muted-foreground">
+                Choose which Google Gemini AI model powers your chatbot. Flash models are faster for most use cases. Pro models offer higher accuracy for complex queries.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card className="border-2">
+        <CardContent className="p-6 space-y-4">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-5 h-5 text-primary" />
+            <h3 className="text-lg font-semibold">AI-Generated Suggested Questions</h3>
+            {!hasAutoQuestions && (
+              <Badge variant="secondary" className="ml-2" data-testid="badge-premium-feature">
+                <Crown className="w-3 h-3 mr-1" />
+                Starter+
+              </Badge>
+            )}
+          </div>
+          <p className="text-sm text-muted-foreground">
+            After visitors ask their first question, the chatbot can display AI-generated suggested questions based on your content to help guide the conversation.
+          </p>
+
+          {!hasAutoQuestions ? (
+            <div className="rounded-lg border border-muted bg-muted/30 p-6 space-y-4">
+              <div className="flex items-start gap-3">
+                <Crown className="w-5 h-5 text-primary mt-0.5" />
+                <div className="space-y-2 flex-1">
+                  <h4 className="font-medium">Upgrade to use AI-Generated Questions</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Unlock intelligent question suggestions that help guide visitor conversations and improve engagement. Available on Starter, Business, and Scale plans.
+                  </p>
+                  <Button asChild variant="default" size="sm" className="mt-2" data-testid="button-upgrade-auto-questions">
+                    <Link href="/pricing">
+                      <Crown className="w-4 h-4 mr-2" />
+                      Upgrade Plan
+                    </Link>
+                  </Button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="flex items-center justify-between rounded-lg border p-4">
+                <div className="space-y-0.5">
+                  <Label htmlFor="enableSuggestedQuestions" className="text-base font-medium">
+                    Enable AI-Generated Suggested Questions
+                  </Label>
+                  <p className="text-sm text-muted-foreground">
+                    Display up to 3 AI-generated questions after visitors start chatting
+                  </p>
+                </div>
+                <Switch
+                  id="enableSuggestedQuestions"
+                  checked={formData.enableSuggestedQuestions === "true"}
+                  onCheckedChange={(checked) =>
+                    updateFormData({ enableSuggestedQuestions: checked ? "true" : "false" })
+                  }
+                  data-testid="switch-suggested-questions"
+                />
+              </div>
+
+              {formData.enableSuggestedQuestions === "true" && (
+                <div className="bg-muted/50 rounded-lg p-4 space-y-2">
+                  <h4 className="font-medium text-sm flex items-center gap-2">
+                    <Sparkles className="w-4 h-4" />
+                    How It Works
+                  </h4>
+                  <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
+                    <li>AI analyzes your knowledge base during indexing</li>
+                    <li>Generates 20 FAQ-style questions about your content</li>
+                    <li>Shows 3 questions (2 AI + 1 hardcoded) after visitor's first message</li>
+                    <li>Questions rotate automatically after each message for variety</li>
+                    <li>Helps guide conversations and improve engagement</li>
+                  </ul>
+                </div>
+              )}
+            </>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card className="border-2">
+        <CardContent className="p-6 space-y-4">
+          <div className="flex items-center gap-2">
+            <Zap className="w-5 h-5 text-primary" />
+            <h3 className="text-lg font-semibold">Proactive Chat</h3>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Automatically greet visitors with a popup message after a delay. Note: This only works when the chat widget is embedded on your website, not when opened as a direct link.
+          </p>
+
+          <div className="flex items-center justify-between rounded-lg border p-4">
+            <div className="space-y-0.5">
+              <Label htmlFor="proactiveChatEnabled" className="text-base font-medium">
+                Enable Proactive Popup
+              </Label>
+              <p className="text-sm text-muted-foreground">
+                Show chat widget automatically to engage visitors
+              </p>
+            </div>
+            <Switch
+              id="proactiveChatEnabled"
+              checked={formData.proactiveChatEnabled === "true"}
+              onCheckedChange={(checked) =>
+                updateFormData({ proactiveChatEnabled: checked ? "true" : "false" })
+              }
+              data-testid="switch-proactive-chat"
+            />
+          </div>
+
+          {formData.proactiveChatEnabled === "true" && (
+            <div className="space-y-4 pl-4 border-l-2">
+              <div className="space-y-2">
+                <Label htmlFor="proactiveChatDelay">
+                  Delay Before Popup (seconds)
+                </Label>
+                <Input
+                  id="proactiveChatDelay"
+                  type="number"
+                  min="0"
+                  max="60"
+                  value={formData.proactiveChatDelay || "5"}
+                  onChange={(e) => updateFormData({ proactiveChatDelay: e.target.value })}
+                  data-testid="input-proactive-delay"
+                />
                 <p className="text-sm text-muted-foreground">
-                  Display up to 3 AI-generated questions after visitors start chatting
+                  How long to wait before showing the chat popup (0-60 seconds)
                 </p>
               </div>
-              <Switch
-                id="enableSuggestedQuestions"
-                checked={formData.enableSuggestedQuestions === "true"}
-                onCheckedChange={(checked) =>
-                  updateFormData({ enableSuggestedQuestions: checked ? "true" : "false" })
-                }
-                data-testid="switch-suggested-questions"
-              />
-            </div>
 
-            {formData.enableSuggestedQuestions === "true" && (
-              <div className="bg-muted/50 rounded-lg p-4 space-y-2">
-                <h4 className="font-medium text-sm flex items-center gap-2">
-                  <Sparkles className="w-4 h-4" />
-                  How It Works
-                </h4>
-                <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
-                  <li>AI analyzes your knowledge base during indexing</li>
-                  <li>Generates 20 FAQ-style questions about your content</li>
-                  <li>Shows 3 questions (2 AI + 1 hardcoded) after visitor's first message</li>
-                  <li>Questions rotate automatically after each message for variety</li>
-                  <li>Helps guide conversations and improve engagement</li>
-                </ul>
+              <div className="space-y-2">
+                <Label htmlFor="proactiveChatMessage">
+                  Popup Message
+                </Label>
+                <Input
+                  id="proactiveChatMessage"
+                  placeholder="Hi! Need any help?"
+                  value={formData.proactiveChatMessage || ""}
+                  onChange={(e) => updateFormData({ proactiveChatMessage: e.target.value })}
+                  data-testid="input-proactive-message"
+                />
+                <p className="text-sm text-muted-foreground">
+                  The message shown in the popup notification
+                </p>
               </div>
-            )}
-          </>
-        )}
-      </div>
-
-      <div className="border-t pt-6 space-y-4">
-        <div className="flex items-center gap-2">
-          <Zap className="w-5 h-5 text-primary" />
-          <h3 className="text-lg font-semibold">Proactive Chat</h3>
-        </div>
-        <p className="text-sm text-muted-foreground">
-          Automatically greet visitors with a popup message after a delay. Note: This only works when the chat widget is embedded on your website, not when opened as a direct link.
-        </p>
-
-        <div className="flex items-center justify-between rounded-lg border p-4">
-          <div className="space-y-0.5">
-            <Label htmlFor="proactiveChatEnabled" className="text-base font-medium">
-              Enable Proactive Popup
-            </Label>
-            <p className="text-sm text-muted-foreground">
-              Show chat widget automatically to engage visitors
-            </p>
-          </div>
-          <Switch
-            id="proactiveChatEnabled"
-            checked={formData.proactiveChatEnabled === "true"}
-            onCheckedChange={(checked) =>
-              updateFormData({ proactiveChatEnabled: checked ? "true" : "false" })
-            }
-            data-testid="switch-proactive-chat"
-          />
-        </div>
-
-        {formData.proactiveChatEnabled === "true" && (
-          <div className="space-y-4 pl-4 border-l-2">
-            <div className="space-y-2">
-              <Label htmlFor="proactiveChatDelay">
-                Delay Before Popup (seconds)
-              </Label>
-              <Input
-                id="proactiveChatDelay"
-                type="number"
-                min="0"
-                max="60"
-                value={formData.proactiveChatDelay || "5"}
-                onChange={(e) => updateFormData({ proactiveChatDelay: e.target.value })}
-                data-testid="input-proactive-delay"
-              />
-              <p className="text-sm text-muted-foreground">
-                How long to wait before showing the chat popup (0-60 seconds)
-              </p>
             </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="proactiveChatMessage">
-                Popup Message
-              </Label>
-              <Input
-                id="proactiveChatMessage"
-                placeholder="Hi! Need any help?"
-                value={formData.proactiveChatMessage || ""}
-                onChange={(e) => updateFormData({ proactiveChatMessage: e.target.value })}
-                data-testid="input-proactive-message"
-              />
-              <p className="text-sm text-muted-foreground">
-                The message shown in the popup notification
-              </p>
-            </div>
-          </div>
-        )}
-      </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

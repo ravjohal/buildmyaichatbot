@@ -52,7 +52,7 @@ The backend is built with Express.js, Node.js, and TypeScript, following a RESTf
 ### System Design Choices
 
 *   **Data Storage:** PostgreSQL with Drizzle ORM.
-*   **AI Integration:** Google Gemini AI via `@google/genai` SDK for NLP, streaming API, system prompt engineering, and chunk-based retrieval. Supports model selection per chatbot with 5 options: gemini-2.0-flash-exp (default), gemini-2.5-flash, gemini-2.5-pro, gemini-1.5-flash, and gemini-1.5-pro. Response priority: Manual Override → Exact Cache → Semantic Cache → LLM with Chunks.
+*   **AI Integration:** Google Gemini AI via `@google/genai` SDK for NLP, streaming API, system prompt engineering, and chunk-based retrieval. Supports model selection per chatbot with 5 options: gemini-2.5-flash (default), gemini-2.0-flash-exp, gemini-2.5-pro, gemini-1.5-flash, and gemini-1.5-pro. Response priority: Manual Override → Exact Cache → Semantic Cache → LLM with Chunks.
 *   **Knowledge Base Architecture:** Custom Playwright-based crawler with pgvector embeddings (via `@xenova/transformers`) for website content.
 *   **File Storage:** Google Cloud Storage (via Replit Object Storage) for user-uploaded files, with Uppy.js for client-side uploads.
 *   **Authentication & Security:** Custom email/password authentication (passport-local, bcrypt, session-based), CSRF protection, and Zod input validation in a multi-tenant architecture.
