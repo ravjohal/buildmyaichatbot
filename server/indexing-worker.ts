@@ -652,21 +652,21 @@ async function processIndexingJob(jobId: string): Promise<void> {
         console.log(`[WORKER] Generating suggested questions for chatbot ${job.chatbotId}...`);
         
         // Fetch chatbot to get its selected Gemini model
-        const chatbot = await storage.getChatbot(job.chatbotId);
+        const chatbot = await storage.getChatbotById(job.chatbotId);
         if (!chatbot) {
           console.error(`[WORKER] Chatbot ${job.chatbotId} not found, skipping question generation`);
-          return;
-        }
-        
-        const suggestedQuestions = await generateSuggestedQuestions(job.chatbotId, chatbot.geminiModel);
-        
-        if (suggestedQuestions.length > 0) {
-          await storage.replaceSuggestedQuestions(job.chatbotId, suggestedQuestions);
-          console.log(`[WORKER] ✓ Stored ${suggestedQuestions.length} suggested questions for chatbot ${job.chatbotId}`);
+          perfMonitor.end('suggested-questions', { skipped: true });
         } else {
-          console.log(`[WORKER] No suggested questions generated for chatbot ${job.chatbotId}`);
+          const suggestedQuestions = await generateSuggestedQuestions(job.chatbotId, chatbot.geminiModel);
+          
+          if (suggestedQuestions.length > 0) {
+            await storage.replaceSuggestedQuestions(job.chatbotId, suggestedQuestions);
+            console.log(`[WORKER] ✓ Stored ${suggestedQuestions.length} suggested questions for chatbot ${job.chatbotId}`);
+          } else {
+            console.log(`[WORKER] No suggested questions generated for chatbot ${job.chatbotId}`);
+          }
+          perfMonitor.end('suggested-questions', { questionsGenerated: suggestedQuestions.length });
         }
-        perfMonitor.end('suggested-questions', { questionsGenerated: suggestedQuestions.length });
       } catch (questionError) {
         // Don't fail the job if question generation fails - it's a nice-to-have feature
         console.error(`[WORKER] Failed to generate suggested questions (non-critical):`, questionError);
