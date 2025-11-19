@@ -54,6 +54,14 @@ if (stripeSecretKey) {
 }
 
 // Helper function to check if current time is within live agent hours
+// Helper function to convert 24-hour time to 12-hour AM/PM format
+function formatTime12Hour(time24: string): string {
+  const [hour, minute] = time24.split(':').map(Number);
+  const period = hour >= 12 ? 'PM' : 'AM';
+  const hour12 = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+  return `${hour12}:${minute.toString().padStart(2, '0')} ${period}`;
+}
+
 function isWithinLiveAgentHours(chatbot: any): { available: boolean; message?: string } {
   // If hours are not enabled, live agents are always available
   if (chatbot.liveAgentHoursEnabled !== "true") {
@@ -93,8 +101,8 @@ function isWithinLiveAgentHours(chatbot: any): { available: boolean; message?: s
     if (!isDayAllowed || !isTimeInRange) {
       // Format availability message
       const daysText = allowedDays.map((d: string) => d.charAt(0).toUpperCase() + d.slice(1)).join(", ");
-      const startTime = chatbot.liveAgentStartTime || "9:00 AM";
-      const endTime = chatbot.liveAgentEndTime || "5:00 PM";
+      const startTime = formatTime12Hour(chatbot.liveAgentStartTime || "09:00");
+      const endTime = formatTime12Hour(chatbot.liveAgentEndTime || "17:00");
       
       return {
         available: false,

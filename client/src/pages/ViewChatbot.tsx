@@ -47,6 +47,14 @@ const sanitizeColor = (color: string): string => {
   return hexColorRegex.test(color) ? color : "#0EA5E9";
 };
 
+// Helper function to convert 24-hour time to 12-hour AM/PM format
+const formatTime12Hour = (time24: string): string => {
+  const [hour, minute] = time24.split(':').map(Number);
+  const period = hour >= 12 ? 'PM' : 'AM';
+  const hour12 = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+  return `${hour12}:${minute.toString().padStart(2, '0')} ${period}`;
+};
+
 interface AnalyticsData {
   metrics: {
     totalConversations: number;
@@ -635,7 +643,7 @@ export default function ViewChatbot() {
                   </Badge>
                   {chatbot.liveAgentHoursEnabled === "true" && (
                     <div className="mt-3 space-y-2 text-sm p-3 bg-muted/30 rounded">
-                      <p><span className="font-medium">Hours:</span> {chatbot.liveAgentStartTime} - {chatbot.liveAgentEndTime}</p>
+                      <p><span className="font-medium">Hours:</span> {formatTime12Hour(chatbot.liveAgentStartTime || "09:00")} - {formatTime12Hour(chatbot.liveAgentEndTime || "17:00")}</p>
                       <p><span className="font-medium">Timezone:</span> {chatbot.liveAgentTimezone}</p>
                       <p><span className="font-medium">Days:</span> {(chatbot.liveAgentDaysOfWeek as string[] || []).join(", ")}</p>
                     </div>

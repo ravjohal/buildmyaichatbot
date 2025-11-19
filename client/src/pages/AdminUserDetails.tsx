@@ -72,6 +72,14 @@ const ArrayTags = ({ items, emptyMessage = "None configured" }: { items: string[
   );
 };
 
+// Helper function to convert 24-hour time to 12-hour AM/PM format
+const formatTime12Hour = (time24: string): string => {
+  const [hour, minute] = time24.split(':').map(Number);
+  const period = hour >= 12 ? 'PM' : 'AM';
+  const hour12 = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+  return `${hour12}:${minute.toString().padStart(2, '0')} ${period}`;
+};
+
 const ExpandableText = ({ text, label }: { text: string | undefined | null, label: string }) => {
   const [copied, setCopied] = useState(false);
   
@@ -689,7 +697,7 @@ export default function AdminUserDetails() {
                                   <>
                                     <div>
                                       <p className="text-xs text-muted-foreground mb-2">Operating Hours</p>
-                                      <p className="text-sm">{chatbot.liveAgentStartTime} - {chatbot.liveAgentEndTime}</p>
+                                      <p className="text-sm">{formatTime12Hour(chatbot.liveAgentStartTime || "09:00")} - {formatTime12Hour(chatbot.liveAgentEndTime || "17:00")}</p>
                                     </div>
                                     <div>
                                       <p className="text-xs text-muted-foreground mb-2">Timezone</p>
