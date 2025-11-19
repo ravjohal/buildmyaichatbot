@@ -200,6 +200,8 @@ export interface ChatRequest {
 export interface ChatResponse {
   message: string;
   shouldEscalate: boolean;
+  liveAgentAvailable?: boolean;
+  liveAgentMessage?: string;
   suggestedQuestions?: string[];
   conversationId?: string;
 }

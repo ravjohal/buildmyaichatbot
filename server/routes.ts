@@ -1694,13 +1694,60 @@ Please answer based on the knowledge base provided. If you cannot find the answe
         }
       }
 
-      // Check if we should escalate (basic heuristic)
-      const shouldEscalate =
-        aiMessage.toLowerCase().includes("contact support") ||
-        aiMessage.toLowerCase().includes("speak with") ||
-        aiMessage.toLowerCase().includes("human representative") ||
-        aiMessage.toLowerCase().includes("don't know") ||
-        aiMessage.toLowerCase().includes("cannot find");
+      // Helper function to detect AI responses that indicate escalation
+      const detectEscalation = (response: string): boolean => {
+        return response.toLowerCase().includes("contact support") ||
+          response.toLowerCase().includes("speak with") ||
+          response.toLowerCase().includes("human representative") ||
+          response.toLowerCase().includes("don't know") ||
+          response.toLowerCase().includes("cannot find");
+      };
+      
+      // Helper function to detect explicit user requests for human support
+      const detectUserHandoffRequest = (userMessage: string): boolean => {
+        const lowerMessage = userMessage.toLowerCase();
+        
+        // Direct requests for human/agent/person
+        const humanRequests = [
+          "speak with a human", "speak to a human", "speak with someone",
+          "talk to a human", "talk with a human", "talk to someone", "talk with someone",
+          "connect with a human", "connect to a human", "connect with someone", "connect to someone",
+          "connect me with", "connect me to",
+          "transfer to a human", "transfer to someone", "transfer me to",
+          "reach a human", "reach someone", "reach a person",
+          "contact a human", "contact someone", "contact a person",
+          "get a human", "get someone", "get a person", "get me a",
+          "need a human", "need someone", "need a person", "need help from a",
+          "want a human", "want someone", "want a person", "want to speak", "want to talk",
+          "human agent", "live agent", "real person", "real human",
+        ];
+        
+        return humanRequests.some(phrase => lowerMessage.includes(phrase));
+      };
+      
+      // Check if user explicitly requested human support
+      const userRequestsHuman = detectUserHandoffRequest(message);
+      if (userRequestsHuman) {
+        console.log(`[ESCALATION-DETECT] ✓ User explicitly requested human support`);
+        console.log(`[ESCALATION-DETECT] Trigger phrase detected in: "${message.substring(0, 100)}..."`);
+      } else {
+        console.log(`[ESCALATION-DETECT] ✗ No explicit human support request in message`);
+      }
+      
+      // Check live agent availability
+      const liveAgentAvailability = isWithinLiveAgentHours(chatbot);
+      console.log(`[LIVE-AGENT-HOURS] Availability check: ${liveAgentAvailability.available ? 'OPEN' : 'CLOSED'}`);
+      if (!liveAgentAvailability.available) {
+        console.log(`[LIVE-AGENT-HOURS] Status: ${liveAgentAvailability.message}`);
+      }
+
+      // Check if we should escalate (AI response or explicit user request)
+      const shouldEscalate = userRequestsHuman || detectEscalation(aiMessage);
+      
+      if (shouldEscalate) {
+        console.log(`[ESCALATION] Final escalation status: shouldEscalate=true, agentsAvailable=${liveAgentAvailability.available}`);
+        console.log(`[ESCALATION] Response preview: ${aiMessage.substring(0, 200)}...`);
+      }
 
       let finalMessage = aiMessage;
       
@@ -1757,6 +1804,8 @@ Please answer based on the knowledge base provided. If you cannot find the answe
       const chatResponse: ChatResponse = {
         message: finalMessage,
         shouldEscalate,
+        liveAgentAvailable: liveAgentAvailability.available,
+        liveAgentMessage: liveAgentAvailability.message,
         suggestedQuestions,
         conversationId: conversation.id,
       };
