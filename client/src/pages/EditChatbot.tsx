@@ -148,6 +148,15 @@ export default function EditChatbot() {
       // Default values with proper typing for enums
       const DEFAULT_DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday"] as ("monday" | "tuesday" | "wednesday" | "thursday" | "friday" | "saturday" | "sunday")[];
       
+      // Debug: Log the chatbot data to see if geminiModel is present
+      console.log("[EditChatbot] Loaded chatbot data:", {
+        id: chatbot.id,
+        name: chatbot.name,
+        geminiModel: chatbot.geminiModel,
+        hasGeminiModel: 'geminiModel' in chatbot,
+        allKeys: Object.keys(chatbot)
+      });
+      
       // Capture baseline knowledge sources for comparison
       if (!originalKnowledgeSources) {
         setOriginalKnowledgeSources({
