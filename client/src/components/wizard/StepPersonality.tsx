@@ -113,7 +113,7 @@ export function StepPersonality({ formData, updateFormData, userTier, isAdmin }:
               </div>
               <Select
                 value={formData.geminiModel || "gemini-2.5-flash"}
-                onValueChange={(value) => updateFormData({ geminiModel: value as "gemini-2.0-flash-exp" | "gemini-2.5-pro" | "gemini-2.5-flash" | "gemini-1.5-pro" | "gemini-1.5-flash" })}
+                onValueChange={(value) => updateFormData({ geminiModel: value as "gemini-2.0-flash-exp" | "gemini-2.5-pro" | "gemini-2.5-flash" })}
               >
                 <SelectTrigger id="geminiModel" data-testid="select-gemini-model">
                   <SelectValue placeholder="Select AI model" />
@@ -129,18 +129,6 @@ export function StepPersonality({ formData, updateFormData, userTier, isAdmin }:
                     <div className="flex flex-col items-start">
                       <span className="font-medium">Gemini 2.0 Flash (Experimental)</span>
                       <span className="text-xs text-muted-foreground">Experimental, fastest responses</span>
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="gemini-1.5-flash" data-testid="option-gemini-1.5-flash">
-                    <div className="flex flex-col items-start">
-                      <span className="font-medium">Gemini 1.5 Flash</span>
-                      <span className="text-xs text-muted-foreground">Fast and reliable</span>
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="gemini-1.5-pro" data-testid="option-gemini-1.5-pro">
-                    <div className="flex flex-col items-start">
-                      <span className="font-medium">Gemini 1.5 Pro</span>
-                      <span className="text-xs text-muted-foreground">Balanced performance</span>
                     </div>
                   </SelectItem>
                   <SelectItem value="gemini-2.5-pro" data-testid="option-gemini-2.5-pro">
