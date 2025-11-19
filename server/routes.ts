@@ -1603,7 +1603,68 @@ ${pages.map(page => `  <url>
       let aiMessage: string;
       let suggestedQuestions: string[] = [];
       
-      if (manualOverride) {
+      // Helper function to detect AI responses that indicate escalation
+      const detectEscalation = (response: string): boolean => {
+        return response.toLowerCase().includes("contact support") ||
+          response.toLowerCase().includes("speak with") ||
+          response.toLowerCase().includes("human representative") ||
+          response.toLowerCase().includes("don't know") ||
+          response.toLowerCase().includes("cannot find");
+      };
+      
+      // Helper function to detect explicit user requests for human support
+      const detectUserHandoffRequest = (userMessage: string): boolean => {
+        const lowerMessage = userMessage.toLowerCase();
+        
+        // Direct requests for human/agent/person
+        const humanRequests = [
+          "speak with a human", "speak to a human", "speak with someone",
+          "talk to a human", "talk with a human", "talk to someone", "talk with someone",
+          "connect with a human", "connect to a human", "connect with someone", "connect to someone",
+          "connect me with", "connect me to",
+          "transfer to a human", "transfer to someone", "transfer me to",
+          "reach a human", "reach someone", "reach a person",
+          "contact a human", "contact someone", "contact a person",
+          "get a human", "get someone", "get a person", "get me a",
+          "need a human", "need someone", "need a person", "need help from a",
+          "want a human", "want someone", "want a person", "want to speak", "want to talk",
+          "human agent", "live agent", "real person", "real human",
+          "customer service", "customer support", "support agent", "support team",
+          "representative", "support representative",
+          "chat with a human", "chat with someone", "chat with a person",
+          "message a human", "message someone", "message a person"
+        ];
+        
+        return humanRequests.some(phrase => lowerMessage.includes(phrase));
+      };
+      
+      // Check if user explicitly requested human support
+      const userRequestsHuman = detectUserHandoffRequest(message);
+      if (userRequestsHuman) {
+        console.log(`[ESCALATION-DETECT] ✓ User explicitly requested human support`);
+        console.log(`[ESCALATION-DETECT] Trigger phrase detected in: "${message.substring(0, 100)}..."`);
+      } else {
+        console.log(`[ESCALATION-DETECT] ✗ No explicit human support request in message`);
+      }
+      
+      // Check live agent availability
+      const liveAgentAvailability = isWithinLiveAgentHours(chatbot);
+      console.log(`[LIVE-AGENT-HOURS] Availability check: ${liveAgentAvailability.available ? 'OPEN' : 'CLOSED'}`);
+      if (!liveAgentAvailability.available) {
+        console.log(`[LIVE-AGENT-HOURS] Status: ${liveAgentAvailability.message}`);
+      }
+      
+      // If user explicitly requested a human, bypass cache/overrides and handle immediately
+      if (userRequestsHuman) {
+        console.log(`[LIVE-AGENT-REQUEST] User explicitly requested human - bypassing cache/overrides`);
+        
+        // Provide appropriate message based on availability
+        if (liveAgentAvailability.available) {
+          aiMessage = "I'd be happy to connect you with a member of our team. Please click the button below to start a live chat with a human agent.";
+        } else {
+          aiMessage = `Our live support team isn't available right now. ${liveAgentAvailability.message || 'Please try again during business hours.'}${chatbot.supportPhoneNumber ? ` You can also reach us at ${chatbot.supportPhoneNumber}.` : ''}`;
+        }
+      } else if (manualOverride) {
         // Manual override found! Use human-trained answer
         console.log(`[MANUAL OVERRIDE ${overrideMatchType.toUpperCase()} HIT] Using manually trained answer for question: "${message.substring(0, 50)}..."`);
         aiMessage = manualOverride.manualAnswer;
@@ -1694,53 +1755,6 @@ Please answer based on the knowledge base provided. If you cannot find the answe
         }
       }
 
-      // Helper function to detect AI responses that indicate escalation
-      const detectEscalation = (response: string): boolean => {
-        return response.toLowerCase().includes("contact support") ||
-          response.toLowerCase().includes("speak with") ||
-          response.toLowerCase().includes("human representative") ||
-          response.toLowerCase().includes("don't know") ||
-          response.toLowerCase().includes("cannot find");
-      };
-      
-      // Helper function to detect explicit user requests for human support
-      const detectUserHandoffRequest = (userMessage: string): boolean => {
-        const lowerMessage = userMessage.toLowerCase();
-        
-        // Direct requests for human/agent/person
-        const humanRequests = [
-          "speak with a human", "speak to a human", "speak with someone",
-          "talk to a human", "talk with a human", "talk to someone", "talk with someone",
-          "connect with a human", "connect to a human", "connect with someone", "connect to someone",
-          "connect me with", "connect me to",
-          "transfer to a human", "transfer to someone", "transfer me to",
-          "reach a human", "reach someone", "reach a person",
-          "contact a human", "contact someone", "contact a person",
-          "get a human", "get someone", "get a person", "get me a",
-          "need a human", "need someone", "need a person", "need help from a",
-          "want a human", "want someone", "want a person", "want to speak", "want to talk",
-          "human agent", "live agent", "real person", "real human",
-        ];
-        
-        return humanRequests.some(phrase => lowerMessage.includes(phrase));
-      };
-      
-      // Check if user explicitly requested human support
-      const userRequestsHuman = detectUserHandoffRequest(message);
-      if (userRequestsHuman) {
-        console.log(`[ESCALATION-DETECT] ✓ User explicitly requested human support`);
-        console.log(`[ESCALATION-DETECT] Trigger phrase detected in: "${message.substring(0, 100)}..."`);
-      } else {
-        console.log(`[ESCALATION-DETECT] ✗ No explicit human support request in message`);
-      }
-      
-      // Check live agent availability
-      const liveAgentAvailability = isWithinLiveAgentHours(chatbot);
-      console.log(`[LIVE-AGENT-HOURS] Availability check: ${liveAgentAvailability.available ? 'OPEN' : 'CLOSED'}`);
-      if (!liveAgentAvailability.available) {
-        console.log(`[LIVE-AGENT-HOURS] Status: ${liveAgentAvailability.message}`);
-      }
-
       // Check if we should escalate (AI response or explicit user request)
       const shouldEscalate = userRequestsHuman || detectEscalation(aiMessage);
       
@@ -1752,7 +1766,8 @@ Please answer based on the knowledge base provided. If you cannot find the answe
       let finalMessage = aiMessage;
       
       // If should escalate and phone number exists, add escalation message
-      if (shouldEscalate && chatbot.supportPhoneNumber && chatbot.escalationMessage) {
+      // BUT don't add it if user explicitly requested human (they already have a proper message)
+      if (shouldEscalate && !userRequestsHuman && chatbot.supportPhoneNumber && chatbot.escalationMessage) {
         const escalationText = chatbot.escalationMessage.replace(
           "{phone}",
           chatbot.supportPhoneNumber
@@ -2172,7 +2187,31 @@ Please answer based on the knowledge base provided. If you cannot find the answe
         console.log(`[LIVE-AGENT-HOURS] Status: ${liveAgentAvailability.message}`);
       }
       
-      if (manualOverride) {
+      // If user explicitly requested a human, bypass cache/overrides and handle immediately
+      if (userRequestsHuman) {
+        console.log(`[LIVE-AGENT-REQUEST] User explicitly requested human - bypassing cache/overrides`);
+        shouldEscalate = true;
+        
+        // Provide appropriate message based on availability
+        if (liveAgentAvailability.available) {
+          aiMessage = "I'd be happy to connect you with a member of our team. Please click the button below to start a live chat with a human agent.";
+        } else {
+          aiMessage = `Our live support team isn't available right now. ${liveAgentAvailability.message || 'Please try again during business hours.'}${chatbot.supportPhoneNumber ? ` You can also reach us at ${chatbot.supportPhoneNumber}.` : ''}`;
+        }
+        
+        console.log(`[LIVE-AGENT-REQUEST] Sending immediate handoff message`);
+        
+        res.write(`data: ${JSON.stringify({ 
+          type: "complete",
+          message: aiMessage,
+          shouldEscalate: true,
+          liveAgentAvailable: liveAgentAvailability.available,
+          liveAgentMessage: liveAgentAvailability.message,
+          images: relevantImages.length > 0 ? relevantImages : undefined,
+        })}\n\n`);
+        
+        // Continue to save messages section below...
+      } else if (manualOverride) {
         // Manual override found - send immediately (no streaming needed)
         console.log(`[STREAMING] Manual override hit - sending cached answer`);
         aiMessage = manualOverride.manualAnswer;
@@ -2402,7 +2441,9 @@ INCORRECT citation examples (NEVER do this):
 
       let finalMessage = aiMessage;
       
-      if (shouldEscalate && chatbot.supportPhoneNumber && chatbot.escalationMessage) {
+      // If should escalate and phone number exists, add escalation message
+      // BUT don't add it if user explicitly requested human (they already have a proper message)
+      if (shouldEscalate && !userRequestsHuman && chatbot.supportPhoneNumber && chatbot.escalationMessage) {
         const escalationText = chatbot.escalationMessage.replace("{phone}", chatbot.supportPhoneNumber);
         if (!finalMessage.includes(chatbot.supportPhoneNumber)) {
           finalMessage += `\n\n${escalationText}`;
