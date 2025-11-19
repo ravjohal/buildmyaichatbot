@@ -1,0 +1,168 @@
+1.48
+ee1c179d
+User
+where: undefined,
+
+2025-11-18 21:19:41.48
+ee1c179d
+User
+constraint: undefined,
+2025-11-18 21:19:41.48
+ee1c179d
+User
+internalPosition: undefined,
+2025-11-18 21:19:41.48
+ee1c179d
+User
+at file:///home/runner/workspace/node_modules/@neondatabase/serverless/index.mjs:1345:74
+2025-11-18 21:19:41.48
+ee1c179d
+User
+column: undefined,
+2025-11-18 21:19:41.48
+ee1c179d
+User
+at async NeonPreparedQuery.execute (file:///home/runner/workspace/node_modules/drizzle-orm/neon-serverless/session.js:76:20)
+2025-11-18 21:19:41.48
+ee1c179d
+User
+at async DbStorage.getChatbot (file:///home/runner/workspace/dist/index.js:783:24)
+2025-11-18 21:19:41.48
+ee1c179d
+User
+table: undefined,
+2025-11-18 21:19:41.48
+ee1c179d
+User
+internalQuery: undefined,
+2025-11-18 21:19:41.48
+ee1c179d
+User
+code: '42703',
+2025-11-18 21:19:41.48
+ee1c179d
+User
+}
+2025-11-18 21:19:41.48
+ee1c179d
+User
+position: '840',
+2025-11-18 21:19:41.48
+ee1c179d
+User
+hint: undefined,
+2025-11-18 21:19:41.48
+ee1c179d
+User
+routine: 'errorMissingColumn'
+2025-11-18 21:19:41.51
+ee1c179d
+User
+5:19:41 AM [express] GET /api/chatbots/22995444-d494-44d5-acfd-b2b149d00e38/analytics 500 in 120ms :…
+2025-11-18 21:19:41.52
+ee1c179d
+User
+[AUTH] ✓ Authenticated
+2025-11-18 21:19:41.52
+ee1c179d
+User
+}
+2025-11-18 21:19:41.52
+ee1c179d
+User
+isAuthenticated: true,
+2025-11-18 21:19:41.52
+ee1c179d
+User
+hasUser: true,
+2025-11-18 21:19:41.52
+ee1c179d
+User
+hasSession: true,
+2025-11-18 21:19:41.52
+ee1c179d
+User
+[AUTH] isAuthenticated check: {
+2025-11-18 21:19:41.52
+ee1c179d
+User
+sessionID: '9z2vXFSwtV9roGAj3fRzAFMnwarzMFO0'
+2025-11-18 21:19:41.54
+ee1c179d
+User
+severity: 'ERROR',
+2025-11-18 21:19:41.54
+ee1c179d
+User
+}
+2025-11-18 21:19:41.54
+ee1c179d
+User
+at async NeonPreparedQuery.execute (file:///home/runner/workspace/node_modules/drizzle-orm/neon-serverless/session.js:76:20)
+2025-11-18 21:19:41.54
+ee1c179d
+User
+internalPosition: undefined,
+2025-11-18 21:19:41.54
+ee1c179d
+User
+Error fetching chatbot: error: column "gemini_model" does not exist
+2025-11-18 21:19:41.54
+ee1c179d
+User
+where: undefined,
+2025-11-18 21:19:41.54
+ee1c179d
+User
+dataType: undefined,
+2025-11-18 21:19:41.54
+ee1c179d
+User
+column: undefined,
+2025-11-18 21:19:41.54
+ee1c179d
+User
+detail: undefined,
+2025-11-18 21:19:41.54
+ee1c179d
+User
+at file:///home/runner/workspace/node_modules/@neondatabase/serverless/index.mjs:1345:74
+2025-11-18 21:19:41.54
+ee1c179d
+User
+schema: undefined,
+2025-11-18 21:19:41.54
+ee1c179d
+User
+position: '840',
+2025-11-18 21:19:41.54
+ee1c179d
+User
+length: 113,
+2025-11-18 21:19:41.54
+ee1c179d
+User
+hint: undefined,
+2025-11-18 21:19:41.54
+ee1c179d
+User
+at async file:///home/runner/workspace/dist/index.js:5503:21 {
+2025-11-18 21:19:41.54
+ee1c179d
+User
+table: undefined,
+2025-11-18 21:19:41.54
+ee1c179d
+User
+code: '42703',
+2025-11-18 21:19:41.54
+ee1c179d
+User
+internalQuery: undefined,
+2025-11-18 21:19:41.54
+ee1c179d
+User
+at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+2025-11-18 21:19:41.54
+ee1c179d
+User
