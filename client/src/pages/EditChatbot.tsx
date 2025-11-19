@@ -168,6 +168,7 @@ export default function EditChatbot() {
         documentMetadata: (chatbot.documentMetadata as DocumentMetadata[]) || [],
         systemPrompt: chatbot.systemPrompt,
         customInstructions: chatbot.customInstructions || undefined,
+        geminiModel: chatbot.geminiModel || "gemini-2.5-flash",
         primaryColor: chatbot.primaryColor,
         accentColor: chatbot.accentColor,
         logoUrl: chatbot.logoUrl || undefined,
