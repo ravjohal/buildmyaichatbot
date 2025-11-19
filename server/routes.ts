@@ -1715,25 +1715,28 @@ Please answer based on the knowledge base provided. If you cannot find the answe
         }
       }
 
-      // Save both messages and update conversation in parallel for faster database operations
+      // Save messages sequentially to preserve correct order (user message must be saved first)
       const newMessageCount = (parseInt(conversation.messageCount) + 2).toString();
+      
+      // Save user message first
+      await db.insert(conversationMessages).values({
+        conversationId: conversation.id,
+        role: "user",
+        content: message,
+        wasEscalated: "false",
+      });
+      
+      // Then save assistant message
+      await db.insert(conversationMessages).values({
+        conversationId: conversation.id,
+        role: "assistant",
+        content: finalMessage,
+        suggestedQuestions: suggestedQuestions.length > 0 ? suggestedQuestions : [],
+        wasEscalated: shouldEscalate ? "true" : "false",
+      });
+      
+      // Update conversation metadata and increment counts in parallel
       await Promise.all([
-        // Save user message
-        db.insert(conversationMessages).values({
-          conversationId: conversation.id,
-          role: "user",
-          content: message,
-          wasEscalated: "false",
-        }),
-        // Save assistant message
-        db.insert(conversationMessages).values({
-          conversationId: conversation.id,
-          role: "assistant",
-          content: finalMessage,
-          suggestedQuestions: suggestedQuestions.length > 0 ? suggestedQuestions : [],
-          wasEscalated: shouldEscalate ? "true" : "false",
-        }),
-        // Update conversation metadata
         db.update(conversations)
           .set({
             messageCount: newMessageCount,
@@ -1741,7 +1744,6 @@ Please answer based on the knowledge base provided. If you cannot find the answe
             wasEscalated: shouldEscalate ? "true" : conversation.wasEscalated,
           })
           .where(eq(conversations.id, conversation.id)),
-        // Increment chatbot question count (for free tier limit tracking)
         storage.incrementChatbotQuestionCount(chatbotId)
       ]);
       
@@ -2358,23 +2360,29 @@ INCORRECT citation examples (NEVER do this):
         }
       }
 
-      // Save messages to database
+      // Save messages to database sequentially to preserve correct order
       const dbSaveStart = performance.now();
       const newMessageCount = (parseInt(conversation.messageCount) + 2).toString();
+      
+      // Save user message first
+      await db.insert(conversationMessages).values({
+        conversationId: conversation.id,
+        role: "user",
+        content: message,
+        wasEscalated: "false",
+      });
+      
+      // Then save assistant message
+      await db.insert(conversationMessages).values({
+        conversationId: conversation.id,
+        role: "assistant",
+        content: finalMessage,
+        suggestedQuestions: suggestedQuestions.length > 0 ? suggestedQuestions : [],
+        wasEscalated: shouldEscalate ? "true" : "false",
+      });
+      
+      // Update conversation metadata and increment counts in parallel
       await Promise.all([
-        db.insert(conversationMessages).values({
-          conversationId: conversation.id,
-          role: "user",
-          content: message,
-          wasEscalated: "false",
-        }),
-        db.insert(conversationMessages).values({
-          conversationId: conversation.id,
-          role: "assistant",
-          content: finalMessage,
-          suggestedQuestions: suggestedQuestions.length > 0 ? suggestedQuestions : [],
-          wasEscalated: shouldEscalate ? "true" : "false",
-        }),
         db.update(conversations)
           .set({
             messageCount: newMessageCount,
