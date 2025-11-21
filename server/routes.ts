@@ -321,6 +321,7 @@ ${pages.map(page => `  <url>
         profileImageUrl: user.profileImageUrl,
         subscriptionTier: user.subscriptionTier,
         createdAt: user.createdAt,
+        hasPassword: !!user.password, // Indicate if user has a password without exposing it
         subscription: subscriptionDetails,
       });
     } catch (error) {

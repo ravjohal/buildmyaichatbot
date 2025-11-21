@@ -451,7 +451,8 @@ export async function setupAuth(app: Express) {
         return res.status(404).json({ message: 'User not found' });
       }
 
-      // Verify password if user has one (some users may use OAuth)
+      // ALWAYS require password verification for accounts with passwords
+      // OAuth accounts without passwords can proceed, but we still verify session
       if (user.password) {
         if (!password) {
           return res.status(400).json({ message: 'Password is required to delete your account' });
@@ -459,24 +460,35 @@ export async function setupAuth(app: Express) {
 
         const isValid = await bcrypt.compare(password, user.password);
         if (!isValid) {
-          return res.status(400).json({ message: 'Incorrect password' });
+          return res.status(400).json({ message: 'Incorrect password. Please try again.' });
         }
+        console.log(`[DELETE ACCOUNT] Password verified for user ${userId}`);
+      } else {
+        console.log(`[DELETE ACCOUNT] OAuth account - no password verification needed for user ${userId}`);
       }
 
       // Cancel Stripe subscription if exists
       if (user.stripeSubscriptionId && stripe) {
         try {
           console.log(`[DELETE ACCOUNT] Canceling Stripe subscription ${user.stripeSubscriptionId}`);
-          await stripe.subscriptions.cancel(user.stripeSubscriptionId);
-          console.log(`[DELETE ACCOUNT] Stripe subscription canceled successfully`);
+          const canceledSubscription = await stripe.subscriptions.cancel(user.stripeSubscriptionId);
+          
+          if (canceledSubscription.status !== 'canceled') {
+            console.warn(`[DELETE ACCOUNT] Stripe subscription status is ${canceledSubscription.status}, not canceled`);
+          } else {
+            console.log(`[DELETE ACCOUNT] Stripe subscription canceled successfully`);
+          }
         } catch (stripeError) {
           console.error('[DELETE ACCOUNT] Error canceling Stripe subscription:', stripeError);
-          // Continue with deletion even if Stripe fails
+          return res.status(500).json({ 
+            message: 'Failed to cancel subscription. Please contact support or cancel manually before deleting your account.' 
+          });
         }
       }
 
-      // Delete user (CASCADE will automatically delete all related data)
-      await db.delete(users).where(eq(users.id, userId));
+      // Delete user (CASCADE will automatically delete all related data:
+      // chatbots, conversations, leads, analytics, etc.)
+      const deleteResult = await db.delete(users).where(eq(users.id, userId));
       console.log(`[DELETE ACCOUNT] User ${userId} and all related data deleted successfully`);
 
       // Logout user
@@ -496,7 +508,9 @@ export async function setupAuth(app: Express) {
       res.status(200).json({ message: 'Account deleted successfully' });
     } catch (error) {
       console.error('Delete account error:', error);
-      res.status(500).json({ message: 'Internal server error' });
+      res.status(500).json({ 
+        message: 'Failed to delete account. Please try again or contact support if the problem persists.' 
+      });
     }
   });
 }

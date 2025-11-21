@@ -50,6 +50,7 @@ interface AccountDetails {
   profileImageUrl: string | null;
   subscriptionTier: "free" | "starter" | "business" | "pro" | "scale";
   createdAt: string;
+  hasPassword: boolean;
   subscription: {
     id: string;
     status: string;
@@ -169,9 +170,10 @@ export default function Account() {
       return await response.json();
     },
     onSuccess: () => {
+      setShowDeleteDialog(false);
       toast({
         title: "Account Deleted",
-        description: "Your account has been permanently deleted.",
+        description: "Your account has been permanently deleted. Redirecting...",
       });
       // Redirect to home page after a short delay
       setTimeout(() => {
@@ -180,12 +182,13 @@ export default function Account() {
       }, 1500);
     },
     onError: (error: any) => {
+      // Keep dialog open so user can see the error and retry
       toast({
-        title: "Error",
+        title: "Deletion Failed",
         description: error.message || "Failed to delete account. Please try again.",
         variant: "destructive",
       });
-      setShowDeleteDialog(false);
+      // Only clear password on error, keep dialog open
       setDeletePassword("");
     },
   });
@@ -601,6 +604,97 @@ export default function Account() {
                   Manage Notification Settings
                 </Button>
               </Link>
+            </CardContent>
+          </Card>
+
+          <Card data-testid="card-delete-account" className="border-destructive/50">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-destructive">
+                <Trash2 className="w-5 h-5" />
+                Delete Account
+              </CardTitle>
+              <CardDescription>
+                Permanently delete your account and all associated data
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="rounded-lg border-2 border-destructive/50 bg-destructive/5 p-4">
+                <div className="flex items-start gap-3">
+                  <AlertTriangle className="w-5 h-5 text-destructive mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="font-semibold text-destructive mb-1">Warning: This action cannot be undone</p>
+                    <p className="text-sm text-muted-foreground">
+                      Deleting your account will:
+                    </p>
+                    <ul className="text-sm text-muted-foreground mt-2 space-y-1 list-disc list-inside">
+                      <li>Permanently delete all your chatbots and their data</li>
+                      <li>Cancel your active subscription (if any)</li>
+                      <li>Remove all conversation history and analytics</li>
+                      <li>Delete all leads and CRM integrations</li>
+                      <li>Erase your account and profile information</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+                <AlertDialogTrigger asChild>
+                  <Button 
+                    variant="destructive" 
+                    className="w-full gap-2"
+                    data-testid="button-delete-account"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    Delete My Account
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent data-testid="dialog-delete-account">
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                    <AlertDialogDescription className="space-y-3">
+                      <p>
+                        This will permanently delete your account and all associated data. 
+                        This action cannot be undone.
+                      </p>
+                      {account?.hasPassword && (
+                        <div className="space-y-2">
+                          <label htmlFor="delete-password" className="text-sm font-medium text-foreground">
+                            Enter your password to confirm:
+                          </label>
+                          <Input
+                            id="delete-password"
+                            type="password"
+                            placeholder="Enter your password"
+                            value={deletePassword}
+                            onChange={(e) => setDeletePassword(e.target.value)}
+                            data-testid="input-delete-password"
+                            className="mt-2"
+                          />
+                        </div>
+                      )}
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel 
+                      onClick={() => {
+                        setDeletePassword("");
+                        setShowDeleteDialog(false);
+                      }}
+                      data-testid="button-cancel-delete"
+                    >
+                      Cancel
+                    </AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={() => deleteAccountMutation.mutate(deletePassword)}
+                      disabled={deleteAccountMutation.isPending || (account?.hasPassword && !deletePassword)}
+                      className="bg-destructive hover:bg-destructive/90"
+                      data-testid="button-confirm-delete"
+                    >
+                      {deleteAccountMutation.isPending ? "Deleting..." : "Delete Account"}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </CardContent>
           </Card>
         </div>
