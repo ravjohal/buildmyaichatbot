@@ -33,7 +33,7 @@ The backend is built with Express.js, Node.js, and TypeScript, following a RESTf
 *   **Analytics Dashboard:** Provides metrics, conversation transcripts, and performance breakdowns.
 *   **4-Tier Pricing System:** Free, Starter ($24.99/month), Business ($49/month), and Scale ($129/month) tiers with server-side limit enforcement.
 *   **Admin System:** Full user management, system-wide statistics, and access to all chatbots for administrators.
-*   **Account Management:** Users manage profile, subscription, and billing via an integrated Stripe portal.
+*   **Account Management:** Users manage profile, subscription, and billing via an integrated Stripe portal. Includes account deletion with password verification, automatic Stripe subscription cancellation, and CASCADE deletion of all user data.
 *   **Shareable Links & QR Codes:** For chatbot distribution via direct links and full-page chat interfaces.
 *   **Intelligent SPA Crawler:** Dual-mode crawler for JavaScript-heavy SPAs using Playwright.
 *   **Satisfaction Ratings:** Allows visitors to rate chat experiences.
