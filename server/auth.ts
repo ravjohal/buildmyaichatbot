@@ -473,15 +473,19 @@ export async function setupAuth(app: Express) {
           console.log(`[DELETE ACCOUNT] Canceling Stripe subscription ${user.stripeSubscriptionId}`);
           const canceledSubscription = await stripe.subscriptions.cancel(user.stripeSubscriptionId);
           
+          // Verify the subscription was actually canceled
           if (canceledSubscription.status !== 'canceled') {
-            console.warn(`[DELETE ACCOUNT] Stripe subscription status is ${canceledSubscription.status}, not canceled`);
-          } else {
-            console.log(`[DELETE ACCOUNT] Stripe subscription canceled successfully`);
+            console.error(`[DELETE ACCOUNT] Stripe subscription status is ${canceledSubscription.status}, not canceled`);
+            return res.status(500).json({ 
+              message: `Subscription cancellation failed (status: ${canceledSubscription.status}). Please cancel your subscription manually in the billing portal before deleting your account.` 
+            });
           }
+          
+          console.log(`[DELETE ACCOUNT] Stripe subscription canceled successfully`);
         } catch (stripeError) {
           console.error('[DELETE ACCOUNT] Error canceling Stripe subscription:', stripeError);
           return res.status(500).json({ 
-            message: 'Failed to cancel subscription. Please contact support or cancel manually before deleting your account.' 
+            message: 'Failed to cancel subscription. Please contact support or cancel manually in the billing portal before deleting your account.' 
           });
         }
       }
