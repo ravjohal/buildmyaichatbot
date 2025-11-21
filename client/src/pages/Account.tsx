@@ -651,29 +651,26 @@ export default function Account() {
                 <AlertDialogContent data-testid="dialog-delete-account">
                   <AlertDialogHeader>
                     <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                    <AlertDialogDescription className="space-y-3">
-                      <p>
-                        This will permanently delete your account and all associated data. 
-                        This action cannot be undone.
-                      </p>
-                      {account?.hasPassword && (
-                        <div className="space-y-2">
-                          <label htmlFor="delete-password" className="text-sm font-medium text-foreground">
-                            Enter your password to confirm:
-                          </label>
-                          <Input
-                            id="delete-password"
-                            type="password"
-                            placeholder="Enter your password"
-                            value={deletePassword}
-                            onChange={(e) => setDeletePassword(e.target.value)}
-                            data-testid="input-delete-password"
-                            className="mt-2"
-                          />
-                        </div>
-                      )}
+                    <AlertDialogDescription>
+                      This will permanently delete your account and all associated data. 
+                      This action cannot be undone.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
+                  {account?.hasPassword && (
+                    <div className="space-y-2 px-6">
+                      <label htmlFor="delete-password" className="text-sm font-medium text-foreground">
+                        Enter your password to confirm:
+                      </label>
+                      <Input
+                        id="delete-password"
+                        type="password"
+                        placeholder="Enter your password"
+                        value={deletePassword}
+                        onChange={(e) => setDeletePassword(e.target.value)}
+                        data-testid="input-delete-password"
+                      />
+                    </div>
+                  )}
                   <AlertDialogFooter>
                     <AlertDialogCancel 
                       onClick={() => {

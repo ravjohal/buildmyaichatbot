@@ -1,5 +1,6 @@
 { pkgs }: {
   deps = [
+    pkgs.systemd
     pkgs.playwright-driver
     pkgs.playwright
     pkgs.chromium
