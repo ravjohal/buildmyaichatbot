@@ -1,4 +1,4 @@
-import logoImage from "@assets/image_1763751490740.png";
+import logoImage from "@assets/image_1763752984872.png";
 
 interface LogoProps {
   size?: "sm" | "md" | "lg" | "xl";
