@@ -10,6 +10,7 @@ import { db } from "./db";
 import { users, passwordResetTokens } from "@shared/schema";
 import { eq, and } from "drizzle-orm";
 import { getUncachableResendClient } from "./emails/resend-client";
+import { stripe } from "./stripe-config";
 
 declare module 'express-session' {
   interface SessionData {
@@ -430,6 +431,71 @@ export async function setupAuth(app: Express) {
       res.status(200).json({ message: 'Password has been changed successfully' });
     } catch (error) {
       console.error('Change password error:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+
+  // Delete account (for authenticated users)
+  app.post('/api/auth/delete-account', isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const { password } = req.body;
+
+      console.log(`[DELETE ACCOUNT] User ${userId} requested account deletion`);
+
+      // Get user
+      const userResult = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+      const user = userResult[0];
+
+      if (!user) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+
+      // Verify password if user has one (some users may use OAuth)
+      if (user.password) {
+        if (!password) {
+          return res.status(400).json({ message: 'Password is required to delete your account' });
+        }
+
+        const isValid = await bcrypt.compare(password, user.password);
+        if (!isValid) {
+          return res.status(400).json({ message: 'Incorrect password' });
+        }
+      }
+
+      // Cancel Stripe subscription if exists
+      if (user.stripeSubscriptionId && stripe) {
+        try {
+          console.log(`[DELETE ACCOUNT] Canceling Stripe subscription ${user.stripeSubscriptionId}`);
+          await stripe.subscriptions.cancel(user.stripeSubscriptionId);
+          console.log(`[DELETE ACCOUNT] Stripe subscription canceled successfully`);
+        } catch (stripeError) {
+          console.error('[DELETE ACCOUNT] Error canceling Stripe subscription:', stripeError);
+          // Continue with deletion even if Stripe fails
+        }
+      }
+
+      // Delete user (CASCADE will automatically delete all related data)
+      await db.delete(users).where(eq(users.id, userId));
+      console.log(`[DELETE ACCOUNT] User ${userId} and all related data deleted successfully`);
+
+      // Logout user
+      req.logout((err) => {
+        if (err) {
+          console.error('[DELETE ACCOUNT] Error logging out user:', err);
+        }
+      });
+
+      // Destroy session
+      req.session.destroy((err) => {
+        if (err) {
+          console.error('[DELETE ACCOUNT] Error destroying session:', err);
+        }
+      });
+
+      res.status(200).json({ message: 'Account deleted successfully' });
+    } catch (error) {
+      console.error('Delete account error:', error);
       res.status(500).json({ message: 'Internal server error' });
     }
   });

@@ -1,8 +1,9 @@
+import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { 
   User, 
   Mail, 
@@ -15,7 +16,8 @@ import {
   ExternalLink,
   Bell,
   Lock,
-  AlertTriangle
+  AlertTriangle,
+  Trash2
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -28,6 +30,17 @@ import { z } from "zod";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { DashboardHeader } from "@/components/DashboardHeader";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface AccountDetails {
   id: string;
@@ -61,7 +74,10 @@ const changePasswordSchema = z.object({
 
 export default function Account() {
   const { toast } = useToast();
-  const { data: account, isLoading, isError, error } = useQuery<AccountDetails>({
+  const [, navigate] = useLocation();
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deletePassword, setDeletePassword] = useState("");
+  const { data: account, isLoading, isError, error} = useQuery<AccountDetails>({
     queryKey: ["/api/account"],
   });
 
@@ -142,6 +158,35 @@ export default function Account() {
         description: error.message || "Failed to change password. Please try again.",
         variant: "destructive",
       });
+    },
+  });
+
+  const deleteAccountMutation = useMutation({
+    mutationFn: async (password: string) => {
+      const response = await apiRequest("POST", "/api/auth/delete-account", {
+        password: password || undefined,
+      });
+      return await response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Account Deleted",
+        description: "Your account has been permanently deleted.",
+      });
+      // Redirect to home page after a short delay
+      setTimeout(() => {
+        navigate("/");
+        window.location.reload();
+      }, 1500);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete account. Please try again.",
+        variant: "destructive",
+      });
+      setShowDeleteDialog(false);
+      setDeletePassword("");
     },
   });
 
