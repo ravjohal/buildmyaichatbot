@@ -1,3 +1,5 @@
+import logoImage from "@assets/image_1763751490740.png";
+
 interface LogoProps {
   size?: "sm" | "md" | "lg" | "xl";
   iconOnly?: boolean;
@@ -5,41 +7,39 @@ interface LogoProps {
 }
 
 export function Logo({ size = "md", iconOnly = false, className = "" }: LogoProps) {
-  const textSizeClasses = {
-    sm: "text-lg",
-    md: "text-2xl",
-    lg: "text-3xl",
-    xl: "text-4xl",
+  const heightClasses = {
+    sm: "h-6",
+    md: "h-8",
+    lg: "h-10",
+    xl: "h-12",
   };
 
   const iconSizeClasses = {
-    sm: "text-2xl",
-    md: "text-3xl",
-    lg: "text-4xl",
-    xl: "text-5xl",
+    sm: "h-6 w-6",
+    md: "h-8 w-8",
+    lg: "h-10 w-10",
+    xl: "h-12 w-12",
   };
 
   if (iconOnly) {
     return (
       <div className={`flex items-center justify-center ${className}`} data-testid="logo-icon">
-        <div className="font-bold bg-gradient-to-br from-primary to-accent bg-clip-text text-transparent" style={{ fontFamily: "'Inter', sans-serif" }}>
-          <span className={iconSizeClasses[size]}>BC</span>
-        </div>
+        <img 
+          src={logoImage} 
+          alt="BuildMyChatbot.AI" 
+          className={`${iconSizeClasses[size]} object-contain`}
+        />
       </div>
     );
   }
 
   return (
-    <div className={`flex items-center gap-2 ${className}`} data-testid="logo-container">
-      <div className="font-bold bg-gradient-to-br from-primary to-accent bg-clip-text text-transparent" style={{ fontFamily: "'Inter', sans-serif" }}>
-        <span className={iconSizeClasses[size]}>BC</span>
-      </div>
-      <div className={`font-semibold ${textSizeClasses[size]}`} data-testid="brand-text">
-        <span className="text-foreground">BuildMy</span>
-        <span className="text-foreground">Chatbot</span>
-        <span className="text-accent">.</span>
-        <span className="text-accent">Ai</span>
-      </div>
+    <div className={`flex items-center ${className}`} data-testid="logo-container">
+      <img 
+        src={logoImage} 
+        alt="BuildMyChatbot.AI" 
+        className={`${heightClasses[size]} w-auto object-contain`}
+      />
     </div>
   );
 }
