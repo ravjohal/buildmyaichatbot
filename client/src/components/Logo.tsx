@@ -8,17 +8,17 @@ interface LogoProps {
 
 export function Logo({ size = "md", iconOnly = false, className = "" }: LogoProps) {
   const heightClasses = {
-    sm: "h-6",
-    md: "h-8",
-    lg: "h-10",
-    xl: "h-12",
+    sm: "h-10",
+    md: "h-12",
+    lg: "h-16",
+    xl: "h-24",
   };
 
   const iconSizeClasses = {
-    sm: "h-6 w-6",
-    md: "h-8 w-8",
-    lg: "h-10 w-10",
-    xl: "h-12 w-12",
+    sm: "h-10 w-10",
+    md: "h-12 w-12",
+    lg: "h-16 w-16",
+    xl: "h-24 w-24",
   };
 
   if (iconOnly) {
