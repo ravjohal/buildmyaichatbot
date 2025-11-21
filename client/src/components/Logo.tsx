@@ -1,4 +1,4 @@
-import logoImage from "@assets/Screenshot 2025-11-21 at 11.24.01 AM_1763753045099.png";
+import logoImage from "@assets/buildmychatbot-logo.png";
 
 interface LogoProps {
   size?: "sm" | "md" | "lg" | "xl";
