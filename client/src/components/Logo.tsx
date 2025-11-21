@@ -1,4 +1,4 @@
-import logoImage from "@assets/buildmychatbot-logo.png";
+import logoImage from "@assets/bc-logo_1763754121353.png";
 
 interface LogoProps {
   size?: "sm" | "md" | "lg" | "xl";
@@ -8,17 +8,17 @@ interface LogoProps {
 
 export function Logo({ size = "md", iconOnly = false, className = "" }: LogoProps) {
   const heightClasses = {
-    sm: "h-16",
-    md: "h-20",
-    lg: "h-28",
-    xl: "h-40",
+    sm: "h-20",
+    md: "h-24",
+    lg: "h-32",
+    xl: "h-48",
   };
 
   const iconSizeClasses = {
-    sm: "h-16 w-16",
-    md: "h-20 w-20",
-    lg: "h-28 w-28",
-    xl: "h-40 w-40",
+    sm: "h-20 w-20",
+    md: "h-24 w-24",
+    lg: "h-32 w-32",
+    xl: "h-48 w-48",
   };
 
   if (iconOnly) {
