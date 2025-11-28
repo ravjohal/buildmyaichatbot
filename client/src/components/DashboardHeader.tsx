@@ -275,33 +275,47 @@ export function DashboardHeader() {
           {/* Right: Account Section (Separated) */}
           <div className="flex items-center gap-3 pl-4 border-l">
             {user && (
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-muted" data-testid="user-display">
-                <Avatar className="h-7 w-7">
-                  <AvatarImage src={user.profileImageUrl || undefined} alt={user.email} />
-                  <AvatarFallback className="text-xs">{getUserInitials()}</AvatarFallback>
-                </Avatar>
-                <span className="text-sm font-medium" data-testid="text-user-name">{user.email}</span>
-              </div>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button 
+                    variant="outline" 
+                    size="icon"
+                    className="w-9 h-9"
+                    data-testid="button-user-menu"
+                  >
+                    <Avatar className="h-7 w-7">
+                      <AvatarImage src={user.profileImageUrl || undefined} alt={user.email} />
+                      <AvatarFallback className="text-xs font-semibold">{getUserInitials()}</AvatarFallback>
+                    </Avatar>
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-40 p-2" align="end" data-testid="popover-user-menu">
+                  <div className="space-y-1">
+                    <Link href="/account">
+                      <Button 
+                        variant="ghost" 
+                        size="default"
+                        className="w-full justify-start"
+                        data-testid="button-account"
+                      >
+                        <UserIcon className="w-4 h-4 mr-2" />
+                        Account
+                      </Button>
+                    </Link>
+                    <Button 
+                      variant="ghost" 
+                      size="default"
+                      className="w-full justify-start"
+                      onClick={handleLogout}
+                      data-testid="button-logout"
+                    >
+                      <LogOut className="w-4 h-4 mr-2" />
+                      Logout
+                    </Button>
+                  </div>
+                </PopoverContent>
+              </Popover>
             )}
-            <Link href="/account">
-              <Button 
-                variant="outline" 
-                size="default"
-                data-testid="button-account"
-              >
-                <UserIcon className="w-4 h-4 mr-2" />
-                Account
-              </Button>
-            </Link>
-            <Button 
-              variant="outline" 
-              size="default"
-              onClick={handleLogout}
-              data-testid="button-logout"
-            >
-              <LogOut className="w-4 h-4 mr-2" />
-              Logout
-            </Button>
           </div>
         </div>
       </div>
