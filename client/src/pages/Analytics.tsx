@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useRoute, Link } from "wouter";
-import { MessageSquare, TrendingUp, AlertCircle, Clock, Pencil, Trash2, ArrowLeft, Timer, Users } from "lucide-react";
+import { MessageSquare, TrendingUp, AlertCircle, Clock, Pencil, Trash2, ArrowLeft, Timer, Users, TrendingDown, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -31,6 +31,9 @@ interface AnalyticsData {
     uniqueVisitors: number;
     returnVisitors: number;
     returnVisitorRate: string;
+    peakHour: { hour: number; count: number };
+    quietestHour: { hour: number; count: number };
+    busyDays: Array<{ day: string; count: number }>;
   };
   recentConversations: Conversation[];
 }
@@ -326,6 +329,42 @@ export default function Analytics() {
               <p className="text-xs text-muted-foreground">
                 {analytics.metrics.uniqueVisitors} unique • {analytics.metrics.returnVisitors} repeat
               </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Peak Usage Time</CardTitle>
+              <TrendingUp className="w-4 h-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold" data-testid="metric-peak-hour">
+                {String(analytics.metrics.peakHour.hour).padStart(2, '0')}:00
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {analytics.metrics.peakHour.count} conversations • Quietest: {String(analytics.metrics.quietestHour.hour).padStart(2, '0')}:00
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Busiest Days (7-day)</CardTitle>
+              <Calendar className="w-4 h-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                {analytics.metrics.busyDays.length > 0 ? (
+                  analytics.metrics.busyDays.map((day, idx) => (
+                    <div key={idx} className="flex justify-between items-center text-sm">
+                      <span data-testid={`busy-day-${idx}`}>{day.day}</span>
+                      <span className="font-medium">{day.count} conversations</span>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-xs text-muted-foreground">No data yet</p>
+                )}
+              </div>
             </CardContent>
           </Card>
         </div>

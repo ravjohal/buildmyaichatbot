@@ -2779,6 +2779,42 @@ INCORRECT citation examples (NEVER do this):
       const returnVisitors = Array.from(sessionIdCounts.values()).filter(count => count > 1).length;
       const returnVisitorRate = uniqueVisitors > 0 ? (returnVisitors / uniqueVisitors * 100).toFixed(1) : "0";
 
+      // Calculate peak usage times (hourly breakdown)
+      const hourlyBreakdown = new Map<number, number>();
+      for (let i = 0; i < 24; i++) hourlyBreakdown.set(i, 0);
+      
+      allConversations.forEach(conv => {
+        const hour = new Date(conv.startedAt).getHours();
+        const count = hourlyBreakdown.get(hour) || 0;
+        hourlyBreakdown.set(hour, count + 1);
+      });
+
+      const peakHour = Array.from(hourlyBreakdown.entries()).reduce((max, [hour, count]) => 
+        count > max.count ? { hour, count } : max, { hour: 0, count: 0 }
+      );
+      const quietestHour = Array.from(hourlyBreakdown.entries()).reduce((min, [hour, count]) => 
+        count < min.count ? { hour, count } : min, { hour: 0, count: 0 }
+      );
+
+      // Calculate seasonal patterns (daily breakdown - last 7 days)
+      const dailyBreakdown = new Map<string, number>();
+      const now = new Date();
+      
+      allConversations.forEach(conv => {
+        const convDate = new Date(conv.startedAt);
+        const dayDiff = Math.floor((now.getTime() - convDate.getTime()) / (1000 * 60 * 60 * 24));
+        if (dayDiff < 7) {
+          const dayName = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][convDate.getDay()];
+          const count = dailyBreakdown.get(dayName) || 0;
+          dailyBreakdown.set(dayName, count + 1);
+        }
+      });
+
+      const busyDays = Array.from(dailyBreakdown.entries())
+        .map(([day, count]) => ({ day, count }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 3);
+
       // Get recent conversations with message previews
       const recentConversations = await db.select()
         .from(conversations)
@@ -2803,6 +2839,9 @@ INCORRECT citation examples (NEVER do this):
           uniqueVisitors,
           returnVisitors,
           returnVisitorRate,
+          peakHour,
+          quietestHour,
+          busyDays,
         },
         recentConversations,
       });
