@@ -289,8 +289,11 @@ export function DashboardHeader() {
                     </Avatar>
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-40 p-2" align="end" data-testid="popover-user-menu">
-                  <div className="space-y-1">
+                <PopoverContent className="w-48 p-0" align="end" data-testid="popover-user-menu">
+                  <div className="p-3 border-b">
+                    <p className="text-xs text-muted-foreground" data-testid="text-user-email">{user.email}</p>
+                  </div>
+                  <div className="p-2 space-y-1">
                     <Link href="/account">
                       <Button 
                         variant="ghost" 
