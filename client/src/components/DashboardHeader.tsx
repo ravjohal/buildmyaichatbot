@@ -85,13 +85,16 @@ export function DashboardHeader() {
   return (
     <div className="border-b">
       <div className="max-w-7xl mx-auto px-6 md:px-12 py-4">
-        <div className="flex items-center justify-between gap-4 flex-wrap">
+        <div className="flex items-center justify-between gap-4">
+          {/* Left: Logo */}
           <Link href="/">
             <div className="cursor-pointer hover:opacity-80 transition-opacity" data-testid="link-dashboard">
               <Logo size="sm" />
             </div>
           </Link>
-          <div className="flex gap-3 flex-wrap items-center">
+
+          {/* Center: Navigation */}
+          <div className="flex gap-3 items-center flex-wrap flex-1 justify-center">
             <Link href="/">
               <Button 
                 variant="outline" 
@@ -243,16 +246,6 @@ export function DashboardHeader() {
                 </ScrollArea>
               </PopoverContent>
             </Popover>
-            <Link href="/account">
-              <Button 
-                variant="outline" 
-                size="default"
-                data-testid="button-account"
-              >
-                <UserIcon className="w-4 h-4 mr-2" />
-                Account
-              </Button>
-            </Link>
             {isAdmin && (
               <>
                 <Link href="/admin">
@@ -277,6 +270,10 @@ export function DashboardHeader() {
                 </Link>
               </>
             )}
+          </div>
+
+          {/* Right: Account Section (Separated) */}
+          <div className="flex items-center gap-3 pl-4 border-l">
             {user && (
               <div className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-muted" data-testid="user-display">
                 <Avatar className="h-7 w-7">
@@ -286,6 +283,16 @@ export function DashboardHeader() {
                 <span className="text-sm font-medium" data-testid="text-user-name">{user.email}</span>
               </div>
             )}
+            <Link href="/account">
+              <Button 
+                variant="outline" 
+                size="default"
+                data-testid="button-account"
+              >
+                <UserIcon className="w-4 h-4 mr-2" />
+                Account
+              </Button>
+            </Link>
             <Button 
               variant="outline" 
               size="default"
