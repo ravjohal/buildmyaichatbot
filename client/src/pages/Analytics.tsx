@@ -23,6 +23,8 @@ interface AnalyticsData {
     avgResponseTimeMs: number;
     minResponseTimeMs: number;
     maxResponseTimeMs: number;
+    fallthroughCount: number;
+    fallthroughRate: string;
   };
   recentConversations: Conversation[];
 }
@@ -261,6 +263,21 @@ export default function Analytics() {
               </div>
               <p className="text-xs text-muted-foreground">
                 Min: {analytics.metrics.minResponseTimeMs}ms • Max: {analytics.metrics.maxResponseTimeMs}ms
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Fall-Through Rate</CardTitle>
+              <AlertCircle className="w-4 h-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold" data-testid="metric-fallthrough-rate">
+                {analytics.metrics.fallthroughRate}%
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {analytics.metrics.fallthroughCount} unanswered question{analytics.metrics.fallthroughCount !== 1 ? "s" : ""}
               </p>
             </CardContent>
           </Card>

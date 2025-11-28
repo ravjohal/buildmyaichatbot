@@ -165,6 +165,7 @@ export const conversationMessages = pgTable("conversation_messages", {
   suggestedQuestions: text("suggested_questions").array().default(sql`ARRAY[]::text[]`),
   wasEscalated: text("was_escalated").notNull().default("false"),
   responseTimeMs: text("response_time_ms"), // Time in milliseconds for bot to generate response (null for user messages)
+  hasFallthrough: text("has_fallthrough").notNull().default("false"), // Whether bot couldn't find relevant knowledge
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

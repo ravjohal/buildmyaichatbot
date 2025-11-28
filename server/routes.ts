@@ -1740,12 +1740,19 @@ Please answer based on the knowledge base provided. If you cannot find the answe
         }
       }
 
+      // Check for fallthrough (bot couldn't find relevant knowledge)
+      const isFallthrough = detectEscalation(aiMessage) && !userRequestsHuman;
+      
       // Check if we should escalate (AI response or explicit user request)
       const shouldEscalate = userRequestsHuman || detectEscalation(aiMessage);
       
       if (shouldEscalate) {
         console.log(`[ESCALATION] Final escalation status: shouldEscalate=true, agentsAvailable=${liveAgentAvailability.available}`);
         console.log(`[ESCALATION] Response preview: ${aiMessage.substring(0, 200)}...`);
+      }
+      
+      if (isFallthrough) {
+        console.log(`[FALLTHROUGH] Bot couldn't find relevant knowledge for question: "${message.substring(0, 100)}..."`);
       }
 
       let finalMessage = aiMessage;
@@ -1780,6 +1787,7 @@ Please answer based on the knowledge base provided. If you cannot find the answe
         content: finalMessage,
         suggestedQuestions: suggestedQuestions.length > 0 ? suggestedQuestions : [],
         wasEscalated: shouldEscalate ? "true" : "false",
+        hasFallthrough: isFallthrough ? "true" : "false",
       });
       
       // Update conversation metadata and increment counts in parallel
@@ -2154,6 +2162,7 @@ Please answer based on the knowledge base provided. If you cannot find the answe
       let aiMessage: string;
       let suggestedQuestions: string[] = [];
       let shouldEscalate = false;
+      let isFallthrough = false;
       let liveAgentAvailability = { available: true, message: undefined as string | undefined };
       
       // Check if user explicitly requested human support
@@ -2203,9 +2212,14 @@ Please answer based on the knowledge base provided. If you cannot find the answe
         
         const escalationDetected = userRequestsHuman || detectEscalation(aiMessage);
         shouldEscalate = escalationDetected; // Show handoff UI even when agents offline
+        isFallthrough = escalationDetected && !userRequestsHuman; // Mark as fallthrough if override indicates no knowledge
         
         if (escalationDetected) {
           console.log(`[ESCALATION] Escalation detected in manual override. shouldEscalate=true, agentsAvailable=${liveAgentAvailability.available}`);
+        }
+        
+        if (isFallthrough) {
+          console.log(`[FALLTHROUGH] Manual override detected fallthrough for question: "${message.substring(0, 100)}..."`);
         }
         
         res.write(`data: ${JSON.stringify({ 
@@ -2235,9 +2249,14 @@ Please answer based on the knowledge base provided. If you cannot find the answe
           
           const escalationDetected = userRequestsHuman || detectEscalation(aiMessage);
           shouldEscalate = escalationDetected; // Show handoff UI even when agents offline
+          isFallthrough = escalationDetected && !userRequestsHuman; // Mark as fallthrough if cached answer indicates no knowledge
           
           if (escalationDetected) {
             console.log(`[ESCALATION] Escalation detected in cached answer. shouldEscalate=true, agentsAvailable=${liveAgentAvailability.available}`);
+          }
+          
+          if (isFallthrough) {
+            console.log(`[FALLTHROUGH] Cached answer detected fallthrough for question: "${message.substring(0, 100)}..."`);
           }
           
           console.log(`[ESCALATION] Final escalation status: shouldEscalate=${shouldEscalate}`);
@@ -2351,9 +2370,14 @@ INCORRECT citation examples (NEVER do this):
               // Check for escalation in the LLM response or user's explicit request
               const escalationDetected = userRequestsHuman || detectEscalation(aiMessage);
               shouldEscalate = escalationDetected; // Show handoff UI even when agents offline
+              isFallthrough = escalationDetected && !userRequestsHuman; // Mark as fallthrough if bot couldn't answer
               
               if (escalationDetected) {
                 console.log(`[ESCALATION] Escalation detected in LLM response. shouldEscalate=true, agentsAvailable=${liveAgentAvailability.available}`);
+              }
+              
+              if (isFallthrough) {
+                console.log(`[FALLTHROUGH] Bot couldn't find relevant knowledge for question: "${message.substring(0, 100)}..."`);
               }
               
               // DISABLED: Follow-up question generation (redundant with 20 rotating AI questions from DB)
@@ -2454,6 +2478,7 @@ INCORRECT citation examples (NEVER do this):
         content: finalMessage,
         suggestedQuestions: suggestedQuestions.length > 0 ? suggestedQuestions : [],
         wasEscalated: shouldEscalate ? "true" : "false",
+        hasFallthrough: isFallthrough ? "true" : "false",
       });
       
       // Update conversation metadata and increment counts in parallel
@@ -2713,6 +2738,21 @@ INCORRECT citation examples (NEVER do this):
       const minResponseTimeMs = validResponseTimes.length > 0 ? Math.min(...validResponseTimes) : 0;
       const maxResponseTimeMs = validResponseTimes.length > 0 ? Math.max(...validResponseTimes) : 0;
 
+      // Get fall-through metrics (assistant messages with no relevant knowledge)
+      const fallthroughMessages = await db.select({ count: sql<number>`count(*)::int` })
+        .from(conversationMessages)
+        .where(
+          and(
+            eq(conversationMessages.role, "assistant"),
+            eq(conversationMessages.hasFallthrough, "true"),
+            inArray(conversationMessages.conversationId, allConversations.map(c => c.id))
+          )
+        );
+
+      const fallthroughCount = fallthroughMessages[0]?.count || 0;
+      const assistantMessageCount = responseTimes.length;
+      const fallthroughRate = assistantMessageCount > 0 ? (fallthroughCount / assistantMessageCount * 100).toFixed(1) : "0";
+
       // Get recent conversations with message previews
       const recentConversations = await db.select()
         .from(conversations)
@@ -2729,6 +2769,8 @@ INCORRECT citation examples (NEVER do this):
           avgResponseTimeMs,
           minResponseTimeMs,
           maxResponseTimeMs,
+          fallthroughCount,
+          fallthroughRate,
         },
         recentConversations,
       });
