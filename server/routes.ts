@@ -1708,14 +1708,16 @@ Please answer based on the knowledge base provided. If you cannot find the answe
         console.log(`[LLM] Main prompt length: ${fullPrompt.length} chars`);
         console.log(`[LLM] Main prompt preview: ${fullPrompt.substring(0, 500)}...`);
         
-        const llmStart = Date.now();
+        const llmStart = performance.now();
         const mainResult = await genAI.models.generateContent({
           model: chatbot.geminiModel,
           contents: fullPrompt,
         });
         
-        const llmTime = Date.now() - llmStart;
-        console.log(`[LLM] Request complete in ${llmTime}ms`);
+        const responseTimeMs = performance.now() - llmStart;
+        console.log(`[LLM] Request complete in ${responseTimeMs.toFixed(2)}ms`);
+        // Store response time globally for message saving below
+        (globalThis as any).responseTimeMs = Math.round(responseTimeMs);
 
         aiMessage = mainResult.text || "I apologize, but I couldn't generate a response.";
         console.log(`[LLM] Main response length: ${aiMessage.length} chars`);
@@ -1771,7 +1773,7 @@ Please answer based on the knowledge base provided. If you cannot find the answe
         wasEscalated: "false",
       });
       
-      // Then save assistant message
+      // Then save assistant message (responseTimeMs is undefined for cached responses)
       await db.insert(conversationMessages).values({
         conversationId: conversation.id,
         role: "assistant",
@@ -2445,7 +2447,7 @@ INCORRECT citation examples (NEVER do this):
         wasEscalated: "false",
       });
       
-      // Then save assistant message
+      // Then save assistant message (responseTimeMs is undefined for cached responses)
       await db.insert(conversationMessages).values({
         conversationId: conversation.id,
         role: "assistant",
@@ -2691,6 +2693,26 @@ INCORRECT citation examples (NEVER do this):
       const totalMessages = allConversations.reduce((sum, conv) => sum + parseInt(conv.messageCount), 0);
       const escalatedConversations = allConversations.filter(conv => conv.wasEscalated === "true").length;
 
+      // Get response time metrics for assistant messages
+      const responseTimes = await db.select({ responseTimeMs: sql<number | null>`${conversationMessages.responseTimeMs}::int` })
+        .from(conversationMessages)
+        .where(
+          and(
+            eq(conversationMessages.role, "assistant"),
+            inArray(conversationMessages.conversationId, allConversations.map(c => c.id))
+          )
+        );
+
+      const validResponseTimes = responseTimes
+        .map(r => r.responseTimeMs)
+        .filter((t): t is number => t !== null && !isNaN(t));
+
+      const avgResponseTimeMs = validResponseTimes.length > 0 
+        ? Math.round(validResponseTimes.reduce((a, b) => a + b, 0) / validResponseTimes.length) 
+        : 0;
+      const minResponseTimeMs = validResponseTimes.length > 0 ? Math.min(...validResponseTimes) : 0;
+      const maxResponseTimeMs = validResponseTimes.length > 0 ? Math.max(...validResponseTimes) : 0;
+
       // Get recent conversations with message previews
       const recentConversations = await db.select()
         .from(conversations)
@@ -2704,6 +2726,9 @@ INCORRECT citation examples (NEVER do this):
           totalMessages,
           escalatedConversations,
           escalationRate: totalConversations > 0 ? (escalatedConversations / totalConversations * 100).toFixed(1) : "0",
+          avgResponseTimeMs,
+          minResponseTimeMs,
+          maxResponseTimeMs,
         },
         recentConversations,
       });

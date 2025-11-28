@@ -20,6 +20,9 @@ interface AnalyticsData {
     totalMessages: number;
     escalatedConversations: number;
     escalationRate: string;
+    avgResponseTimeMs: number;
+    minResponseTimeMs: number;
+    maxResponseTimeMs: number;
   };
   recentConversations: Conversation[];
 }
@@ -243,6 +246,21 @@ export default function Analytics() {
               </div>
               <p className="text-xs text-muted-foreground">
                 {analytics.metrics.escalatedConversations === 0 ? "Great job!" : "Monitor closely"}
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Avg Response Time</CardTitle>
+              <Clock className="w-4 h-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold" data-testid="metric-avg-response-time">
+                {analytics.metrics.avgResponseTimeMs}ms
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Min: {analytics.metrics.minResponseTimeMs}ms • Max: {analytics.metrics.maxResponseTimeMs}ms
               </p>
             </CardContent>
           </Card>

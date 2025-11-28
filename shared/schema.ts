@@ -164,6 +164,7 @@ export const conversationMessages = pgTable("conversation_messages", {
   content: text("content").notNull(),
   suggestedQuestions: text("suggested_questions").array().default(sql`ARRAY[]::text[]`),
   wasEscalated: text("was_escalated").notNull().default("false"),
+  responseTimeMs: text("response_time_ms"), // Time in milliseconds for bot to generate response (null for user messages)
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
