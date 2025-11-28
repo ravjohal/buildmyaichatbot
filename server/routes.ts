@@ -2753,6 +2753,21 @@ INCORRECT citation examples (NEVER do this):
       const assistantMessageCount = responseTimes.length;
       const fallthroughRate = assistantMessageCount > 0 ? (fallthroughCount / assistantMessageCount * 100).toFixed(1) : "0";
 
+      // Get session duration metrics (from createdAt to lastMessageAt)
+      const sessionDurations = allConversations
+        .map(conv => {
+          const startTime = new Date(conv.createdAt).getTime();
+          const endTime = new Date(conv.lastMessageAt).getTime();
+          return endTime - startTime;
+        })
+        .filter(duration => duration >= 0);
+
+      const avgSessionDurationMs = sessionDurations.length > 0 
+        ? Math.round(sessionDurations.reduce((a, b) => a + b, 0) / sessionDurations.length)
+        : 0;
+      const minSessionDurationMs = sessionDurations.length > 0 ? Math.min(...sessionDurations) : 0;
+      const maxSessionDurationMs = sessionDurations.length > 0 ? Math.max(...sessionDurations) : 0;
+
       // Get recent conversations with message previews
       const recentConversations = await db.select()
         .from(conversations)
@@ -2771,6 +2786,9 @@ INCORRECT citation examples (NEVER do this):
           maxResponseTimeMs,
           fallthroughCount,
           fallthroughRate,
+          avgSessionDurationMs,
+          minSessionDurationMs,
+          maxSessionDurationMs,
         },
         recentConversations,
       });

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useRoute, Link } from "wouter";
-import { MessageSquare, TrendingUp, AlertCircle, Clock, Pencil, Trash2, ArrowLeft } from "lucide-react";
+import { MessageSquare, TrendingUp, AlertCircle, Clock, Pencil, Trash2, ArrowLeft, Timer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -25,6 +25,9 @@ interface AnalyticsData {
     maxResponseTimeMs: number;
     fallthroughCount: number;
     fallthroughRate: string;
+    avgSessionDurationMs: number;
+    minSessionDurationMs: number;
+    maxSessionDurationMs: number;
   };
   recentConversations: Conversation[];
 }
@@ -32,6 +35,17 @@ interface AnalyticsData {
 interface ConversationDetail {
   conversation: Conversation;
   messages: ConversationMessage[];
+}
+
+// Helper to format duration in milliseconds to readable format
+function formatDuration(ms: number): string {
+  if (ms < 1000) return `${ms}ms`;
+  const seconds = Math.round(ms / 1000);
+  if (seconds < 60) return `${seconds}s`;
+  const minutes = Math.round(seconds / 60);
+  if (minutes < 60) return `${minutes}m`;
+  const hours = Math.round(minutes / 60);
+  return `${hours}h`;
 }
 
 export default function Analytics() {
@@ -278,6 +292,21 @@ export default function Analytics() {
               </div>
               <p className="text-xs text-muted-foreground">
                 {analytics.metrics.fallthroughCount} unanswered question{analytics.metrics.fallthroughCount !== 1 ? "s" : ""}
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Avg Session Duration</CardTitle>
+              <Timer className="w-4 h-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold" data-testid="metric-avg-session-duration">
+                {formatDuration(analytics.metrics.avgSessionDurationMs)}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Min: {formatDuration(analytics.metrics.minSessionDurationMs)} • Max: {formatDuration(analytics.metrics.maxSessionDurationMs)}
               </p>
             </CardContent>
           </Card>
