@@ -2768,6 +2768,17 @@ INCORRECT citation examples (NEVER do this):
       const minSessionDurationMs = sessionDurations.length > 0 ? Math.min(...sessionDurations) : 0;
       const maxSessionDurationMs = sessionDurations.length > 0 ? Math.max(...sessionDurations) : 0;
 
+      // Calculate return visitor rate (based on sessionId)
+      const sessionIdCounts = new Map<string | null, number>();
+      allConversations.forEach(conv => {
+        const count = sessionIdCounts.get(conv.sessionId) || 0;
+        sessionIdCounts.set(conv.sessionId, count + 1);
+      });
+
+      const uniqueVisitors = sessionIdCounts.size;
+      const returnVisitors = Array.from(sessionIdCounts.values()).filter(count => count > 1).length;
+      const returnVisitorRate = uniqueVisitors > 0 ? (returnVisitors / uniqueVisitors * 100).toFixed(1) : "0";
+
       // Get recent conversations with message previews
       const recentConversations = await db.select()
         .from(conversations)
@@ -2789,6 +2800,9 @@ INCORRECT citation examples (NEVER do this):
           avgSessionDurationMs,
           minSessionDurationMs,
           maxSessionDurationMs,
+          uniqueVisitors,
+          returnVisitors,
+          returnVisitorRate,
         },
         recentConversations,
       });
