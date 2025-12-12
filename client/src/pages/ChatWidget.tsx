@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import type { PublicChatbot, ChatMessage } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
+import ReactMarkdown from "react-markdown";
 
 // Utility function to convert URLs in text to clickable links
 function linkifyText(text: string) {
@@ -1060,9 +1061,13 @@ export default function ChatWidget() {
                       <div className="w-2 h-2 rounded-full bg-muted-foreground animate-bounce [animation-delay:0.2s]" />
                       <div className="w-2 h-2 rounded-full bg-muted-foreground animate-bounce [animation-delay:0.4s]" />
                     </div>
+                  ) : message.role === "assistant" ? (
+                    <div className="text-sm prose prose-sm dark:prose-invert max-w-none prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-li:my-0 prose-headings:my-2 prose-a:text-primary prose-a:no-underline hover:prose-a:underline" data-testid={`message-${message.id}`}>
+                      <ReactMarkdown>{message.content || ""}</ReactMarkdown>
+                    </div>
                   ) : (
                     <p className="text-sm whitespace-pre-wrap" data-testid={`message-${message.id}`}>
-                      {linkifyText(message.content || "")}
+                      {message.content}
                     </p>
                   )}
                   {message.images && message.images.length > 0 && (
@@ -1340,9 +1345,13 @@ export default function ChatWidget() {
                         <div className="w-2 h-2 rounded-full bg-muted-foreground animate-bounce [animation-delay:0.2s]" />
                         <div className="w-2 h-2 rounded-full bg-muted-foreground animate-bounce [animation-delay:0.4s]" />
                       </div>
+                    ) : message.role === "assistant" ? (
+                      <div className="text-sm prose prose-sm dark:prose-invert max-w-none prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-li:my-0 prose-headings:my-2 prose-a:text-primary prose-a:no-underline hover:prose-a:underline" data-testid={`message-${message.id}`}>
+                        <ReactMarkdown>{message.content || ""}</ReactMarkdown>
+                      </div>
                     ) : (
                       <p className="text-sm whitespace-pre-wrap" data-testid={`message-${message.id}`}>
-                        {linkifyText(message.content || "")}
+                        {message.content}
                       </p>
                     )}
                     {message.images && message.images.length > 0 && (
