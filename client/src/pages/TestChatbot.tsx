@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Send, Bot } from "lucide-react";
+import { Send, Bot, ArrowLeft } from "lucide-react";
 import { useRoute, Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import type { Chatbot, ChatMessage } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { DashboardHeader } from "@/components/DashboardHeader";
+import ReactMarkdown from "react-markdown";
 
 export default function TestChatbot() {
   const [, params] = useRoute("/test/:id");
@@ -229,9 +230,30 @@ export default function TestChatbot() {
                   }
                   data-testid={`message-${message.id}`}
                 >
-                  <p className="text-sm whitespace-pre-wrap">
-                    {message.content || ""}
-                  </p>
+                  {message.role === "assistant" ? (
+                    <div className="text-[15px] leading-relaxed prose prose-sm dark:prose-invert max-w-none prose-p:my-2 prose-ul:my-2 prose-ol:my-2 prose-li:my-0.5 prose-headings:my-3 prose-headings:font-semibold prose-strong:font-semibold prose-code:bg-muted prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-sm prose-code:font-mono" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
+                      <ReactMarkdown
+                        components={{
+                          a: ({ href, children }) => (
+                            <a
+                              href={href}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-primary underline hover:text-primary/80 font-medium"
+                            >
+                              {children}
+                            </a>
+                          ),
+                        }}
+                      >
+                        {message.content || ""}
+                      </ReactMarkdown>
+                    </div>
+                  ) : (
+                    <p className="text-sm whitespace-pre-wrap">
+                      {message.content || ""}
+                    </p>
+                  )}
                   {message.content && chatbot.supportPhoneNumber && 
                     message.content.includes(chatbot.supportPhoneNumber) && (
                       <Button
