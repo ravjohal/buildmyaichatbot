@@ -1062,8 +1062,23 @@ export default function ChatWidget() {
                       <div className="w-2 h-2 rounded-full bg-muted-foreground animate-bounce [animation-delay:0.4s]" />
                     </div>
                   ) : message.role === "assistant" ? (
-                    <div className="text-sm prose prose-sm dark:prose-invert max-w-none prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-li:my-0 prose-headings:my-2 prose-a:text-primary prose-a:no-underline hover:prose-a:underline" data-testid={`message-${message.id}`}>
-                      <ReactMarkdown>{message.content || ""}</ReactMarkdown>
+                    <div className="text-sm prose prose-sm dark:prose-invert max-w-none prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-li:my-0 prose-headings:my-2 prose-headings:font-semibold prose-strong:font-semibold prose-code:bg-muted prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-xs" data-testid={`message-${message.id}`}>
+                      <ReactMarkdown
+                        components={{
+                          a: ({ href, children }) => (
+                            <a
+                              href={href}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-primary underline hover:text-primary/80 font-medium"
+                            >
+                              {children}
+                            </a>
+                          ),
+                        }}
+                      >
+                        {message.content || ""}
+                      </ReactMarkdown>
                     </div>
                   ) : (
                     <p className="text-sm whitespace-pre-wrap" data-testid={`message-${message.id}`}>
@@ -1346,8 +1361,23 @@ export default function ChatWidget() {
                         <div className="w-2 h-2 rounded-full bg-muted-foreground animate-bounce [animation-delay:0.4s]" />
                       </div>
                     ) : message.role === "assistant" ? (
-                      <div className="text-sm prose prose-sm dark:prose-invert max-w-none prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-li:my-0 prose-headings:my-2 prose-a:text-primary prose-a:no-underline hover:prose-a:underline" data-testid={`message-${message.id}`}>
-                        <ReactMarkdown>{message.content || ""}</ReactMarkdown>
+                      <div className="text-sm prose prose-sm dark:prose-invert max-w-none prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-li:my-0 prose-headings:my-2 prose-headings:font-semibold prose-strong:font-semibold prose-code:bg-muted prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-xs" data-testid={`message-${message.id}`}>
+                        <ReactMarkdown
+                          components={{
+                            a: ({ href, children }) => (
+                              <a
+                                href={href}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-primary underline hover:text-primary/80 font-medium"
+                              >
+                                {children}
+                              </a>
+                            ),
+                          }}
+                        >
+                          {message.content || ""}
+                        </ReactMarkdown>
                       </div>
                     ) : (
                       <p className="text-sm whitespace-pre-wrap" data-testid={`message-${message.id}`}>
