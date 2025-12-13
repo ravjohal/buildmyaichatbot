@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import type { PublicChatbot, ChatMessage } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 // Utility function to convert URLs in text to clickable links
 function linkifyText(text: string) {
@@ -1064,6 +1065,7 @@ export default function ChatWidget() {
                   ) : message.role === "assistant" ? (
                     <div className="text-[15px] leading-relaxed prose prose-sm dark:prose-invert max-w-none prose-p:my-2 prose-ul:my-2 prose-ol:my-2 prose-li:my-0.5 prose-headings:my-3 prose-headings:font-semibold prose-strong:font-semibold prose-code:bg-muted prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-sm prose-code:font-mono" style={{ fontFamily: "'Inter', system-ui, sans-serif" }} data-testid={`message-${message.id}`}>
                       <ReactMarkdown
+                        remarkPlugins={[remarkGfm]}
                         components={{
                           a: ({ href, children }) => (
                             <a
@@ -1363,6 +1365,7 @@ export default function ChatWidget() {
                     ) : message.role === "assistant" ? (
                       <div className="text-[15px] leading-relaxed prose prose-sm dark:prose-invert max-w-none prose-p:my-2 prose-ul:my-2 prose-ol:my-2 prose-li:my-0.5 prose-headings:my-3 prose-headings:font-semibold prose-strong:font-semibold prose-code:bg-muted prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-sm prose-code:font-mono" style={{ fontFamily: "'Inter', system-ui, sans-serif" }} data-testid={`message-${message.id}`}>
                         <ReactMarkdown
+                          remarkPlugins={[remarkGfm]}
                           components={{
                             a: ({ href, children }) => (
                               <a
