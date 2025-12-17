@@ -185,7 +185,9 @@ export default function EditChatbot() {
         suggestedQuestions: chatbot.suggestedQuestions || [],
         enableSuggestedQuestions: chatbot.enableSuggestedQuestions || "false",
         supportPhoneNumber: chatbot.supportPhoneNumber || undefined,
+        supportEmail: chatbot.supportEmail || undefined,
         escalationMessage: chatbot.escalationMessage || undefined,
+        persistentQuestion: chatbot.persistentQuestion || undefined,
         liveAgentHoursEnabled: chatbot.liveAgentHoursEnabled || "false",
         liveAgentStartTime: chatbot.liveAgentStartTime || "09:00",
         liveAgentEndTime: chatbot.liveAgentEndTime || "17:00",
@@ -673,7 +675,7 @@ export default function EditChatbot() {
 
       <div className="max-w-5xl mx-auto px-6 py-12">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Edit Chatbot</h1>
+          <h1 className="text-3xl font-bold mb-2">Edit Chatbot: {chatbot?.name || "Loading..."}</h1>
           <p className="text-muted-foreground">
             Update your chatbot settings and configuration
           </p>
