@@ -894,7 +894,10 @@ export default function ChatWidget() {
                 type="button"
                 variant="ghost"
                 className="w-full"
-                onClick={() => {
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  console.log('[LeadForm] Skip button clicked (external link)');
                   setLeadFormSkipped(true);
                   setShowLeadForm(false);
                 }}
@@ -993,9 +996,12 @@ export default function ChatWidget() {
               <Button
                 type="button"
                 variant="ghost"
-                onClick={() => {
-                  setShowLeadForm(false);
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  console.log('[LeadForm] Skip button clicked (built-in form)');
                   setLeadFormSkipped(true);
+                  setShowLeadForm(false);
                 }}
                 data-testid="button-skip-lead"
               >
