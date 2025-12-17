@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import type { PublicChatbot, ChatMessage } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
+import { devLog, devError } from "@/lib/utils";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
@@ -98,13 +99,13 @@ function linkifyText(text: string) {
 }
 
 export default function ChatWidget() {
-  console.log('[ChatWidget] Function called');
+  devLog('[ChatWidget] Function called');
   const [, widgetParams] = useRoute("/widget/:id");
   const [, chatParams] = useRoute("/chat/:id");
   const params = widgetParams || chatParams;
   const chatbotId = params?.id || "";
-  console.log('[ChatWidget] Params:', params);
-  console.log('[ChatWidget] Chatbot ID from route:', chatbotId);
+  devLog('[ChatWidget] Params:', params);
+  devLog('[ChatWidget] Chatbot ID from route:', chatbotId);
   
   // Check if we're in an iframe (embedded) or standalone page (shareable link)
   const isStandalone = window.self === window.top;
@@ -235,7 +236,7 @@ export default function ChatWidget() {
         
         const calcTime = performance.now() - calcStart;
         if (calcTime > 5) {
-          console.log(`[PERF-WIDGET] displayedSuggestions calculation: ${calcTime.toFixed(2)}ms (AI questions)`);
+          devLog(`[PERF-WIDGET] displayedSuggestions calculation: ${calcTime.toFixed(2)}ms (AI questions)`);
         }
         return persistentQuestion ? [...questions, persistentQuestion] : questions;
       }
@@ -256,15 +257,15 @@ export default function ChatWidget() {
   // Track when AI questions are loaded (now from initial chatbot fetch)
   useEffect(() => {
     if (aiGeneratedQuestions.length > 0) {
-      console.log(`[PERF-WIDGET] AI questions available: ${aiGeneratedQuestions.length} questions (from chatbot fetch - no separate API call!)`);
+      devLog(`[PERF-WIDGET] AI questions available: ${aiGeneratedQuestions.length} questions (from chatbot fetch - no separate API call!)`);
     }
   }, [aiGeneratedQuestions]);
   
-  console.log('[ChatWidget] isLoading:', isLoading);
-  console.log('[ChatWidget] chatbot:', chatbot);
-  console.log('[ChatWidget] error:', error);
-  console.log('[ChatWidget] isStandalone:', isStandalone);
-  console.log('[ChatWidget] aiGeneratedQuestions:', aiGeneratedQuestions.length);
+  devLog('[ChatWidget] isLoading:', isLoading);
+  devLog('[ChatWidget] chatbot:', chatbot);
+  devLog('[ChatWidget] error:', error);
+  devLog('[ChatWidget] isStandalone:', isStandalone);
+  devLog('[ChatWidget] aiGeneratedQuestions:', aiGeneratedQuestions.length);
 
   // State for streaming responses
   const [isStreaming, setIsStreaming] = useState(false);
@@ -279,9 +280,9 @@ export default function ChatWidget() {
   
   // Debug: Monitor button state changes
   useEffect(() => {
-    console.log(`[ChatWidget STATE] showHandoffButton changed to: ${showHandoffButton}`);
-    console.log(`[ChatWidget STATE] handoffStatus is: ${handoffStatus}`);
-    console.log(`[ChatWidget STATE] Button will ${showHandoffButton && handoffStatus === "none" ? "SHOW ✅" : "NOT SHOW ❌"}`);
+    devLog(`[ChatWidget STATE] showHandoffButton changed to: ${showHandoffButton}`);
+    devLog(`[ChatWidget STATE] handoffStatus is: ${handoffStatus}`);
+    devLog(`[ChatWidget STATE] Button will ${showHandoffButton && handoffStatus === "none" ? "SHOW ✅" : "NOT SHOW ❌"}`);
   }, [showHandoffButton, handoffStatus]);
   
   // Streaming chat handler
@@ -342,7 +343,7 @@ export default function ChatWidget() {
             if (line.startsWith("data: ")) {
               try {
                 const data = JSON.parse(line.slice(6));
-                console.log(`[ChatWidget SSE] Received event:`, data.type, `shouldEscalate in data:`, data.shouldEscalate);
+                devLog(`[ChatWidget SSE] Received event:`, data.type, `shouldEscalate in data:`, data.shouldEscalate);
 
                 if (data.type === "chunk") {
                   // Streaming chunk - append to message
@@ -356,7 +357,7 @@ export default function ChatWidget() {
                   );
                 } else if (data.type === "complete") {
                   // Final message or cached response
-                  console.log(`[ChatWidget] Complete event received. Full data:`, JSON.stringify(data));
+                  devLog(`[ChatWidget] Complete event received. Full data:`, JSON.stringify(data));
                   if (data.message) {
                     fullResponse = data.message;
                     setMessages((prev) =>
@@ -384,11 +385,11 @@ export default function ChatWidget() {
                     suggestions = data.suggestedQuestions;
                   }
                   if (data.shouldEscalate !== undefined) {
-                    console.log(`[ChatWidget] ✅ Received shouldEscalate in complete event:`, data.shouldEscalate);
-                    console.log(`[ChatWidget] Setting local variable shouldEscalate =`, data.shouldEscalate);
+                    devLog(`[ChatWidget] ✅ Received shouldEscalate in complete event:`, data.shouldEscalate);
+                    devLog(`[ChatWidget] Setting local variable shouldEscalate =`, data.shouldEscalate);
                     shouldEscalate = data.shouldEscalate;
                   } else {
-                    console.log(`[ChatWidget] ⚠️ shouldEscalate field NOT present in complete event`);
+                    devLog(`[ChatWidget] ⚠️ shouldEscalate field NOT present in complete event`);
                   }
                   if (data.liveAgentAvailable !== undefined) {
                     setLiveAgentAvailable(data.liveAgentAvailable);
@@ -414,7 +415,7 @@ export default function ChatWidget() {
                   }
                 } else if (data.type === "handoff_message") {
                   // Message routed to live agent - don't show bot response
-                  console.log("[ChatWidget] Message routed to live agent");
+                  devLog("[ChatWidget] Message routed to live agent");
                   // Remove the temporary assistant message since agent will respond via WebSocket
                   setMessages((prev) => prev.filter((msg) => msg.id !== messageId));
                 } else if (data.type === "error") {
@@ -428,7 +429,7 @@ export default function ChatWidget() {
                   );
                 }
               } catch (e) {
-                console.error("Error parsing SSE data:", e);
+                devError("Error parsing SSE data:", e);
               }
             }
           }
@@ -445,33 +446,33 @@ export default function ChatWidget() {
       );
 
       // Show handoff button if escalation is needed AND live agent is enabled
-      console.log(`[ChatWidget] ========== ESCALATION CHECK ==========`);
-      console.log(`[ChatWidget] Final shouldEscalate value:`, shouldEscalate);
-      console.log(`[ChatWidget] Current handoffStatus:`, handoffStatus);
-      console.log(`[ChatWidget] Live agent enabled:`, chatbot?.liveAgentHoursEnabled);
+      devLog(`[ChatWidget] ========== ESCALATION CHECK ==========`);
+      devLog(`[ChatWidget] Final shouldEscalate value:`, shouldEscalate);
+      devLog(`[ChatWidget] Current handoffStatus:`, handoffStatus);
+      devLog(`[ChatWidget] Live agent enabled:`, chatbot?.liveAgentHoursEnabled);
       
       // Only show handoff button if live agent is enabled
       const liveAgentEnabled = chatbot?.liveAgentHoursEnabled === "true";
       
       if (shouldEscalate && liveAgentEnabled) {
-        console.log(`[ChatWidget] ✅ ESCALATION DETECTED & LIVE AGENT ENABLED - Setting showHandoffButton to true`);
+        devLog(`[ChatWidget] ✅ ESCALATION DETECTED & LIVE AGENT ENABLED - Setting showHandoffButton to true`);
         setShowHandoffButton(true);
-        console.log(`[ChatWidget] Button will show if handoffStatus === "none", current:`, handoffStatus);
+        devLog(`[ChatWidget] Button will show if handoffStatus === "none", current:`, handoffStatus);
         if (handoffStatus !== "none") {
-          console.log(`[ChatWidget] ⚠️ WARNING: Button won't show because handoffStatus is not "none"!`);
+          devLog(`[ChatWidget] ⚠️ WARNING: Button won't show because handoffStatus is not "none"!`);
         }
       } else if (shouldEscalate && !liveAgentEnabled) {
-        console.log(`[ChatWidget] ⚠️ ESCALATION DETECTED but LIVE AGENT DISABLED - Not showing handoff button`);
-        console.log(`[ChatWidget] User should see escalation message with phone/email instead`);
+        devLog(`[ChatWidget] ⚠️ ESCALATION DETECTED but LIVE AGENT DISABLED - Not showing handoff button`);
+        devLog(`[ChatWidget] User should see escalation message with phone/email instead`);
         setShowHandoffButton(false); // Ensure button is hidden when live agent is disabled
       } else {
-        console.log(`[ChatWidget] ❌ No escalation - button will NOT show`);
+        devLog(`[ChatWidget] ❌ No escalation - button will NOT show`);
         setShowHandoffButton(false); // Reset button state when no escalation
       }
-      console.log(`[ChatWidget] ========== END ESCALATION CHECK ==========`);
+      devLog(`[ChatWidget] ========== END ESCALATION CHECK ==========`);
 
     } catch (error) {
-      console.error("Streaming error:", error);
+      devError("Streaming error:", error);
       setMessages((prev) =>
         prev.map((msg) =>
           msg.id === streamingMessageId
@@ -487,15 +488,15 @@ export default function ChatWidget() {
 
   const chatMutation = useMutation({
     mutationFn: async (message: string) => {
-      console.log('[PERF-WIDGET] Chat mutation started');
+      devLog('[PERF-WIDGET] Chat mutation started');
       const mutationStart = performance.now();
       await handleStreamingChat(message);
       const mutationTime = performance.now() - mutationStart;
-      console.log(`[PERF-WIDGET] Chat mutation completed: ${mutationTime.toFixed(2)}ms`);
+      devLog(`[PERF-WIDGET] Chat mutation completed: ${mutationTime.toFixed(2)}ms`);
       return { success: true };
     },
     onSettled: () => {
-      console.log('[PERF-WIDGET] Chat mutation settled (isPending should now be false)');
+      devLog('[PERF-WIDGET] Chat mutation settled (isPending should now be false)');
     },
   });
 
@@ -545,7 +546,7 @@ export default function ChatWidget() {
 
   const handleRequestHandoff = () => {
     if (!conversationId) {
-      console.error("Cannot request handoff without conversation ID");
+      devError("Cannot request handoff without conversation ID");
       return;
     }
     handoffMutation.mutate();
@@ -553,16 +554,16 @@ export default function ChatWidget() {
 
   // WebSocket connection for agent messages
   useEffect(() => {
-    console.log(`[ChatWidget] WebSocket effect triggered - handoffStatus: ${handoffStatus}, conversationId: ${conversationId}`);
+    devLog(`[ChatWidget] WebSocket effect triggered - handoffStatus: ${handoffStatus}, conversationId: ${conversationId}`);
     
     if ((handoffStatus === "requested" || handoffStatus === "connected") && conversationId) {
-      console.log("[ChatWidget] Setting up WebSocket connection");
+      devLog("[ChatWidget] Setting up WebSocket connection");
       const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
       const wsUrl = `${protocol}//${window.location.host}/ws/live-chat`;
       const websocket = new WebSocket(wsUrl);
 
       websocket.onopen = () => {
-        console.log("[ChatWidget] WebSocket connected, joining conversation");
+        devLog("[ChatWidget] WebSocket connected, joining conversation");
         websocket.send(JSON.stringify({
           type: "join",
           conversationId,
@@ -572,7 +573,7 @@ export default function ChatWidget() {
 
       websocket.onmessage = (event) => {
         const data = JSON.parse(event.data);
-        console.log("[ChatWidget] WebSocket message received:", data);
+        devLog("[ChatWidget] WebSocket message received:", data);
 
         if (data.type === "message" && data.role === "agent") {
           setHandoffStatus("connected");
@@ -585,7 +586,7 @@ export default function ChatWidget() {
           setMessages((prev) => [...prev, agentMessage]);
         } else if (data.type === "handoff_resolved") {
           // Agent has returned the visitor to AI support
-          console.log("[ChatWidget] Handoff resolved, returning to AI");
+          devLog("[ChatWidget] Handoff resolved, returning to AI");
           setHandoffStatus("none");
           const aiMessage: ChatMessage = {
             id: Date.now().toString(),
@@ -600,17 +601,17 @@ export default function ChatWidget() {
       };
 
       websocket.onerror = (error) => {
-        console.error("[ChatWidget] WebSocket error:", error);
+        devError("[ChatWidget] WebSocket error:", error);
       };
 
       websocket.onclose = () => {
-        console.log("[ChatWidget] WebSocket connection closed");
+        devLog("[ChatWidget] WebSocket connection closed");
       };
 
       setHandoffWs(websocket);
 
       return () => {
-        console.log("[ChatWidget] Cleaning up WebSocket connection");
+        devLog("[ChatWidget] Cleaning up WebSocket connection");
         websocket.close();
       };
     }
@@ -618,9 +619,9 @@ export default function ChatWidget() {
 
   // Track mutation pending state changes (must be after chatMutation declaration)
   useEffect(() => {
-    console.log(`[PERF-WIDGET] chatMutation.isPending: ${chatMutation.isPending}`);
+    devLog(`[PERF-WIDGET] chatMutation.isPending: ${chatMutation.isPending}`);
     if (!chatMutation.isPending) {
-      console.log(`[PERF-WIDGET] Mutation complete - suggested questions should now be visible`);
+      devLog(`[PERF-WIDGET] Mutation complete - suggested questions should now be visible`);
     }
   }, [chatMutation.isPending]);
 
@@ -629,7 +630,7 @@ export default function ChatWidget() {
     try {
       localStorage.setItem(getStorageKey('messages'), JSON.stringify(messages));
     } catch (error) {
-      console.error('Failed to save messages to localStorage:', error);
+      devError('Failed to save messages to localStorage:', error);
     }
   }, [messages, chatbotId]);
 
@@ -638,7 +639,7 @@ export default function ChatWidget() {
     try {
       localStorage.setItem(getStorageKey('leadCaptured'), leadCaptured.toString());
     } catch (error) {
-      console.error('Failed to save leadCaptured to localStorage:', error);
+      devError('Failed to save leadCaptured to localStorage:', error);
     }
   }, [leadCaptured, chatbotId]);
 
@@ -646,7 +647,7 @@ export default function ChatWidget() {
     try {
       localStorage.setItem(getStorageKey('leadFormSkipped'), leadFormSkipped.toString());
     } catch (error) {
-      console.error('Failed to save leadFormSkipped to localStorage:', error);
+      devError('Failed to save leadFormSkipped to localStorage:', error);
     }
   }, [leadFormSkipped, chatbotId]);
 
@@ -654,7 +655,7 @@ export default function ChatWidget() {
     try {
       localStorage.setItem(getStorageKey('hasRated'), hasRated.toString());
     } catch (error) {
-      console.error('Failed to save hasRated to localStorage:', error);
+      devError('Failed to save hasRated to localStorage:', error);
     }
   }, [hasRated, chatbotId]);
 
@@ -664,7 +665,7 @@ export default function ChatWidget() {
         localStorage.setItem(getStorageKey('conversationId'), conversationId);
       }
     } catch (error) {
-      console.error('Failed to save conversationId to localStorage:', error);
+      devError('Failed to save conversationId to localStorage:', error);
     }
   }, [conversationId, chatbotId]);
 
@@ -672,7 +673,7 @@ export default function ChatWidget() {
     try {
       localStorage.setItem(getStorageKey('questionRotationIndex'), questionRotationIndex.toString());
     } catch (error) {
-      console.error('Failed to save questionRotationIndex to localStorage:', error);
+      devError('Failed to save questionRotationIndex to localStorage:', error);
     }
   }, [questionRotationIndex, chatbotId]);
 
@@ -727,9 +728,9 @@ export default function ChatWidget() {
 
   // Make the widget page transparent when loaded in iframe, but not for standalone page
   useEffect(() => {
-    console.log('[ChatWidget] Component mounted');
-    console.log('[ChatWidget] Chatbot ID:', chatbotId);
-    console.log('[ChatWidget] Is in iframe?', window.self !== window.top);
+    devLog('[ChatWidget] Component mounted');
+    devLog('[ChatWidget] Chatbot ID:', chatbotId);
+    devLog('[ChatWidget] Is in iframe?', window.self !== window.top);
     
     if (!isStandalone) {
       // Only make transparent when embedded in iframe
@@ -798,7 +799,7 @@ export default function ChatWidget() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ questionText: question }),
-      }).catch(err => console.error("Failed to track question usage:", err));
+      }).catch(err => devError("Failed to track question usage:", err));
     }
     
     const userMessage: ChatMessage = {
@@ -897,7 +898,7 @@ export default function ChatWidget() {
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  console.log('[LeadForm] Skip button clicked (external link)');
+                  devLog('[LeadForm] Skip button clicked (external link)');
                   setLeadFormSkipped(true);
                   setShowLeadForm(false);
                 }}
@@ -999,7 +1000,7 @@ export default function ChatWidget() {
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  console.log('[LeadForm] Skip button clicked (built-in form)');
+                  devLog('[LeadForm] Skip button clicked (built-in form)');
                   setLeadFormSkipped(true);
                   setShowLeadForm(false);
                 }}
@@ -1192,7 +1193,7 @@ export default function ChatWidget() {
         {renderLeadForm()}
 
         {(() => {
-          console.log(`[ChatWidget RENDER] showHandoffButton=${showHandoffButton}, handoffStatus=${handoffStatus}`);
+          devLog(`[ChatWidget RENDER] showHandoffButton=${showHandoffButton}, handoffStatus=${handoffStatus}`);
           return null;
         })()}
 
@@ -1652,14 +1653,14 @@ export default function ChatWidget() {
         className="w-16 h-16 rounded-full shadow-2xl flex items-center justify-center text-white transition-transform hover:scale-110 active-elevate-2"
         style={{ backgroundColor: chatbot.primaryColor }}
         onClick={(e) => {
-          console.log('[ChatWidget] Chat button CLICKED!', e);
-          console.log('[ChatWidget] Current isOpen state:', isOpen);
-          console.log('[ChatWidget] Will toggle to:', !isOpen);
+          devLog('[ChatWidget] Chat button CLICKED!', e);
+          devLog('[ChatWidget] Current isOpen state:', isOpen);
+          devLog('[ChatWidget] Will toggle to:', !isOpen);
           setIsOpen(!isOpen);
         }}
-        onMouseEnter={() => console.log('[ChatWidget] Mouse entered chat button')}
-        onMouseDown={() => console.log('[ChatWidget] Mouse down on chat button')}
-        onMouseUp={() => console.log('[ChatWidget] Mouse up on chat button')}
+        onMouseEnter={() => devLog('[ChatWidget] Mouse entered chat button')}
+        onMouseDown={() => devLog('[ChatWidget] Mouse down on chat button')}
+        onMouseUp={() => devLog('[ChatWidget] Mouse up on chat button')}
         data-testid="button-chat-toggle"
       >
         {isOpen ? <X className="w-8 h-8" /> : <MessageCircle className="w-8 h-8" />}

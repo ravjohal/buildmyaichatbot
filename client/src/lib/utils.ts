@@ -4,3 +4,23 @@ import { twMerge } from "tailwind-merge"
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
+
+const isDev = import.meta.env.MODE === 'development';
+
+export function devLog(...args: unknown[]) {
+  if (isDev) {
+    console.log(...args);
+  }
+}
+
+export function devWarn(...args: unknown[]) {
+  if (isDev) {
+    console.warn(...args);
+  }
+}
+
+export function devError(...args: unknown[]) {
+  if (isDev) {
+    console.error(...args);
+  }
+}
