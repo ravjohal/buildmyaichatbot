@@ -213,11 +213,12 @@ export default function ChatWidget() {
   const displayedSuggestions = useMemo(() => {
     const calcStart = performance.now();
     
-    if (!chatbot) return ["How do I connect with a human?"];
+    if (!chatbot) return [];
     
     const userMessages = messages.filter(m => m.role === "user");
     const hasUserInteracted = userMessages.length > 0;
-    const HARDCODED_QUESTION = "How do I connect with a human?";
+    // Use custom persistent question if set, otherwise no persistent question
+    const persistentQuestion = chatbot.persistentQuestion?.trim() || null;
 
     // After user has interacted: show AI-generated questions if toggle is enabled
     if (hasUserInteracted) {
@@ -236,20 +237,20 @@ export default function ChatWidget() {
         if (calcTime > 5) {
           console.log(`[PERF-WIDGET] displayedSuggestions calculation: ${calcTime.toFixed(2)}ms (AI questions)`);
         }
-        return [...questions, HARDCODED_QUESTION];
+        return persistentQuestion ? [...questions, persistentQuestion] : questions;
       }
-      // After interaction, still show the hardcoded question even if no AI questions
-      return [HARDCODED_QUESTION];
+      // After interaction, show persistent question if set
+      return persistentQuestion ? [persistentQuestion] : [];
     }
 
     // Initially (before user interaction): ALWAYS show welcome questions if available
     if (chatbot.suggestedQuestions && chatbot.suggestedQuestions.length > 0) {
       const welcomeQuestions = chatbot.suggestedQuestions.slice(0, 2);
-      return [...welcomeQuestions, HARDCODED_QUESTION];
+      return persistentQuestion ? [...welcomeQuestions, persistentQuestion] : welcomeQuestions;
     }
 
-    // If no welcome questions, just show the hardcoded question
-    return [HARDCODED_QUESTION];
+    // If no welcome questions, show persistent question if set
+    return persistentQuestion ? [persistentQuestion] : [];
   }, [messages, chatbot, aiGeneratedQuestions, questionRotationIndex]);
   
   // Track when AI questions are loaded (now from initial chatbot fetch)

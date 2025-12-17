@@ -211,7 +211,7 @@ export function StepPersonality({ formData, updateFormData, userTier, isAdmin }:
                   <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
                     <li>AI analyzes your knowledge base during indexing</li>
                     <li>Generates 20 FAQ-style questions about your content</li>
-                    <li>Shows 3 questions (2 AI + 1 hardcoded) after visitor's first message</li>
+                    <li>Shows 2 AI questions after visitor's first message</li>
                     <li>Questions rotate automatically after each message for variety</li>
                     <li>Helps guide conversations and improve engagement</li>
                   </ul>
@@ -219,6 +219,26 @@ export function StepPersonality({ formData, updateFormData, userTier, isAdmin }:
               )}
             </>
           )}
+        </CardContent>
+      </Card>
+
+      <Card className="border-2">
+        <CardContent className="p-6 space-y-4">
+          <div className="space-y-3">
+            <Label htmlFor="persistentQuestion" className="text-base font-semibold">
+              Persistent Question (Optional)
+            </Label>
+            <Input
+              id="persistentQuestion"
+              placeholder="e.g., How do I speak with a human?"
+              value={formData.persistentQuestion || ""}
+              onChange={(e) => updateFormData({ persistentQuestion: e.target.value })}
+              data-testid="input-persistent-question"
+            />
+            <p className="text-sm text-muted-foreground">
+              This question will always appear as the last suggested question after every message. Leave blank to disable.
+            </p>
+          </div>
         </CardContent>
       </Card>
 

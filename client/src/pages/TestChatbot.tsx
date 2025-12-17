@@ -134,24 +134,25 @@ export default function TestChatbot() {
 
   // Show static suggested questions after welcome message, or AI-generated ones after any assistant message
   const getDisplayedSuggestions = () => {
-    const HARDCODED_QUESTION = "How do I connect with a human?";
+    // Use custom persistent question if set, otherwise no persistent question
+    const persistentQuestion = chatbot.persistentQuestion?.trim() || null;
     
-    // After welcome message: show welcome questions + hardcoded
+    // After welcome message: show welcome questions + persistent question if set
     if (messages.length === 1 && chatbot.suggestedQuestions && chatbot.suggestedQuestions.length > 0) {
       const welcomeQuestions = chatbot.suggestedQuestions.slice(0, 2);
-      return [...welcomeQuestions, HARDCODED_QUESTION];
+      return persistentQuestion ? [...welcomeQuestions, persistentQuestion] : welcomeQuestions;
     }
     
-    // After AI response: show AI-generated questions + hardcoded
+    // After AI response: show AI-generated questions + persistent question if set
     const lastMessage = messages[messages.length - 1];
     if (lastMessage?.role === "assistant" && lastMessage.suggestedQuestions && lastMessage.suggestedQuestions.length > 0) {
       const aiQuestions = lastMessage.suggestedQuestions.slice(0, 2);
-      return [...aiQuestions, HARDCODED_QUESTION];
+      return persistentQuestion ? [...aiQuestions, persistentQuestion] : aiQuestions;
     }
     
-    // If nothing else, show only the hardcoded question
+    // If nothing else, show persistent question if set
     if (messages.length > 0) {
-      return [HARDCODED_QUESTION];
+      return persistentQuestion ? [persistentQuestion] : [];
     }
     
     return null;
