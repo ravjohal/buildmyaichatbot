@@ -97,9 +97,32 @@ export default function Register() {
         });
       }
     } catch (error) {
+      let errorMessage = "An unexpected error occurred. Please try again.";
+      
+      // Extract the actual error message from the server response
+      if (error instanceof Error) {
+        const errorText = error.message;
+        // Error format is "status: JSON response" from apiRequest
+        const colonIndex = errorText.indexOf(': ');
+        if (colonIndex > 0) {
+          const jsonPart = errorText.substring(colonIndex + 2);
+          try {
+            const parsed = JSON.parse(jsonPart);
+            if (parsed.message) {
+              errorMessage = parsed.message;
+            }
+          } catch {
+            // Not JSON, use the raw text after status code
+            if (jsonPart && jsonPart.length > 0) {
+              errorMessage = jsonPart;
+            }
+          }
+        }
+      }
+      
       toast({
-        title: "Error",
-        description: "An unexpected error occurred. Please try again.",
+        title: "Registration Failed",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
