@@ -1703,7 +1703,7 @@ ${conversationContext || "No previous conversation."}
 
 User Question: ${message}
 
-Please answer based on the knowledge base provided. If you cannot find the answer in the knowledge base, politely let the user know and suggest they contact support${chatbot.supportPhoneNumber ? ` at ${chatbot.supportPhoneNumber}` : ""}.`;
+Please answer based on the knowledge base provided. If you cannot find the answer in the knowledge base, politely let the user know and suggest they contact support${chatbot.supportPhoneNumber ? ` at ${chatbot.supportPhoneNumber}` : ""}${chatbot.supportEmail ? ` or email ${chatbot.supportEmail}` : ""}.`;
 
         // Call LLM for main response only (no AI-generated suggested questions during chat)
         console.log(`[LLM] ========== REGULAR CHAT REQUEST ==========`);
@@ -2308,7 +2308,7 @@ IMPORTANT INSTRUCTIONS:
 1. Answer based on the knowledge base provided above
 2. When citing sources or directing users to more information, ALWAYS use the complete URL (e.g., https://example.com/page), NEVER say "Source" or "Source 1" or reference numbered sources
 3. Keep responses concise and natural
-4. If you cannot find the answer in the knowledge base, politely let the user know and suggest they contact support${chatbot.supportPhoneNumber ? ` at ${chatbot.supportPhoneNumber}` : ""}
+4. If you cannot find the answer in the knowledge base, politely let the user know and suggest they contact support${chatbot.supportPhoneNumber ? ` at ${chatbot.supportPhoneNumber}` : ""}${chatbot.supportEmail ? ` or email ${chatbot.supportEmail}` : ""}
 
 CORRECT citation examples:
 ✓ "You can learn more at https://example.com/about-us"
