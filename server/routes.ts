@@ -1760,14 +1760,20 @@ Please answer based on the knowledge base provided. If you cannot find the answe
 
       let finalMessage = aiMessage;
       
-      // If should escalate and phone number exists, add escalation message
+      // If should escalate, add escalation message with phone/email
       // BUT don't add it if user explicitly requested human (they already have a proper message)
-      if (shouldEscalate && !userRequestsHuman && chatbot.supportPhoneNumber && chatbot.escalationMessage) {
-        const escalationText = chatbot.escalationMessage.replace(
-          "{phone}",
-          chatbot.supportPhoneNumber
-        );
-        if (!finalMessage.includes(chatbot.supportPhoneNumber)) {
+      if (shouldEscalate && !userRequestsHuman && chatbot.escalationMessage && (chatbot.supportPhoneNumber || chatbot.supportEmail)) {
+        let escalationText = chatbot.escalationMessage;
+        if (chatbot.supportPhoneNumber) {
+          escalationText = escalationText.replace("{phone}", chatbot.supportPhoneNumber);
+        }
+        if (chatbot.supportEmail) {
+          escalationText = escalationText.replace("{email}", chatbot.supportEmail);
+        }
+        // Only add if the contact info isn't already in the message
+        const hasPhone = chatbot.supportPhoneNumber && finalMessage.includes(chatbot.supportPhoneNumber);
+        const hasEmail = chatbot.supportEmail && finalMessage.includes(chatbot.supportEmail);
+        if (!hasPhone && !hasEmail) {
           finalMessage += `\n\n${escalationText}`;
         }
       }
@@ -2453,11 +2459,20 @@ INCORRECT citation examples (NEVER do this):
 
       let finalMessage = aiMessage;
       
-      // If should escalate and phone number exists, add escalation message
+      // If should escalate, add escalation message with phone/email
       // BUT don't add it if user explicitly requested human (they already have a proper message)
-      if (shouldEscalate && !userRequestsHuman && chatbot.supportPhoneNumber && chatbot.escalationMessage) {
-        const escalationText = chatbot.escalationMessage.replace("{phone}", chatbot.supportPhoneNumber);
-        if (!finalMessage.includes(chatbot.supportPhoneNumber)) {
+      if (shouldEscalate && !userRequestsHuman && chatbot.escalationMessage && (chatbot.supportPhoneNumber || chatbot.supportEmail)) {
+        let escalationText = chatbot.escalationMessage;
+        if (chatbot.supportPhoneNumber) {
+          escalationText = escalationText.replace("{phone}", chatbot.supportPhoneNumber);
+        }
+        if (chatbot.supportEmail) {
+          escalationText = escalationText.replace("{email}", chatbot.supportEmail);
+        }
+        // Only add if the contact info isn't already in the message
+        const hasPhone = chatbot.supportPhoneNumber && finalMessage.includes(chatbot.supportPhoneNumber);
+        const hasEmail = chatbot.supportEmail && finalMessage.includes(chatbot.supportEmail);
+        if (!hasPhone && !hasEmail) {
           finalMessage += `\n\n${escalationText}`;
         }
       }

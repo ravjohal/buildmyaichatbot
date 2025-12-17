@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Send, Bot, ArrowLeft } from "lucide-react";
+import { Send, Bot, ArrowLeft, Mail } from "lucide-react";
 import { useRoute, Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -268,6 +268,19 @@ export default function TestChatbot() {
                       >
                         <Bot className="w-4 h-4 mr-2" />
                         Call {chatbot.supportPhoneNumber}
+                      </Button>
+                    )}
+                  {message.content && chatbot.supportEmail && 
+                    message.content.includes(chatbot.supportEmail) && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="mt-3 w-full"
+                        onClick={() => window.open(`mailto:${chatbot.supportEmail}`)}
+                        data-testid="button-email-support"
+                      >
+                        <Mail className="w-4 h-4 mr-2" />
+                        Email {chatbot.supportEmail}
                       </Button>
                     )}
                 </div>
