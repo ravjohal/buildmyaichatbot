@@ -5,7 +5,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { Phone, Info, Clock, Bell, X } from "lucide-react";
+import { Phone, Mail, Info, Clock, Bell, X } from "lucide-react";
 import type { InsertChatbot } from "@shared/schema";
 import { useState } from "react";
 
@@ -90,6 +90,25 @@ export function StepEscalation({
         </div>
 
         <div className="space-y-3">
+          <Label htmlFor="supportEmail" className="text-base flex items-center gap-2">
+            <Mail className="w-4 h-4" />
+            Support Email (Optional)
+          </Label>
+          <Input
+            id="supportEmail"
+            type="email"
+            placeholder="support@yourcompany.com"
+            value={formData.supportEmail || ""}
+            onChange={(e) => updateFormData({ supportEmail: e.target.value })}
+            className="h-11"
+            data-testid="input-support-email"
+          />
+          <p className="text-sm text-muted-foreground">
+            This email will be provided when escalating to human support
+          </p>
+        </div>
+
+        <div className="space-y-3">
           <Label htmlFor="escalationMessage" className="text-base">
             Escalation Message
           </Label>
@@ -102,7 +121,7 @@ export function StepEscalation({
             data-testid="input-escalation-message"
           />
           <p className="text-sm text-muted-foreground">
-            Use <code className="bg-muted px-1 py-0.5 rounded text-xs">{"{phone}"}</code> as a placeholder for the phone number
+            Use <code className="bg-muted px-1 py-0.5 rounded text-xs">{"{phone}"}</code> for the phone number and <code className="bg-muted px-1 py-0.5 rounded text-xs">{"{email}"}</code> for the email address
           </p>
         </div>
 

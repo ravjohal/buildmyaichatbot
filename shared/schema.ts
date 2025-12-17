@@ -69,6 +69,7 @@ export const chatbots = pgTable("chatbots", {
   enableSuggestedQuestions: text("enable_suggested_questions").notNull().default("false"),
   persistentQuestion: text("persistent_question"), // Custom question shown after every message (optional)
   supportPhoneNumber: text("support_phone_number"),
+  supportEmail: text("support_email"), // Optional email for support escalation
   escalationMessage: text("escalation_message").notNull().default("If you need more help, you can reach our team at {phone}."),
   questionCount: text("question_count").notNull().default("0"),
   // Feature 8: Lead Capture
@@ -120,6 +121,7 @@ export const insertChatbotSchema = createInsertSchema(chatbots).omit({
   enableSuggestedQuestions: z.string().optional(),
   persistentQuestion: z.string().optional(),
   supportPhoneNumber: z.string().optional(),
+  supportEmail: z.string().email("Invalid email format").optional().or(z.literal("")),
   escalationMessage: z.string().min(1, "Escalation message is required"),
   leadCaptureEnabled: z.string().optional(),
   leadCaptureType: z.enum(["form", "external_link"]).optional(),

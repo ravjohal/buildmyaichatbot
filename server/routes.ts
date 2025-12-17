@@ -518,6 +518,7 @@ ${pages.map(page => `  <url>
         enableSuggestedQuestions: chatbot.enableSuggestedQuestions,
         persistentQuestion: chatbot.persistentQuestion, // Custom question shown after every message
         supportPhoneNumber: chatbot.supportPhoneNumber,
+        supportEmail: chatbot.supportEmail, // Optional email for support escalation
         escalationMessage: chatbot.escalationMessage,
         systemPrompt: chatbot.systemPrompt,
         leadCaptureEnabled: chatbot.leadCaptureEnabled,

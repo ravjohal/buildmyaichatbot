@@ -1119,6 +1119,19 @@ export default function ChatWidget() {
                         Call {chatbot.supportPhoneNumber}
                       </Button>
                     )}
+                  {message.content && chatbot.supportEmail && 
+                    message.content.includes(chatbot.supportEmail) && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="mt-2 w-full"
+                        onClick={() => window.open(`mailto:${chatbot.supportEmail}`)}
+                        data-testid="button-email-support"
+                      >
+                        <MailIcon className="w-4 h-4 mr-2" />
+                        Email {chatbot.supportEmail}
+                      </Button>
+                    )}
                 </div>
               </div>
             ))}
@@ -1417,6 +1430,19 @@ export default function ChatWidget() {
                         >
                           <Phone className="w-4 h-4 mr-2" />
                           Call {chatbot.supportPhoneNumber}
+                        </Button>
+                      )}
+                    {message.content && chatbot.supportEmail && 
+                      message.content.includes(chatbot.supportEmail) && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="mt-2 w-full"
+                          onClick={() => window.open(`mailto:${chatbot.supportEmail}`)}
+                          data-testid="button-email-support-minimized"
+                        >
+                          <MailIcon className="w-4 h-4 mr-2" />
+                          Email {chatbot.supportEmail}
                         </Button>
                       )}
                   </div>
