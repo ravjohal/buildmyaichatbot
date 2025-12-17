@@ -1,14 +1,14 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useRoute, Link } from "wouter";
-import { MessageSquare, TrendingUp, AlertCircle, Clock, Pencil, Trash2, ArrowLeft, Timer, Users, TrendingDown, Calendar } from "lucide-react";
+import { MessageSquare, TrendingUp, AlertCircle, Clock, Pencil, Trash2, ArrowLeft, Timer, Users, TrendingDown, Calendar, Eye, Database } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import type { Chatbot, Conversation, ConversationMessage } from "@shared/schema";
+import type { Chatbot, Conversation, ConversationMessage, QaCache } from "@shared/schema";
 import { formatDistanceToNow } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -60,6 +60,7 @@ export default function Analytics() {
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
   const [editingMessage, setEditingMessage] = useState<{ question: string; originalAnswer: string } | null>(null);
   const [editedAnswer, setEditedAnswer] = useState("");
+  const [showCacheViewer, setShowCacheViewer] = useState(false);
   const { toast } = useToast();
 
   // Auto-open conversation dialog when coming from keyword alert
@@ -90,6 +91,11 @@ export default function Analytics() {
   const { data: manualOverrides } = useQuery<any[]>({
     queryKey: [`/api/chatbots/${chatbotId}/manual-overrides`],
     enabled: !!chatbotId,
+  });
+
+  const { data: cachedEntries, isLoading: cacheLoading } = useQuery<QaCache[]>({
+    queryKey: ['/api/chatbots', chatbotId, 'cache'],
+    enabled: !!chatbotId && showCacheViewer,
   });
 
   // Helper to check if a question has a manual override
@@ -142,6 +148,7 @@ export default function Analytics() {
         title: "Cache cleared",
         description: data.message || "Successfully cleared all cached answers.",
       });
+      queryClient.invalidateQueries({ queryKey: ['/api/chatbots', chatbotId, 'cache'] });
     },
     onError: (error: any) => {
       toast({
@@ -197,15 +204,25 @@ export default function Analytics() {
                 <p className="text-sm text-muted-foreground">View conversation history and metrics</p>
               </div>
             </div>
-            <Button
-              variant="outline"
-              onClick={() => clearCacheMutation.mutate()}
-              disabled={clearCacheMutation.isPending}
-              data-testid="button-clear-cache"
-            >
-              <Trash2 className="w-4 h-4 mr-2" />
-              {clearCacheMutation.isPending ? "Clearing..." : "Clear Q&A Cache"}
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setShowCacheViewer(true)}
+                data-testid="button-view-cache"
+              >
+                <Eye className="w-4 h-4 mr-2" />
+                View Cache
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => clearCacheMutation.mutate()}
+                disabled={clearCacheMutation.isPending}
+                data-testid="button-clear-cache"
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                {clearCacheMutation.isPending ? "Clearing..." : "Clear Q&A Cache"}
+              </Button>
+            </div>
           </div>
         </div>
       </div>
@@ -558,6 +575,93 @@ export default function Analytics() {
             >
               {saveOverrideMutation.isPending ? "Saving..." : "Save Corrected Answer"}
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showCacheViewer} onOpenChange={setShowCacheViewer}>
+        <DialogContent className="max-w-4xl max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Database className="w-5 h-5" />
+              Cached Q&A Entries
+            </DialogTitle>
+            <DialogDescription>
+              View all cached question-answer pairs. These are automatically generated from conversations and help speed up responses.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            {cacheLoading ? (
+              <div className="text-center py-8">
+                <Database className="w-8 h-8 text-muted-foreground mx-auto mb-2 animate-pulse" />
+                <p className="text-sm text-muted-foreground">Loading cached entries...</p>
+              </div>
+            ) : cachedEntries && cachedEntries.length > 0 ? (
+              <ScrollArea className="h-[400px]">
+                <div className="space-y-3">
+                  {cachedEntries.map((entry) => (
+                    <div key={entry.id} className="p-4 border rounded-lg space-y-2" data-testid={`cache-entry-${entry.id}`}>
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1 space-y-2">
+                          <div>
+                            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Question</p>
+                            <p className="text-sm font-medium">{entry.question}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Cached Answer</p>
+                            <p className="text-sm text-muted-foreground line-clamp-3">{entry.answer}</p>
+                          </div>
+                        </div>
+                        <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                          <Badge variant="secondary" className="text-xs">
+                            {entry.hitCount} hits
+                          </Badge>
+                          {entry.lastUsedAt && (
+                            <span className="text-xs text-muted-foreground">
+                              Last used {formatDistanceToNow(new Date(entry.lastUsedAt), { addSuffix: true })}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+            ) : (
+              <div className="text-center py-8">
+                <Database className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
+                <p className="text-sm text-muted-foreground">No cached entries found.</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Cache entries are created when users ask questions.
+                </p>
+              </div>
+            )}
+          </div>
+          <DialogFooter className="flex-row justify-between sm:justify-between gap-2">
+            <div className="text-sm text-muted-foreground">
+              {cachedEntries ? `${cachedEntries.length} cached entries` : ''}
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setShowCacheViewer(false)}
+                data-testid="button-close-cache-viewer"
+              >
+                Close
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={() => {
+                  clearCacheMutation.mutate();
+                  setShowCacheViewer(false);
+                }}
+                disabled={clearCacheMutation.isPending || !cachedEntries || cachedEntries.length === 0}
+                data-testid="button-clear-cache-from-viewer"
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Clear All
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>

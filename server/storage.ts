@@ -29,6 +29,7 @@ export interface IStorage {
   createCacheEntry(cacheEntry: InsertQaCache): Promise<QaCache>;
   updateCacheHitCount(cacheId: string): Promise<void>;
   getCacheStats(chatbotId: string): Promise<{ totalEntries: number; totalHits: number }>;
+  getCachedEntries(chatbotId: string): Promise<QaCache[]>;
   clearChatbotCache(chatbotId: string): Promise<number>;
   
   // Manual Q&A Override operations
@@ -458,6 +459,15 @@ export class DbStorage implements IStorage {
       totalEntries: Number(result[0]?.totalEntries || 0),
       totalHits: Number(result[0]?.totalHits || 0),
     };
+  }
+
+  async getCachedEntries(chatbotId: string): Promise<QaCache[]> {
+    const result = await db
+      .select()
+      .from(qaCache)
+      .where(eq(qaCache.chatbotId, chatbotId))
+      .orderBy(desc(qaCache.lastUsedAt));
+    return result;
   }
 
   async clearChatbotCache(chatbotId: string): Promise<number> {

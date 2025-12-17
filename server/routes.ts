@@ -3097,6 +3097,28 @@ INCORRECT citation examples (NEVER do this):
     }
   });
 
+  // Get all cached Q&A entries for a chatbot (protected)
+  app.get("/api/chatbots/:id/cache", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const chatbotId = req.params.id;
+
+      // Verify user owns this chatbot or is admin
+      const user = await storage.getUser(userId);
+      const chatbot = await storage.getChatbot(chatbotId, userId);
+      
+      if (!chatbot && (!user || user.isAdmin !== "true")) {
+        return res.status(404).json({ error: "Chatbot not found" });
+      }
+
+      const entries = await storage.getCachedEntries(chatbotId);
+      res.json(entries);
+    } catch (error) {
+      console.error("Error fetching cached entries:", error);
+      res.status(500).json({ error: "Failed to fetch cached entries" });
+    }
+  });
+
   // Get all manual Q&A overrides for a chatbot (protected)
   app.get("/api/chatbots/:id/manual-overrides", isAuthenticated, async (req: any, res) => {
     try {
