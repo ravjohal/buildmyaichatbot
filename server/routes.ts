@@ -516,6 +516,7 @@ ${pages.map(page => `  <url>
         suggestedQuestions: chatbot.suggestedQuestions,
         aiGeneratedQuestions: aiGeneratedQuestions, // Include AI questions in initial response
         enableSuggestedQuestions: chatbot.enableSuggestedQuestions,
+        persistentQuestion: chatbot.persistentQuestion, // Custom question shown after every message
         supportPhoneNumber: chatbot.supportPhoneNumber,
         escalationMessage: chatbot.escalationMessage,
         systemPrompt: chatbot.systemPrompt,
