@@ -444,19 +444,29 @@ export default function ChatWidget() {
         )
       );
 
-      // Show handoff button if escalation is needed
+      // Show handoff button if escalation is needed AND live agent is enabled
       console.log(`[ChatWidget] ========== ESCALATION CHECK ==========`);
       console.log(`[ChatWidget] Final shouldEscalate value:`, shouldEscalate);
       console.log(`[ChatWidget] Current handoffStatus:`, handoffStatus);
-      if (shouldEscalate) {
-        console.log(`[ChatWidget] ✅ ESCALATION DETECTED - Setting showHandoffButton to true`);
+      console.log(`[ChatWidget] Live agent enabled:`, chatbot?.liveAgentHoursEnabled);
+      
+      // Only show handoff button if live agent is enabled
+      const liveAgentEnabled = chatbot?.liveAgentHoursEnabled === "true";
+      
+      if (shouldEscalate && liveAgentEnabled) {
+        console.log(`[ChatWidget] ✅ ESCALATION DETECTED & LIVE AGENT ENABLED - Setting showHandoffButton to true`);
         setShowHandoffButton(true);
         console.log(`[ChatWidget] Button will show if handoffStatus === "none", current:`, handoffStatus);
         if (handoffStatus !== "none") {
           console.log(`[ChatWidget] ⚠️ WARNING: Button won't show because handoffStatus is not "none"!`);
         }
+      } else if (shouldEscalate && !liveAgentEnabled) {
+        console.log(`[ChatWidget] ⚠️ ESCALATION DETECTED but LIVE AGENT DISABLED - Not showing handoff button`);
+        console.log(`[ChatWidget] User should see escalation message with phone/email instead`);
+        setShowHandoffButton(false); // Ensure button is hidden when live agent is disabled
       } else {
         console.log(`[ChatWidget] ❌ No escalation - button will NOT show`);
+        setShowHandoffButton(false); // Reset button state when no escalation
       }
       console.log(`[ChatWidget] ========== END ESCALATION CHECK ==========`);
 

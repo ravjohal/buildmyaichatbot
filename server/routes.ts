@@ -529,6 +529,7 @@ ${pages.map(page => `  <url>
         leadCaptureMessage: chatbot.leadCaptureMessage,
         leadCaptureTiming: chatbot.leadCaptureTiming,
         leadCaptureMessageCount: chatbot.leadCaptureMessageCount,
+        liveAgentHoursEnabled: chatbot.liveAgentHoursEnabled, // Whether live agent handoff is configured
       };
       
       res.json(publicConfig);
