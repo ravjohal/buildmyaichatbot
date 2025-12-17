@@ -463,8 +463,8 @@ export default function PrivacyPolicy() {
               <p>
                 <strong>BuildMyChatbot.Ai</strong>
               </p>
-              <p>Email: buildmyaichatbot@gmail.com</p>
-              <p>Data Protection Officer: buildmyaichatbot@gmail.com</p>
+              <p>Email: support@buildmychatbot.ai</p>
+              <p>Data Protection Officer: support@buildmychatbot.ai</p>
             </div>
           </section>
         </div>

@@ -3,7 +3,7 @@ import { useLocation, useRoute, Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Book, Search, Home, ChevronRight, Loader2 } from "lucide-react";
+import { Book, Search, Home, ChevronRight, Loader2, Mail } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -191,6 +191,28 @@ export default function Help() {
                   )}
                 </nav>
               </ScrollArea>
+
+              {/* Support Contact Card */}
+              <Card className="mt-6 p-4 bg-muted/50">
+                <div className="flex items-start gap-3">
+                  <div className="p-2 rounded-full bg-primary/10">
+                    <Mail className="h-4 w-4 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="font-medium text-sm mb-1">Need more help?</h3>
+                    <p className="text-xs text-muted-foreground mb-2">
+                      Can't find what you're looking for? Reach out to our support team.
+                    </p>
+                    <a
+                      href="mailto:support@buildmychatbot.ai"
+                      className="text-sm text-primary hover:underline font-medium"
+                      data-testid="link-support-email"
+                    >
+                      support@buildmychatbot.ai
+                    </a>
+                  </div>
+                </div>
+              </Card>
             </aside>
 
             {/* Article Content */}
