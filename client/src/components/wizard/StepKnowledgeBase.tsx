@@ -41,7 +41,9 @@ const TIMEZONES = [
   { value: "Australia/Sydney", label: "Sydney (AEST/AEDT)" },
 ];
 
-const DAYS_OF_WEEK = [
+type DayOfWeekValue = "monday" | "tuesday" | "wednesday" | "thursday" | "friday" | "saturday" | "sunday";
+
+const DAYS_OF_WEEK: { value: DayOfWeekValue; label: string }[] = [
   { value: "monday", label: "Mon" },
   { value: "tuesday", label: "Tue" },
   { value: "wednesday", label: "Wed" },
@@ -61,14 +63,16 @@ export function StepKnowledgeBase({ formData, updateFormData }: StepKnowledgeBas
   // Get document metadata from formData (persisted across remounts)
   const documentMetadata = (formData.documentMetadata || []) as DocumentMetadata[];
   
+  type ScheduleMode = "disabled" | "once" | "daily" | "weekly";
+  
   // Scheduling state from formData
   const scheduleEnabled = formData.reindexScheduleEnabled === "true";
-  const scheduleMode = formData.reindexScheduleMode || "daily";
+  const scheduleMode = (formData.reindexScheduleMode || "daily") as ScheduleMode;
   const scheduleTime = formData.reindexScheduleTime || "03:00";
   const scheduleTimezone = formData.reindexScheduleTimezone || "America/New_York";
-  const scheduleDays = formData.reindexScheduleDaysOfWeek || ["monday"];
+  const scheduleDays = (formData.reindexScheduleDaysOfWeek || ["monday"]) as DayOfWeekValue[];
   
-  const toggleDayOfWeek = (day: string) => {
+  const toggleDayOfWeek = (day: DayOfWeekValue) => {
     const currentDays = scheduleDays || [];
     const newDays = currentDays.includes(day)
       ? currentDays.filter(d => d !== day)
@@ -392,7 +396,7 @@ export function StepKnowledgeBase({ formData, updateFormData }: StepKnowledgeBas
                     <Label htmlFor="schedule-mode" className="text-sm">Frequency</Label>
                     <Select
                       value={scheduleMode}
-                      onValueChange={(value) => updateFormData({ reindexScheduleMode: value })}
+                      onValueChange={(value) => updateFormData({ reindexScheduleMode: value as ScheduleMode })}
                     >
                       <SelectTrigger id="schedule-mode" data-testid="select-schedule-mode">
                         <SelectValue placeholder="Select frequency" />

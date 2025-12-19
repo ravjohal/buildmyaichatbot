@@ -201,6 +201,13 @@ export default function EditChatbot() {
         leadCaptureMessage: chatbot.leadCaptureMessage || "Leave your contact information and we'll get back to you.",
         leadCaptureTiming: chatbot.leadCaptureTiming || "after_first_message",
         leadCaptureMessageCount: chatbot.leadCaptureMessageCount || "1",
+        // Scheduled reindexing fields
+        reindexScheduleEnabled: chatbot.reindexScheduleEnabled || "false",
+        reindexScheduleMode: chatbot.reindexScheduleMode || "daily",
+        reindexScheduleTime: chatbot.reindexScheduleTime || "03:00",
+        reindexScheduleTimezone: chatbot.reindexScheduleTimezone || "America/New_York",
+        reindexScheduleDaysOfWeek: (chatbot.reindexScheduleDaysOfWeek as ("monday" | "tuesday" | "wednesday" | "thursday" | "friday" | "saturday" | "sunday")[] | null) || ["monday"],
+        reindexScheduleDate: chatbot.reindexScheduleDate || null,
         // CRM fields populated separately from crmIntegration query
         crmEnabled: "false",
         crmIntegrationType: "generic",
