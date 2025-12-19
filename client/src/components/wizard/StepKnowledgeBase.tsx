@@ -2,10 +2,14 @@ import { useState, useEffect } from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Globe, Upload, FileText, X, Plus, Loader2 } from "lucide-react";
+import { Globe, Upload, FileText, X, Plus, Loader2, RefreshCw, Clock, Calendar, ChevronDown, ChevronUp } from "lucide-react";
 import type { InsertChatbot } from "@shared/schema";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 interface StepKnowledgeBaseProps {
   formData: Partial<InsertChatbot> & { documentMetadata?: DocumentMetadata[] };
@@ -21,14 +25,56 @@ interface DocumentMetadata {
   type: string;
 }
 
+const TIMEZONES = [
+  { value: "America/New_York", label: "Eastern Time (ET)" },
+  { value: "America/Chicago", label: "Central Time (CT)" },
+  { value: "America/Denver", label: "Mountain Time (MT)" },
+  { value: "America/Los_Angeles", label: "Pacific Time (PT)" },
+  { value: "America/Anchorage", label: "Alaska Time (AKT)" },
+  { value: "Pacific/Honolulu", label: "Hawaii Time (HT)" },
+  { value: "Europe/London", label: "London (GMT/BST)" },
+  { value: "Europe/Paris", label: "Paris (CET/CEST)" },
+  { value: "Europe/Berlin", label: "Berlin (CET/CEST)" },
+  { value: "Asia/Tokyo", label: "Tokyo (JST)" },
+  { value: "Asia/Shanghai", label: "Shanghai (CST)" },
+  { value: "Asia/Dubai", label: "Dubai (GST)" },
+  { value: "Australia/Sydney", label: "Sydney (AEST/AEDT)" },
+];
+
+const DAYS_OF_WEEK = [
+  { value: "monday", label: "Mon" },
+  { value: "tuesday", label: "Tue" },
+  { value: "wednesday", label: "Wed" },
+  { value: "thursday", label: "Thu" },
+  { value: "friday", label: "Fri" },
+  { value: "saturday", label: "Sat" },
+  { value: "sunday", label: "Sun" },
+];
+
 export function StepKnowledgeBase({ formData, updateFormData }: StepKnowledgeBaseProps) {
   const [newUrl, setNewUrl] = useState("");
   const [urlError, setUrlError] = useState("");
   const [uploadingDoc, setUploadingDoc] = useState(false);
+  const [scheduleOpen, setScheduleOpen] = useState(false);
   const { toast } = useToast();
   
   // Get document metadata from formData (persisted across remounts)
   const documentMetadata = (formData.documentMetadata || []) as DocumentMetadata[];
+  
+  // Scheduling state from formData
+  const scheduleEnabled = formData.reindexScheduleEnabled === "true";
+  const scheduleMode = formData.reindexScheduleMode || "daily";
+  const scheduleTime = formData.reindexScheduleTime || "03:00";
+  const scheduleTimezone = formData.reindexScheduleTimezone || "America/New_York";
+  const scheduleDays = formData.reindexScheduleDaysOfWeek || ["monday"];
+  
+  const toggleDayOfWeek = (day: string) => {
+    const currentDays = scheduleDays || [];
+    const newDays = currentDays.includes(day)
+      ? currentDays.filter(d => d !== day)
+      : [...currentDays, day];
+    updateFormData({ reindexScheduleDaysOfWeek: newDays.length > 0 ? newDays : ["monday"] });
+  };
 
   const handleAddUrl = () => {
     setUrlError("");
@@ -300,6 +346,143 @@ export function StepKnowledgeBase({ formData, updateFormData }: StepKnowledgeBas
             </div>
           )}
         </div>
+
+        {/* Scheduled Reindexing Section */}
+        <Collapsible open={scheduleOpen} onOpenChange={setScheduleOpen} className="border rounded-lg">
+          <CollapsibleTrigger className="flex w-full items-center justify-between p-4 hover-elevate">
+            <div className="flex items-center gap-2">
+              <RefreshCw className="w-4 h-4" />
+              <span className="font-medium">Automatic Knowledge Refresh</span>
+              {scheduleEnabled && (
+                <Badge variant="secondary" className="ml-2 no-default-active-elevate">
+                  {scheduleMode === "daily" ? "Daily" : scheduleMode === "weekly" ? "Weekly" : scheduleMode === "once" ? "One-time" : "Disabled"}
+                </Badge>
+              )}
+            </div>
+            {scheduleOpen ? (
+              <ChevronUp className="w-4 h-4 text-muted-foreground" />
+            ) : (
+              <ChevronDown className="w-4 h-4 text-muted-foreground" />
+            )}
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <div className="p-4 pt-0 space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Keep your chatbot's knowledge up-to-date by scheduling automatic website re-crawls. Your existing knowledge remains intact if a refresh fails.
+              </p>
+
+              <div className="flex items-center justify-between">
+                <Label htmlFor="schedule-enabled" className="text-sm">Enable Scheduled Refresh</Label>
+                <Switch
+                  id="schedule-enabled"
+                  checked={scheduleEnabled}
+                  onCheckedChange={(checked) => {
+                    updateFormData({ 
+                      reindexScheduleEnabled: checked ? "true" : "false",
+                      reindexScheduleMode: checked ? scheduleMode : "disabled"
+                    });
+                  }}
+                  data-testid="switch-schedule-enabled"
+                />
+              </div>
+
+              {scheduleEnabled && (
+                <div className="space-y-4 pt-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="schedule-mode" className="text-sm">Frequency</Label>
+                    <Select
+                      value={scheduleMode}
+                      onValueChange={(value) => updateFormData({ reindexScheduleMode: value })}
+                    >
+                      <SelectTrigger id="schedule-mode" data-testid="select-schedule-mode">
+                        <SelectValue placeholder="Select frequency" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="daily">Daily</SelectItem>
+                        <SelectItem value="weekly">Weekly</SelectItem>
+                        <SelectItem value="once">One-time</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {scheduleMode === "weekly" && (
+                    <div className="space-y-2">
+                      <Label className="text-sm">Days of Week</Label>
+                      <div className="flex flex-wrap gap-2">
+                        {DAYS_OF_WEEK.map((day) => (
+                          <Button
+                            key={day.value}
+                            type="button"
+                            variant={scheduleDays.includes(day.value) ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => toggleDayOfWeek(day.value)}
+                            data-testid={`button-day-${day.value}`}
+                          >
+                            {day.label}
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {scheduleMode === "once" && (
+                    <div className="space-y-2">
+                      <Label htmlFor="schedule-date" className="text-sm">Date</Label>
+                      <Input
+                        id="schedule-date"
+                        type="date"
+                        value={formData.reindexScheduleDate ? new Date(formData.reindexScheduleDate).toISOString().split('T')[0] : ''}
+                        onChange={(e) => updateFormData({ reindexScheduleDate: e.target.value ? new Date(e.target.value) : null })}
+                        min={new Date().toISOString().split('T')[0]}
+                        data-testid="input-schedule-date"
+                      />
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="schedule-time" className="text-sm flex items-center gap-1">
+                        <Clock className="w-3 h-3" /> Time
+                      </Label>
+                      <Input
+                        id="schedule-time"
+                        type="time"
+                        value={scheduleTime}
+                        onChange={(e) => updateFormData({ reindexScheduleTime: e.target.value })}
+                        data-testid="input-schedule-time"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="schedule-timezone" className="text-sm flex items-center gap-1">
+                        <Calendar className="w-3 h-3" /> Timezone
+                      </Label>
+                      <Select
+                        value={scheduleTimezone}
+                        onValueChange={(value) => updateFormData({ reindexScheduleTimezone: value })}
+                      >
+                        <SelectTrigger id="schedule-timezone" data-testid="select-schedule-timezone">
+                          <SelectValue placeholder="Select timezone" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {TIMEZONES.map((tz) => (
+                            <SelectItem key={tz.value} value={tz.value}>
+                              {tz.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <p className="text-xs text-muted-foreground bg-muted p-3 rounded-lg">
+                    Your chatbot will automatically re-crawl website URLs at the scheduled time. If a refresh fails, your chatbot will continue using its existing knowledge - nothing will break.
+                  </p>
+                </div>
+              )}
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
       </div>
     </div>
   );
