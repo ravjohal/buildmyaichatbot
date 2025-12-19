@@ -4318,8 +4318,15 @@ INCORRECT citation examples (NEVER do this):
   // Mark a notification as read
   app.put("/api/admin-notifications/:id/read", isAuthenticated, async (req: any, res) => {
     try {
+      const userId = req.user.id;
       const notificationId = req.params.id;
-      await storage.markNotificationAsRead(notificationId);
+      
+      // Use the userId-scoped method that only marks if owned by user
+      const success = await storage.markNotificationAsReadForUser(notificationId, userId);
+      if (!success) {
+        return res.status(404).json({ error: "Notification not found" });
+      }
+      
       res.json({ success: true });
     } catch (error) {
       console.error("Error marking notification as read:", error);

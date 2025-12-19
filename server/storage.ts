@@ -108,6 +108,7 @@ export interface IStorage {
   getAdminNotifications(userId: string, limit?: number): Promise<AdminNotification[]>;
   getUnreadNotificationCount(userId: string): Promise<number>;
   markNotificationAsRead(notificationId: string): Promise<void>;
+  markNotificationAsReadForUser(notificationId: string, userId: string): Promise<boolean>;
   markAllNotificationsAsRead(userId: string): Promise<void>;
 }
 
@@ -1389,6 +1390,18 @@ export class DbStorage implements IStorage {
       .update(adminNotifications)
       .set({ isRead: "true" })
       .where(eq(adminNotifications.id, notificationId));
+  }
+
+  async markNotificationAsReadForUser(notificationId: string, userId: string): Promise<boolean> {
+    const result = await db
+      .update(adminNotifications)
+      .set({ isRead: "true" })
+      .where(and(
+        eq(adminNotifications.id, notificationId),
+        eq(adminNotifications.userId, userId)
+      ))
+      .returning();
+    return result.length > 0;
   }
 
   async markAllNotificationsAsRead(userId: string): Promise<void> {

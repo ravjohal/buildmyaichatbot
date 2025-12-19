@@ -160,9 +160,8 @@ async function createInAppNotification(
 async function processScheduledReindex(chatbot: ScheduledChatbot): Promise<void> {
   console.log(`[SCHEDULER] Processing scheduled reindex for chatbot ${chatbot.id} (${chatbot.name})`);
   
-  const batchId = `reindex-${chatbot.id}-${Date.now()}`;
-  
   try {
+    // Mark as running
     await db
       .update(chatbots)
       .set({
@@ -175,6 +174,7 @@ async function processScheduledReindex(chatbot: ScheduledChatbot): Promise<void>
       throw new Error("No website URLs configured for reindexing");
     }
     
+    // Create indexing job - the indexing worker will process it asynchronously
     const indexingJob = await storage.createIndexingJob(chatbot.id, chatbot.websiteUrls.length);
     
     const tasks = chatbot.websiteUrls.map(url => ({
@@ -188,8 +188,10 @@ async function processScheduledReindex(chatbot: ScheduledChatbot): Promise<void>
     
     console.log(`[SCHEDULER] Created indexing job ${indexingJob.id} for chatbot ${chatbot.id}`);
     
+    // Update chatbot to show processing status
     await storage.updateChatbotIndexingStatus(chatbot.id, "processing", indexingJob.id);
     
+    // Calculate and set next run time
     const fullChatbot = await storage.getChatbotById(chatbot.id);
     const reindexTime = fullChatbot?.reindexScheduleTime || "03:00";
     const reindexTimezone = fullChatbot?.reindexScheduleTimezone || "America/New_York";
@@ -218,15 +220,18 @@ async function processScheduledReindex(chatbot: ScheduledChatbot): Promise<void>
           nextScheduledReindexAt: null,
         })
         .where(eq(chatbots.id, chatbot.id));
-      console.log(`[SCHEDULER] One-time reindex completed, disabled schedule`);
+      console.log(`[SCHEDULER] One-time reindex schedule disabled`);
     }
+    
+    // Note: The indexing worker will handle the actual processing.
+    // The checkCompletedReindexJobs function monitors job completion and sends
+    // failure notifications if needed.
     
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error(`[SCHEDULER] Reindex failed for chatbot ${chatbot.id}:`, errorMessage);
+    console.error(`[SCHEDULER] Failed to trigger reindex for chatbot ${chatbot.id}:`, errorMessage);
     
-    await storage.rollbackStagedChunks(batchId);
-    
+    // Update status to failed since we couldn't even start the job
     await db
       .update(chatbots)
       .set({
@@ -236,16 +241,82 @@ async function processScheduledReindex(chatbot: ScheduledChatbot): Promise<void>
       })
       .where(eq(chatbots.id, chatbot.id));
     
+    // Send failure notifications
     await createInAppNotification(
       chatbot.userId,
       chatbot.id,
       "reindex_failed",
       `Reindex Failed: ${chatbot.name}`,
-      `The scheduled knowledge base refresh failed: ${errorMessage}. Your chatbot continues to use its existing knowledge base.`,
-      { error: errorMessage, batchId }
+      `The scheduled knowledge base refresh failed to start: ${errorMessage}. Your chatbot continues to use its existing knowledge base.`,
+      { error: errorMessage }
     );
     
     await sendFailureEmailNotification(chatbot.name, chatbot.userId, errorMessage);
+  }
+}
+
+// Check for recently completed scheduled reindex jobs and send notifications
+async function checkCompletedReindexJobs(): Promise<void> {
+  try {
+    // Find chatbots with lastReindexStatus = "running" that have completed indexing
+    const runningReindexes = await db
+      .select({
+        id: chatbots.id,
+        userId: chatbots.userId,
+        name: chatbots.name,
+        indexingStatus: chatbots.indexingStatus,
+        lastReindexStatus: chatbots.lastReindexStatus,
+      })
+      .from(chatbots)
+      .where(eq(chatbots.lastReindexStatus, "running"))
+      .limit(10);
+    
+    for (const chatbot of runningReindexes) {
+      // Check if indexing has completed (status changed from "processing")
+      if (chatbot.indexingStatus !== "processing") {
+        const jobSuccess = chatbot.indexingStatus === "completed";
+        
+        if (jobSuccess) {
+          // Mark reindex as successful
+          await db
+            .update(chatbots)
+            .set({
+              lastReindexStatus: "success",
+              lastReindexError: null,
+            })
+            .where(eq(chatbots.id, chatbot.id));
+          
+          console.log(`[SCHEDULER] Scheduled reindex completed successfully for chatbot ${chatbot.id}`);
+        } else {
+          // Mark reindex as failed and send notifications
+          const errorMessage = "Indexing job failed or was interrupted";
+          
+          await db
+            .update(chatbots)
+            .set({
+              lastReindexStatus: "failed",
+              lastReindexError: errorMessage,
+            })
+            .where(eq(chatbots.id, chatbot.id));
+          
+          // Send failure notifications
+          await createInAppNotification(
+            chatbot.userId,
+            chatbot.id,
+            "reindex_failed",
+            `Reindex Failed: ${chatbot.name}`,
+            `The scheduled knowledge base refresh failed: ${errorMessage}. Your chatbot continues to use its existing knowledge base.`,
+            { error: errorMessage }
+          );
+          
+          await sendFailureEmailNotification(chatbot.name, chatbot.userId, errorMessage);
+          
+          console.log(`[SCHEDULER] Scheduled reindex failed for chatbot ${chatbot.id}`);
+        }
+      }
+    }
+  } catch (error) {
+    console.error("[SCHEDULER] Error checking completed reindex jobs:", error);
   }
 }
 
@@ -288,6 +359,12 @@ async function checkScheduledReindexes(): Promise<void> {
   }
 }
 
+// Main scheduler polling function that runs both checks
+async function runSchedulerChecks(): Promise<void> {
+  await checkScheduledReindexes();
+  await checkCompletedReindexJobs();
+}
+
 export function startReindexScheduler(): void {
   if (isSchedulerRunning) {
     console.log("[SCHEDULER] Reindex scheduler already running");
@@ -297,9 +374,11 @@ export function startReindexScheduler(): void {
   console.log("[SCHEDULER] Starting reindex scheduler...");
   isSchedulerRunning = true;
   
-  checkScheduledReindexes();
+  // Run initial checks
+  runSchedulerChecks();
   
-  schedulerInterval = setInterval(checkScheduledReindexes, SCHEDULER_POLL_INTERVAL_MS);
+  // Poll periodically
+  schedulerInterval = setInterval(runSchedulerChecks, SCHEDULER_POLL_INTERVAL_MS);
   
   console.log(`[SCHEDULER] Reindex scheduler started (polling every ${SCHEDULER_POLL_INTERVAL_MS / 1000}s)`);
 }

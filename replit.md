@@ -30,6 +30,7 @@ The backend is built with Express.js, Node.js, and TypeScript, following a RESTf
 *   **Manual Answer Training:** Allows owners to correct AI responses via the Analytics interface.
 *   **Lead Capture System:** Collects visitor contact information via configurable forms, with a dashboard and CSV export.
 *   **On-Demand Knowledge Base Refresh:** Intelligently updates knowledge bases from website URLs.
+*   **Scheduled Knowledge Base Reindexing:** Automated reindexing with daily, weekly, or one-time schedules. Features include timezone-aware scheduling, day-of-week selection for weekly mode, failure notifications via email (Resend) and in-app alerts, and configurable scheduling UI in both the creation wizard and edit chatbot page. The scheduler polls every 60 seconds to check for due jobs.
 *   **Analytics Dashboard:** Provides metrics, conversation transcripts, and performance breakdowns.
 *   **4-Tier Pricing System:** Free, Starter ($24.99/month), Business ($49/month), and Scale ($129/month) tiers with server-side limit enforcement.
 *   **Admin System:** Full user management, system-wide statistics, and access to all chatbots for administrators.
