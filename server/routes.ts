@@ -2006,7 +2006,7 @@ IMPORTANT: When mentioning support contact information, ALWAYS include ALL of th
       }
 
       // Build conversation history
-      const conversationContext = conversationHistory
+      const conversationContext = (conversationHistory || [])
         .map((msg) => `${msg.role === "user" ? "User" : "Assistant"}: ${msg.content}`)
         .join("\n");
 
@@ -2430,7 +2430,16 @@ INCORRECT citation examples (NEVER do this):
                                       streamError?.message?.includes('overloaded') ||
                                       streamError?.message?.includes('UNAVAILABLE');
               
-              console.error(`[LLM] Streaming error (attempt ${retryCount + 1}/${MAX_RETRIES + 1}):`, streamError);
+              const errorDetails = {
+                message: streamError?.message || 'Unknown error',
+                status: streamError?.status,
+                statusText: streamError?.statusText,
+                name: streamError?.name,
+                code: streamError?.code,
+                model: chatbot.geminiModel,
+              };
+              console.error(`[LLM] Streaming error (attempt ${retryCount + 1}/${MAX_RETRIES + 1}):`, JSON.stringify(errorDetails, null, 2));
+              console.error(`[LLM] Full error object:`, streamError);
               
               // If it's a rate limit error and we have retries left, continue to retry
               if (isRateLimitError && retryCount < MAX_RETRIES) {
@@ -2440,16 +2449,19 @@ INCORRECT citation examples (NEVER do this):
               }
               
               // If we've exhausted retries or it's a different error, send error to client
-              console.error(`[LLM] Final error after ${retryCount} retries:`, streamError);
-              res.write(`data: ${JSON.stringify({ 
-                type: "error",
-                message: isRateLimitError 
-                  ? "The AI service is temporarily busy. Please try again in a moment."
-                  : "I apologize, but I encountered an error. Please try again."
-              })}\n\n`);
-              aiMessage = isRateLimitError 
+              console.error(`[LLM] Final error after ${retryCount} retries:`, JSON.stringify(errorDetails));
+              
+              // Create user-friendly error message with debug info in development
+              let userMessage = isRateLimitError 
                 ? "The AI service is temporarily busy. Please try again in a moment."
                 : "I apologize, but I encountered an error. Please try again.";
+              
+              res.write(`data: ${JSON.stringify({ 
+                type: "error",
+                message: userMessage,
+                debug: process.env.NODE_ENV !== 'production' ? errorDetails : undefined,
+              })}\n\n`);
+              aiMessage = userMessage;
               break;
             }
           }
