@@ -1,0 +1,142 @@
+},
+  {
+    "business_name": "R&R Event Rentals",
+    "category": "Decor",
+    "city": "Hayward",
+    "state": "CA",
+    "website": "https://www.ramanandraveen.com",
+    "rating": 5.0,
+    "price_tier": "$$$",
+    "tags":
+  },
+  {
+    "business_name": "Avasar Mandap",
+    "category": "Decor",
+    "city": "Fremont",
+    "state": "CA",
+    "website": "https://www.avasarmandap.com",
+    "rating": 4.7,
+    "price_tier": "$$",
+    "tags":
+  },
+  {
+    "business_name": "SB Arts",
+    "category": "Decor",
+    "city": "Milpitas",
+    "state": "CA",
+    "website": "https://www.sb-arts.com",
+    "rating": 4.8,
+    "price_tier": "$$$",
+    "tags":
+  },
+  {
+    "business_name": "Flowers by Alis",
+    "category": "Decor & Florals",
+    "city": "Hayward",
+    "state": "CA",
+    "website": "https://flowersbyalis.com",
+    "rating": 4.8,
+    "price_tier": "$$",
+    "tags":
+  },
+  {
+    "business_name": "Shaan Decor",
+    "category": "Decor",
+    "city": "San Ramon",
+    "state": "CA",
+    "website": "https://shaandecorandevents.com",
+    "rating": 4.5,
+    "price_tier": "$$",
+    "tags":
+  },
+  {
+    "business_name": "Fine Linen Creation",
+    "category": "Decor & Rentals",
+    "city": "Campbell",
+    "state": "CA",
+    "website": "https://finelinencreation.com",
+    "rating": 4.9,
+    "price_tier": "$$",
+    "tags":
+  },
+  {
+    "business_name": "Anais Event Planning & Design",
+    "category": "Design & Planning",
+    "city": "San Francisco",
+    "state": "CA",
+    "website": "https://www.anaisevents.com",
+    "rating": 5.0,
+    "price_tier": "$$$$",
+    "tags":
+  },
+  {
+    "business_name": "Baramdaa Events",
+    "category": "Decor",
+    "city": "Fremont",
+    "state": "CA",
+    "website": "https://www.baramdaa.com",
+    "rating": 4.6,
+    "price_tier": "$$",
+    "tags":
+  },
+  {
+    "business_name": "Shakor Decor",
+    "category": "Decor",
+    "city": "Union City",
+    "state": "CA",
+    "website": "https://www.shakordecor.com",
+    "rating": 4.8,
+    "price_tier": "$$$",
+    "tags":
+  },
+  {
+    "business_name": "Prime Party Rentals",
+    "category": "Rentals",
+    "city": "Hayward",
+    "state": "CA",
+    "website": "https://primepartyrentals.com",
+    "rating": 4.3,
+    "price_tier": "$",
+    "tags":
+  },
+  {
+    "business_name": "Elegantly Done Decor",
+    "category": "Decor",
+    "city": "Dublin",
+    "state": "CA",
+    "website": "https://www.elegantlydonedecor.com",
+    "rating": 4.7,
+    "price_tier": "$$",
+    "tags":
+  },
+  {
+    "business_name": "Vivah Decorations",
+    "category": "Decor",
+    "city": "San Jose",
+    "state": "CA",
+    "website": "https://www.vivahdecorations.com",
+    "rating": 4.4,
+    "price_tier": "$$",
+    "tags":
+  },
+  {
+    "business_name": "The Dance Floor Company",
+    "category": "Rentals",
+    "city": "San Jose",
+    "state": "CA",
+    "website": "https://thedancefloorco.com",
+    "rating": 5.0,
+    "price_tier": "$$",
+    "tags":
+  },
+  {
+    "business_name": "Visual Impact Design",
+    "category": "Florals",
+    "city": "Sacramento",
+    "state": "CA",
+    "website": "https://visualimpact-design.com",
+    "rating": 4.8,
+    "price_tier": "$$$",
+    "tags":
+  }
+]
