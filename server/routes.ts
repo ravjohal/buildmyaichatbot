@@ -551,7 +551,8 @@ ${pages.map(page => `  <url>
     try {
       console.log("[DRAFT] Creating draft chatbot...");
       const userId = req.user.id;
-      const { wizardStep, ...data } = req.body;
+      // Extract wizardStep and remove isDraft from user data to prevent override
+      const { wizardStep, isDraft: _ignoredDraft, ...data } = req.body;
       
       // Check tier-based chatbot limits (admins bypass all limits)
       const user = await storage.getUser(userId);
@@ -572,7 +573,7 @@ ${pages.map(page => `  <url>
         }
       }
       
-      // Create draft with minimal required fields
+      // Create draft - spread data first, then enforce isDraft/wizardStep at the end
       const chatbot = await storage.createChatbot({
         name: data.name || "Untitled Chatbot",
         systemPrompt: data.systemPrompt || "You are a helpful assistant.",
@@ -580,9 +581,10 @@ ${pages.map(page => `  <url>
         accentColor: data.accentColor || "#0284C7",
         welcomeMessage: data.welcomeMessage || "Hello! How can I help you today?",
         escalationMessage: data.escalationMessage || "If you need more help, you can reach our team.",
-        isDraft: "true",
-        wizardStep: wizardStep || 2,
         ...data,
+        // Always enforce these values last to prevent client override
+        isDraft: "true",
+        wizardStep: Math.max(1, Math.min(7, wizardStep || 2)),
       }, userId);
       
       console.log("[DRAFT] Created draft:", chatbot.id, "at step", wizardStep);
@@ -598,7 +600,8 @@ ${pages.map(page => `  <url>
     try {
       const userId = req.user.id;
       const chatbotId = req.params.id;
-      const { wizardStep, ...data } = req.body;
+      // Extract wizardStep and remove isDraft from user data to prevent override
+      const { wizardStep, isDraft: _ignoredDraft, ...data } = req.body;
       
       console.log("[DRAFT] Updating draft:", chatbotId, "to step", wizardStep);
       
@@ -608,10 +611,16 @@ ${pages.map(page => `  <url>
         return res.status(404).json({ error: "Chatbot not found" });
       }
       
-      // Update with new data
+      // Only allow updating records that are still drafts
+      if (existingChatbot.isDraft !== "true") {
+        return res.status(400).json({ error: "Cannot update a finalized chatbot via draft endpoint" });
+      }
+      
+      // Update with new data - spread data first, then enforce wizardStep
       const chatbot = await storage.updateChatbot(chatbotId, {
         ...data,
-        wizardStep: wizardStep || existingChatbot.wizardStep,
+        // Always enforce wizardStep last to prevent client override
+        wizardStep: Math.max(1, Math.min(7, wizardStep || existingChatbot.wizardStep || 1)),
       }, userId);
       
       console.log("[DRAFT] Updated draft:", chatbotId);
