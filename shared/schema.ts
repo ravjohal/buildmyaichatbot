@@ -98,6 +98,17 @@ export const chatbots = pgTable("chatbots", {
   lastIndexingJobId: varchar("last_indexing_job_id"),
   // AI Model selection
   geminiModel: varchar("gemini_model", { enum: ["gemini-2.0-flash-exp", "gemini-2.5-pro", "gemini-2.5-flash", "gemini-3.0-flash", "gemini-3.0-pro"] }).notNull().default("gemini-2.5-flash"),
+  // Scheduled reindexing
+  reindexScheduleEnabled: text("reindex_schedule_enabled").notNull().default("false"),
+  reindexScheduleMode: varchar("reindex_schedule_mode", { enum: ["disabled", "once", "daily", "weekly"] }).notNull().default("disabled"),
+  reindexScheduleTime: text("reindex_schedule_time").default("03:00"), // HH:MM format, default 3am
+  reindexScheduleTimezone: text("reindex_schedule_timezone").default("America/New_York"),
+  reindexScheduleDaysOfWeek: text("reindex_schedule_days_of_week").array().default(sql`ARRAY['monday']::text[]`),
+  reindexScheduleDate: timestamp("reindex_schedule_date"), // For one-time future reindex
+  nextScheduledReindexAt: timestamp("next_scheduled_reindex_at"),
+  lastScheduledReindexAt: timestamp("last_scheduled_reindex_at"),
+  lastReindexStatus: varchar("last_reindex_status", { enum: ["success", "failed", "pending", "running"] }),
+  lastReindexError: text("last_reindex_error"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -137,6 +148,13 @@ export const insertChatbotSchema = createInsertSchema(chatbots).omit({
   liveAgentTimezone: z.string().optional(),
   liveAgentDaysOfWeek: z.array(z.enum(["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"])).optional(),
   geminiModel: z.enum(["gemini-2.0-flash-exp", "gemini-2.5-pro", "gemini-2.5-flash", "gemini-3.0-flash", "gemini-3.0-pro"]).optional(),
+  // Scheduled reindexing
+  reindexScheduleEnabled: z.string().optional(),
+  reindexScheduleMode: z.enum(["disabled", "once", "daily", "weekly"]).optional(),
+  reindexScheduleTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format (use HH:MM)").optional(),
+  reindexScheduleTimezone: z.string().optional(),
+  reindexScheduleDaysOfWeek: z.array(z.enum(["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"])).optional(),
+  reindexScheduleDate: z.string().optional(), // ISO date string for one-time scheduling
 });
 
 export type InsertChatbot = z.infer<typeof insertChatbotSchema>;
@@ -453,6 +471,27 @@ export const emailNotificationSettings = pgTable("email_notification_settings", 
 
 export type EmailNotificationSettings = typeof emailNotificationSettings.$inferSelect;
 export type InsertEmailNotificationSettings = typeof emailNotificationSettings.$inferInsert;
+
+// Admin Notifications - in-app alerts for admins/chatbot owners about failures
+export const adminNotifications = pgTable("admin_notifications", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  chatbotId: varchar("chatbot_id").references(() => chatbots.id, { onDelete: "cascade" }),
+  type: varchar("type", { enum: ["reindex_failed", "reindex_success", "system_alert", "limit_warning"] }).notNull(),
+  title: text("title").notNull(),
+  message: text("message").notNull(),
+  isRead: text("is_read").notNull().default("false"),
+  metadata: jsonb("metadata"), // Additional context like error details, job IDs
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertAdminNotificationSchema = createInsertSchema(adminNotifications).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type AdminNotification = typeof adminNotifications.$inferSelect;
+export type InsertAdminNotification = z.infer<typeof insertAdminNotificationSchema>;
 
 // Conversation Flow Builder (Feature 5)
 export const conversationFlows = pgTable("conversation_flows", {
