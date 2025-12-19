@@ -19,6 +19,7 @@ import { notifyJobCancellation } from "./indexing-worker";
 import { setupWebSocket, getLiveChatWS } from "./websocket";
 import { stripe } from "./stripe-config";
 
+const isProduction = process.env.NODE_ENV === "production";
 const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
 const upload = multer({ 
   storage: multer.memoryStorage(),
