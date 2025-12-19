@@ -48,7 +48,9 @@ export default function CreateChatbot() {
   const { toast } = useToast();
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [createdChatbotId, setCreatedChatbotId] = useState<string | null>(null);
+  const [draftChatbotId, setDraftChatbotId] = useState<string | null>(null);
   const [indexingStatus, setIndexingStatus] = useState<IndexingStatus | null>(null);
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -204,12 +206,47 @@ export default function CreateChatbot() {
   };
 
   const handleNext = async () => {
-    console.log('[WIZARD] handleNext called', { currentStep, canProceed: canProceed() });
-    if (currentStep < 7) {
-      console.log('[WIZARD] Advancing to step', currentStep + 1);
-      setCurrentStep(currentStep + 1);
-    } else {
-      console.log('[WIZARD] Already at final step');
+    console.log('[WIZARD] handleNext called', { currentStep, canProceed: canProceed(), draftChatbotId });
+    if (!canProceed()) return;
+    
+    setIsSaving(true);
+    try {
+      if (!draftChatbotId) {
+        // First time saving - create the chatbot draft
+        console.log('[WIZARD] Creating draft chatbot...');
+        const res = await apiRequest("POST", "/api/chatbots/draft", {
+          ...formData,
+          wizardStep: currentStep + 1,
+        });
+        const chatbot = await res.json();
+        setDraftChatbotId(chatbot.id);
+        console.log('[WIZARD] Draft created:', chatbot.id);
+        
+        // Update the chatbots cache
+        queryClient.invalidateQueries({ queryKey: ["/api/chatbots"] });
+      } else {
+        // Update existing draft
+        console.log('[WIZARD] Updating draft chatbot:', draftChatbotId);
+        await apiRequest("PUT", `/api/chatbots/${draftChatbotId}/draft`, {
+          ...formData,
+          wizardStep: currentStep + 1,
+        });
+        console.log('[WIZARD] Draft updated');
+      }
+      
+      if (currentStep < 7) {
+        console.log('[WIZARD] Advancing to step', currentStep + 1);
+        setCurrentStep(currentStep + 1);
+      }
+    } catch (error) {
+      console.error('[WIZARD] Error saving progress:', error);
+      toast({
+        title: "Couldn't save progress",
+        description: "Your changes may not be saved. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -226,16 +263,22 @@ export default function CreateChatbot() {
 
     setIsSubmitting(true);
     try {
-      // Create chatbot immediately - backend handles async indexing
-      const res = await apiRequest("POST", "/api/chatbots", formData as any);
-      const chatbot = await res.json();
+      let chatbot;
       
-      // Optimistically add the new chatbot to the cache with its initial status
-      // This ensures the dashboard shows "pending" state immediately
-      queryClient.setQueryData(["/api/chatbots"], (old: any) => {
-        if (!old) return [chatbot];
-        return [...old, chatbot];
-      });
+      if (draftChatbotId) {
+        // Finalize the draft - this triggers indexing if needed
+        console.log('[WIZARD] Finalizing draft chatbot:', draftChatbotId);
+        const res = await apiRequest("POST", `/api/chatbots/${draftChatbotId}/finalize`, formData as any);
+        chatbot = await res.json();
+      } else {
+        // No draft exists, create chatbot directly (fallback)
+        console.log('[WIZARD] Creating chatbot directly (no draft)');
+        const res = await apiRequest("POST", "/api/chatbots", formData as any);
+        chatbot = await res.json();
+      }
+      
+      // Update the chatbots cache
+      queryClient.invalidateQueries({ queryKey: ["/api/chatbots"] });
       
       // If chatbot has an indexing job, set up status and stay on wizard to show progress
       if (chatbot.indexingJobId) {

@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, timestamp, index, jsonb, vector, customType, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, timestamp, index, jsonb, vector, customType, boolean, integer } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 
 // Custom type for PostgreSQL tsvector
@@ -110,6 +110,9 @@ export const chatbots = pgTable("chatbots", {
   lastScheduledReindexAt: timestamp("last_scheduled_reindex_at"),
   lastReindexStatus: varchar("last_reindex_status", { enum: ["success", "failed", "pending", "running"] }),
   lastReindexError: text("last_reindex_error"),
+  // Wizard draft progress tracking
+  isDraft: text("is_draft").notNull().default("false"),
+  wizardStep: integer("wizard_step").notNull().default(1),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -163,6 +166,18 @@ export const insertChatbotSchema = createInsertSchema(chatbots).omit({
 
 export type InsertChatbot = z.infer<typeof insertChatbotSchema>;
 export type Chatbot = typeof chatbots.$inferSelect;
+
+// Draft chatbot schema with relaxed validation for save-as-you-go
+export const draftChatbotSchema = createInsertSchema(chatbots).omit({
+  id: true,
+  createdAt: true,
+  userId: true,
+}).partial().extend({
+  name: z.string().min(1, "Chatbot name is required"),
+  wizardStep: z.number().optional(),
+});
+
+export type DraftChatbot = z.infer<typeof draftChatbotSchema>;
 
 // Public chatbot type with runtime-computed AI questions (not stored in DB)
 export type PublicChatbot = Chatbot & {
