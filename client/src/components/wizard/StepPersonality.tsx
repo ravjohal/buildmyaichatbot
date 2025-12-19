@@ -113,7 +113,7 @@ export function StepPersonality({ formData, updateFormData, userTier, isAdmin }:
               </div>
               <Select
                 value={formData.geminiModel || "gemini-2.5-flash"}
-                onValueChange={(value) => updateFormData({ geminiModel: value as "gemini-2.0-flash-exp" | "gemini-2.5-pro" | "gemini-2.5-flash" | "gemini-3.0-flash" | "gemini-3.0-pro" })}
+                onValueChange={(value) => updateFormData({ geminiModel: value as "gemini-2.0-flash-exp" | "gemini-2.5-pro" | "gemini-2.5-flash" | "gemini-3-flash" | "gemini-3-pro" })}
               >
                 <SelectTrigger id="geminiModel" data-testid="select-gemini-model">
                   <SelectValue placeholder="Select AI model" />
@@ -137,15 +137,15 @@ export function StepPersonality({ formData, updateFormData, userTier, isAdmin }:
                       <span className="text-xs text-muted-foreground">Most capable 2.5 model</span>
                     </div>
                   </SelectItem>
-                  <SelectItem value="gemini-3.0-flash" data-testid="option-gemini-3.0-flash">
+                  <SelectItem value="gemini-3-flash" data-testid="option-gemini-3-flash">
                     <div className="flex flex-col items-start">
-                      <span className="font-medium">Gemini 3.0 Flash</span>
+                      <span className="font-medium">Gemini 3 Flash</span>
                       <span className="text-xs text-muted-foreground">Next-gen fast model</span>
                     </div>
                   </SelectItem>
-                  <SelectItem value="gemini-3.0-pro" data-testid="option-gemini-3.0-pro">
+                  <SelectItem value="gemini-3-pro" data-testid="option-gemini-3-pro">
                     <div className="flex flex-col items-start">
-                      <span className="font-medium">Gemini 3.0 Pro</span>
+                      <span className="font-medium">Gemini 3 Pro</span>
                       <span className="text-xs text-muted-foreground">Most advanced model</span>
                     </div>
                   </SelectItem>
