@@ -208,6 +208,7 @@ export default function EditChatbot() {
         reindexScheduleTimezone: chatbot.reindexScheduleTimezone || "America/New_York",
         reindexScheduleDaysOfWeek: (chatbot.reindexScheduleDaysOfWeek as ("monday" | "tuesday" | "wednesday" | "thursday" | "friday" | "saturday" | "sunday")[] | null) || ["monday"],
         reindexScheduleDate: chatbot.reindexScheduleDate || null,
+        reindexNotificationEmail: chatbot.reindexNotificationEmail || "",
         // CRM fields populated separately from crmIntegration query
         crmEnabled: "false",
         crmIntegrationType: "generic",

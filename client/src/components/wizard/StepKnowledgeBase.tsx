@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Globe, Upload, FileText, X, Plus, Loader2, RefreshCw, Clock, Calendar, ChevronDown, ChevronUp } from "lucide-react";
+import { Globe, Upload, FileText, X, Plus, Loader2, RefreshCw, Clock, Calendar, ChevronDown, ChevronUp, Mail } from "lucide-react";
 import type { InsertChatbot } from "@shared/schema";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
@@ -71,6 +71,7 @@ export function StepKnowledgeBase({ formData, updateFormData }: StepKnowledgeBas
   const scheduleTime = formData.reindexScheduleTime || "03:00";
   const scheduleTimezone = formData.reindexScheduleTimezone || "America/New_York";
   const scheduleDays = (formData.reindexScheduleDaysOfWeek || ["monday"]) as DayOfWeekValue[];
+  const notificationEmail = formData.reindexNotificationEmail || "";
   
   const toggleDayOfWeek = (day: DayOfWeekValue) => {
     const currentDays = scheduleDays || [];
@@ -477,6 +478,23 @@ export function StepKnowledgeBase({ formData, updateFormData }: StepKnowledgeBas
                         </SelectContent>
                       </Select>
                     </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="notification-email" className="text-sm flex items-center gap-1">
+                      <Mail className="w-3 h-3" /> Failure Notification Email
+                    </Label>
+                    <Input
+                      id="notification-email"
+                      type="email"
+                      placeholder="email@example.com (optional)"
+                      value={notificationEmail}
+                      onChange={(e) => updateFormData({ reindexNotificationEmail: e.target.value })}
+                      data-testid="input-notification-email"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      If a scheduled refresh fails, we'll send a notification to this email. Leave blank to skip email notifications.
+                    </p>
                   </div>
 
                   <p className="text-xs text-muted-foreground bg-muted p-3 rounded-lg">

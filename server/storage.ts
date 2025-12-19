@@ -5,6 +5,7 @@ import { eq, desc, and, sql } from "drizzle-orm";
 export interface IStorage {
   // User operations
   getUser(id: string): Promise<User | undefined>;
+  getAdminUsers(): Promise<User[]>;
   upsertUser(user: UpsertUser): Promise<User>;
   updateStripeCustomerId(userId: string, stripeCustomerId: string): Promise<User>;
   updateStripeSubscriptionId(userId: string, stripeSubscriptionId: string): Promise<User>;
@@ -121,6 +122,14 @@ export class DbStorage implements IStorage {
       .where(eq(users.id, id))
       .limit(1);
     return result[0];
+  }
+
+  async getAdminUsers(): Promise<User[]> {
+    const result = await db
+      .select()
+      .from(users)
+      .where(eq(users.isAdmin, "true"));
+    return result;
   }
 
   async upsertUser(userData: UpsertUser): Promise<User> {

@@ -105,6 +105,7 @@ export const chatbots = pgTable("chatbots", {
   reindexScheduleTimezone: text("reindex_schedule_timezone").default("America/New_York"),
   reindexScheduleDaysOfWeek: text("reindex_schedule_days_of_week").array().default(sql`ARRAY['monday']::text[]`),
   reindexScheduleDate: timestamp("reindex_schedule_date"), // For one-time future reindex
+  reindexNotificationEmail: text("reindex_notification_email"), // Email to notify on failures (optional, defaults to owner)
   nextScheduledReindexAt: timestamp("next_scheduled_reindex_at"),
   lastScheduledReindexAt: timestamp("last_scheduled_reindex_at"),
   lastReindexStatus: varchar("last_reindex_status", { enum: ["success", "failed", "pending", "running"] }),
@@ -155,6 +156,7 @@ export const insertChatbotSchema = createInsertSchema(chatbots).omit({
   reindexScheduleTimezone: z.string().optional(),
   reindexScheduleDaysOfWeek: z.array(z.enum(["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"])).optional(),
   reindexScheduleDate: z.string().datetime().optional().or(z.literal("")).transform(val => val ? new Date(val) : null), // ISO date string for one-time scheduling
+  reindexNotificationEmail: z.string().email("Invalid email format").optional().or(z.literal("")),
   nextScheduledReindexAt: z.string().datetime().optional().or(z.literal("")).transform(val => val ? new Date(val) : null),
   lastScheduledReindexAt: z.string().datetime().optional().or(z.literal("")).transform(val => val ? new Date(val) : null),
 });

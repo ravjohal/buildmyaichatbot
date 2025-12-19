@@ -18,6 +18,7 @@ interface ScheduledChatbot {
   reindexScheduleMode: string;
   reindexScheduleDate: Date | null;
   nextScheduledReindexAt: Date | null;
+  reindexNotificationEmail: string | null;
 }
 
 export async function calculateNextReindexTime(
@@ -86,7 +87,7 @@ export async function calculateNextReindexTime(
 
 async function sendFailureEmailNotification(
   chatbotName: string,
-  userId: string,
+  notificationEmail: string | null,
   errorMessage: string
 ): Promise<void> {
   if (!resend) {
@@ -94,16 +95,15 @@ async function sendFailureEmailNotification(
     return;
   }
   
+  if (!notificationEmail) {
+    console.log("[SCHEDULER] No notification email configured, skipping email notification");
+    return;
+  }
+  
   try {
-    const user = await storage.getUser(userId);
-    if (!user?.email) {
-      console.log("[SCHEDULER] No email for user, skipping email notification");
-      return;
-    }
-    
     await resend.emails.send({
       from: "BuildMyChatbot.AI <notifications@buildmychatbot.ai>",
-      to: user.email,
+      to: notificationEmail,
       subject: `⚠️ Scheduled Reindex Failed for ${chatbotName}`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -128,14 +128,13 @@ async function sendFailureEmailNotification(
       `
     });
     
-    console.log(`[SCHEDULER] Sent failure notification email to ${user.email}`);
+    console.log(`[SCHEDULER] Sent failure notification email to ${notificationEmail}`);
   } catch (error) {
     console.error("[SCHEDULER] Failed to send email notification:", error);
   }
 }
 
-async function createInAppNotification(
-  userId: string,
+async function createAdminInAppNotifications(
   chatbotId: string,
   type: "reindex_failed" | "reindex_success",
   title: string,
@@ -143,17 +142,25 @@ async function createInAppNotification(
   metadata?: Record<string, any>
 ): Promise<void> {
   try {
-    await storage.createAdminNotification({
-      userId,
-      chatbotId,
-      type,
-      title,
-      message,
-      metadata: metadata || null,
-    });
-    console.log(`[SCHEDULER] Created in-app notification for user ${userId}`);
+    // Get all admin users
+    const adminUsers = await storage.getAdminUsers();
+    
+    for (const admin of adminUsers) {
+      await storage.createAdminNotification({
+        userId: admin.id,
+        chatbotId,
+        type,
+        title,
+        message,
+        metadata: metadata || null,
+      });
+    }
+    
+    if (adminUsers.length > 0) {
+      console.log(`[SCHEDULER] Created in-app notifications for ${adminUsers.length} admin(s)`);
+    }
   } catch (error) {
-    console.error("[SCHEDULER] Failed to create in-app notification:", error);
+    console.error("[SCHEDULER] Failed to create admin in-app notifications:", error);
   }
 }
 
@@ -241,9 +248,8 @@ async function processScheduledReindex(chatbot: ScheduledChatbot): Promise<void>
       })
       .where(eq(chatbots.id, chatbot.id));
     
-    // Send failure notifications
-    await createInAppNotification(
-      chatbot.userId,
+    // Send failure notifications - email to configured address, in-app to admins only
+    await createAdminInAppNotifications(
       chatbot.id,
       "reindex_failed",
       `Reindex Failed: ${chatbot.name}`,
@@ -251,7 +257,7 @@ async function processScheduledReindex(chatbot: ScheduledChatbot): Promise<void>
       { error: errorMessage }
     );
     
-    await sendFailureEmailNotification(chatbot.name, chatbot.userId, errorMessage);
+    await sendFailureEmailNotification(chatbot.name, chatbot.reindexNotificationEmail, errorMessage);
   }
 }
 
@@ -266,6 +272,7 @@ async function checkCompletedReindexJobs(): Promise<void> {
         name: chatbots.name,
         indexingStatus: chatbots.indexingStatus,
         lastReindexStatus: chatbots.lastReindexStatus,
+        reindexNotificationEmail: chatbots.reindexNotificationEmail,
       })
       .from(chatbots)
       .where(eq(chatbots.lastReindexStatus, "running"))
@@ -299,9 +306,8 @@ async function checkCompletedReindexJobs(): Promise<void> {
             })
             .where(eq(chatbots.id, chatbot.id));
           
-          // Send failure notifications
-          await createInAppNotification(
-            chatbot.userId,
+          // Send failure notifications - email to configured address, in-app to admins only
+          await createAdminInAppNotifications(
             chatbot.id,
             "reindex_failed",
             `Reindex Failed: ${chatbot.name}`,
@@ -309,7 +315,7 @@ async function checkCompletedReindexJobs(): Promise<void> {
             { error: errorMessage }
           );
           
-          await sendFailureEmailNotification(chatbot.name, chatbot.userId, errorMessage);
+          await sendFailureEmailNotification(chatbot.name, chatbot.reindexNotificationEmail, errorMessage);
           
           console.log(`[SCHEDULER] Scheduled reindex failed for chatbot ${chatbot.id}`);
         }
@@ -333,6 +339,7 @@ async function checkScheduledReindexes(): Promise<void> {
         reindexScheduleMode: chatbots.reindexScheduleMode,
         reindexScheduleDate: chatbots.reindexScheduleDate,
         nextScheduledReindexAt: chatbots.nextScheduledReindexAt,
+        reindexNotificationEmail: chatbots.reindexNotificationEmail,
       })
       .from(chatbots)
       .where(and(
