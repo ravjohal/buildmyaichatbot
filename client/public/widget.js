@@ -21,7 +21,8 @@
   let chatbotServerOrigin;
   if (scriptSrc) {
     try {
-      const scriptUrl = new URL(scriptSrc);
+      // Use base URL to handle relative paths like "/widget.js"
+      const scriptUrl = new URL(scriptSrc, window.location.origin);
       chatbotServerOrigin = scriptUrl.origin;
     } catch (e) {
       console.error('[ChatBot Widget] Failed to parse script src, using fallback:', e);
@@ -39,9 +40,10 @@
   // CRITICAL: Use the chatbot server's origin, NOT the current page's origin
   iframe.src = `${chatbotServerOrigin}/widget/${chatbotId}`;
   
-  // START COLLAPSED: Small size for just the launcher button, pointer-events only on the button area
-  // This prevents the transparent iframe from blocking clicks on the host page
-  iframe.style.cssText = 'position: fixed; bottom: 0; right: 0; width: 100px; height: 100px; border: none; background: transparent; z-index: 2147483647; pointer-events: none;';
+  // START COLLAPSED: Small size for just the launcher button area
+  // With a small footprint (100x100), the iframe only covers the button area, not the whole page
+  // pointer-events:auto is needed so the button can be clicked
+  iframe.style.cssText = 'position: fixed; bottom: 0; right: 0; width: 100px; height: 100px; border: none; background: transparent; z-index: 2147483647; pointer-events: auto;';
   iframe.setAttribute('allow', 'clipboard-write');
   iframe.id = 'chatbot-widget-iframe';
   
@@ -69,17 +71,15 @@
       console.log('[ChatBot Widget] Received resize message:', data);
       
       if (data.isOpen) {
-        // Expanded: Full chat window size with pointer-events enabled
+        // Expanded: Full chat window size
         iframe.style.width = '450px';
         iframe.style.height = '720px';
-        iframe.style.pointerEvents = 'auto';
         console.log('[ChatBot Widget] Expanded to full size');
       } else {
-        // Collapsed: Small area for just the launcher button, pointer-events disabled on iframe
-        // The button inside will still be clickable because we enable pointer-events on specific elements
+        // Collapsed: Small area for just the launcher button (100x100)
+        // This small footprint only covers the button area, not the whole page
         iframe.style.width = '100px';
         iframe.style.height = '100px';
-        iframe.style.pointerEvents = 'none';
         console.log('[ChatBot Widget] Collapsed to launcher size');
       }
     }
