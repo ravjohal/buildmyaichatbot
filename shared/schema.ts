@@ -155,10 +155,10 @@ export const insertChatbotSchema = createInsertSchema(chatbots).omit({
   reindexScheduleTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format (use HH:MM)").optional(),
   reindexScheduleTimezone: z.string().optional(),
   reindexScheduleDaysOfWeek: z.array(z.enum(["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"])).optional(),
-  reindexScheduleDate: z.string().datetime().optional().or(z.literal("")).transform(val => val ? new Date(val) : null), // ISO date string for one-time scheduling
+  reindexScheduleDate: z.string().datetime().nullable().optional().or(z.literal("")).transform(val => val ? new Date(val) : null), // ISO date string for one-time scheduling
   reindexNotificationEmail: z.string().email("Invalid email format").optional().or(z.literal("")),
-  nextScheduledReindexAt: z.string().datetime().optional().or(z.literal("")).transform(val => val ? new Date(val) : null),
-  lastScheduledReindexAt: z.string().datetime().optional().or(z.literal("")).transform(val => val ? new Date(val) : null),
+  nextScheduledReindexAt: z.string().datetime().nullable().optional().or(z.literal("")).transform(val => val ? new Date(val) : null),
+  lastScheduledReindexAt: z.string().datetime().nullable().optional().or(z.literal("")).transform(val => val ? new Date(val) : null),
 });
 
 export type InsertChatbot = z.infer<typeof insertChatbotSchema>;
