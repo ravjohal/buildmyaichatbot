@@ -4285,6 +4285,60 @@ INCORRECT citation examples (NEVER do this):
     }
   });
 
+  // ===== ADMIN NOTIFICATIONS ENDPOINTS =====
+  
+  // Get admin notifications for current user
+  app.get("/api/admin-notifications", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const limit = parseInt(req.query.limit as string) || 50;
+      
+      const notifications = await storage.getAdminNotifications(userId, limit);
+      const unreadCount = await storage.getUnreadNotificationCount(userId);
+      
+      res.json({ notifications, unreadCount });
+    } catch (error) {
+      console.error("Error fetching admin notifications:", error);
+      res.status(500).json({ error: "Failed to fetch notifications" });
+    }
+  });
+
+  // Get unread notification count
+  app.get("/api/admin-notifications/unread-count", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const count = await storage.getUnreadNotificationCount(userId);
+      res.json({ count });
+    } catch (error) {
+      console.error("Error fetching unread count:", error);
+      res.status(500).json({ error: "Failed to fetch unread count" });
+    }
+  });
+
+  // Mark a notification as read
+  app.put("/api/admin-notifications/:id/read", isAuthenticated, async (req: any, res) => {
+    try {
+      const notificationId = req.params.id;
+      await storage.markNotificationAsRead(notificationId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error marking notification as read:", error);
+      res.status(500).json({ error: "Failed to mark notification as read" });
+    }
+  });
+
+  // Mark all notifications as read
+  app.put("/api/admin-notifications/mark-all-read", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      await storage.markAllNotificationsAsRead(userId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error marking all notifications as read:", error);
+      res.status(500).json({ error: "Failed to mark notifications as read" });
+    }
+  });
+
   // Test weekly report endpoint (for testing purposes)
   app.post("/api/test-weekly-report", isAuthenticated, async (req: any, res) => {
     try {

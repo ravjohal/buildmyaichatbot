@@ -157,5 +157,10 @@ app.use((req, res, next) => {
     // Start background indexing worker
     const { startIndexingWorker } = await import('./indexing-worker');
     await startIndexingWorker();
+    
+    // Start scheduled reindexing scheduler
+    const { startReindexScheduler } = await import('./reindex-scheduler');
+    startReindexScheduler();
+    log('Scheduled reindex scheduler started');
   });
 })();
