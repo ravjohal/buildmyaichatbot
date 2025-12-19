@@ -743,6 +743,18 @@ export default function ChatWidget() {
     }
   }, [isStandalone]);
 
+  // Notify parent window when chat opens/closes (for iframe resizing)
+  useEffect(() => {
+    if (!isStandalone && window.parent !== window) {
+      // Post message to parent window to resize iframe
+      window.parent.postMessage({
+        type: 'chatbot-widget-resize',
+        isOpen: isOpen
+      }, '*');
+      devLog('[ChatWidget] Posted resize message to parent:', { isOpen });
+    }
+  }, [isOpen, isStandalone]);
+
   // Proactive chat popup
   useEffect(() => {
     if (!chatbot || isStandalone || chatbot.proactiveChatEnabled !== "true") {
@@ -1624,7 +1636,7 @@ export default function ChatWidget() {
       )}
 
       {showProactivePopup && !isOpen && (
-        <div className="absolute bottom-20 right-0 bg-card border rounded-lg shadow-lg p-3 max-w-xs animate-in slide-in-from-bottom-5 mb-2">
+        <div className="absolute bottom-20 right-0 bg-card border rounded-lg shadow-lg p-3 max-w-xs animate-in slide-in-from-bottom-5 mb-2 pointer-events-auto">
           <Button
             variant="ghost"
             size="icon"
@@ -1650,7 +1662,7 @@ export default function ChatWidget() {
       )}
 
       <button
-        className="w-16 h-16 rounded-full shadow-2xl flex items-center justify-center text-white transition-transform hover:scale-110 active-elevate-2"
+        className="w-16 h-16 rounded-full shadow-2xl flex items-center justify-center text-white transition-transform hover:scale-110 active-elevate-2 pointer-events-auto"
         style={{ backgroundColor: chatbot.primaryColor }}
         onClick={(e) => {
           devLog('[ChatWidget] Chat button CLICKED!', e);

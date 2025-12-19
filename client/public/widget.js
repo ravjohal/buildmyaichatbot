@@ -39,7 +39,9 @@
   // CRITICAL: Use the chatbot server's origin, NOT the current page's origin
   iframe.src = `${chatbotServerOrigin}/widget/${chatbotId}`;
   
-  iframe.style.cssText = 'position: fixed; bottom: 0; right: 0; width: 450px; height: 720px; border: none; background: transparent; z-index: 2147483647; pointer-events: auto;';
+  // START COLLAPSED: Small size for just the launcher button, pointer-events only on the button area
+  // This prevents the transparent iframe from blocking clicks on the host page
+  iframe.style.cssText = 'position: fixed; bottom: 0; right: 0; width: 100px; height: 100px; border: none; background: transparent; z-index: 2147483647; pointer-events: none;';
   iframe.setAttribute('allow', 'clipboard-write');
   iframe.id = 'chatbot-widget-iframe';
   
@@ -53,6 +55,34 @@
   
   iframe.addEventListener('error', function(e) {
     console.error('[ChatBot Widget] Iframe error:', e);
+  });
+
+  // Listen for messages from the iframe to resize it
+  window.addEventListener('message', function(event) {
+    // Verify the message is from our chatbot origin
+    if (event.origin !== chatbotServerOrigin) {
+      return;
+    }
+
+    const data = event.data;
+    if (data && data.type === 'chatbot-widget-resize') {
+      console.log('[ChatBot Widget] Received resize message:', data);
+      
+      if (data.isOpen) {
+        // Expanded: Full chat window size with pointer-events enabled
+        iframe.style.width = '450px';
+        iframe.style.height = '720px';
+        iframe.style.pointerEvents = 'auto';
+        console.log('[ChatBot Widget] Expanded to full size');
+      } else {
+        // Collapsed: Small area for just the launcher button, pointer-events disabled on iframe
+        // The button inside will still be clickable because we enable pointer-events on specific elements
+        iframe.style.width = '100px';
+        iframe.style.height = '100px';
+        iframe.style.pointerEvents = 'none';
+        console.log('[ChatBot Widget] Collapsed to launcher size');
+      }
+    }
   });
   
   document.body.appendChild(iframe);
