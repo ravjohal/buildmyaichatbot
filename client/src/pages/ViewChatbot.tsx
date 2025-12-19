@@ -504,11 +504,15 @@ export default function ViewChatbot() {
                     {chatbot.geminiModel === "gemini-2.0-flash-exp" && "Gemini 2.0 Flash (Experimental)"}
                     {chatbot.geminiModel === "gemini-2.5-flash" && "Gemini 2.5 Flash"}
                     {chatbot.geminiModel === "gemini-2.5-pro" && "Gemini 2.5 Pro"}
+                    {chatbot.geminiModel === "gemini-3.0-flash" && "Gemini 3.0 Flash"}
+                    {chatbot.geminiModel === "gemini-3.0-pro" && "Gemini 3.0 Pro"}
                   </Badge>
                   <span className="text-sm text-muted-foreground">
                     {chatbot.geminiModel === "gemini-2.0-flash-exp" && "Fastest, best value"}
                     {chatbot.geminiModel === "gemini-2.5-flash" && "Latest flash model"}
-                    {chatbot.geminiModel === "gemini-2.5-pro" && "Most capable, higher cost"}
+                    {chatbot.geminiModel === "gemini-2.5-pro" && "Most capable 2.5 model"}
+                    {chatbot.geminiModel === "gemini-3.0-flash" && "Next-gen fast model"}
+                    {chatbot.geminiModel === "gemini-3.0-pro" && "Most advanced model"}
                   </span>
                 </div>
               </CardContent>

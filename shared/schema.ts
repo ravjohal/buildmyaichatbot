@@ -97,7 +97,7 @@ export const chatbots = pgTable("chatbots", {
   indexingStatus: varchar("indexing_status", { enum: ["pending", "processing", "completed", "failed"] }).notNull().default("completed"),
   lastIndexingJobId: varchar("last_indexing_job_id"),
   // AI Model selection
-  geminiModel: varchar("gemini_model", { enum: ["gemini-2.0-flash-exp", "gemini-2.5-pro", "gemini-2.5-flash"] }).notNull().default("gemini-2.5-flash"),
+  geminiModel: varchar("gemini_model", { enum: ["gemini-2.0-flash-exp", "gemini-2.5-pro", "gemini-2.5-flash", "gemini-3.0-flash", "gemini-3.0-pro"] }).notNull().default("gemini-2.5-flash"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -136,7 +136,7 @@ export const insertChatbotSchema = createInsertSchema(chatbots).omit({
   liveAgentEndTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format (use HH:MM)").optional(),
   liveAgentTimezone: z.string().optional(),
   liveAgentDaysOfWeek: z.array(z.enum(["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"])).optional(),
-  geminiModel: z.enum(["gemini-2.0-flash-exp", "gemini-2.5-pro", "gemini-2.5-flash"]).optional(),
+  geminiModel: z.enum(["gemini-2.0-flash-exp", "gemini-2.5-pro", "gemini-2.5-flash", "gemini-3.0-flash", "gemini-3.0-pro"]).optional(),
 });
 
 export type InsertChatbot = z.infer<typeof insertChatbotSchema>;
