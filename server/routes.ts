@@ -365,11 +365,17 @@ ${pages.map(page => `  <url>
   app.get("/api/chatbots", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id;
+      const includeDrafts = req.query.includeDrafts === "true";
       const chatbots = await storage.getAllChatbots(userId);
+      
+      // Filter out drafts unless explicitly requested
+      const filteredChatbots = includeDrafts 
+        ? chatbots 
+        : chatbots.filter(c => c.isDraft !== "true");
       
       // Enrich chatbots with chunk count for display
       const chatbotsWithChunks = await Promise.all(
-        chatbots.map(async (chatbot) => {
+        filteredChatbots.map(async (chatbot) => {
           const chunkCount = await storage.countChunksForChatbot(chatbot.id);
           return {
             ...chatbot,
@@ -537,6 +543,189 @@ ${pages.map(page => `  <url>
     } catch (error) {
       console.error("Error fetching public chatbot:", error);
       res.status(500).json({ error: "Failed to fetch chatbot" });
+    }
+  });
+
+  // Create draft chatbot - saves progress during wizard
+  app.post("/api/chatbots/draft", isAuthenticated, async (req: any, res) => {
+    try {
+      console.log("[DRAFT] Creating draft chatbot...");
+      const userId = req.user.id;
+      const { wizardStep, ...data } = req.body;
+      
+      // Check tier-based chatbot limits (admins bypass all limits)
+      const user = await storage.getUser(userId);
+      if (user && user.isAdmin !== "true") {
+        const tier = user.subscriptionTier;
+        const limits = TIER_LIMITS[tier];
+        
+        if (limits.chatbots !== -1) {
+          const existingChatbots = await storage.getAllChatbots(userId);
+          // Count non-draft chatbots only
+          const nonDraftChatbots = existingChatbots.filter(c => c.isDraft !== "true");
+          if (nonDraftChatbots.length >= limits.chatbots) {
+            return res.status(403).json({
+              error: "Upgrade required",
+              message: `You've reached your chatbot limit. Upgrade to create more.`
+            });
+          }
+        }
+      }
+      
+      // Create draft with minimal required fields
+      const chatbot = await storage.createChatbot({
+        name: data.name || "Untitled Chatbot",
+        systemPrompt: data.systemPrompt || "You are a helpful assistant.",
+        primaryColor: data.primaryColor || "#0EA5E9",
+        accentColor: data.accentColor || "#0284C7",
+        welcomeMessage: data.welcomeMessage || "Hello! How can I help you today?",
+        escalationMessage: data.escalationMessage || "If you need more help, you can reach our team.",
+        isDraft: "true",
+        wizardStep: wizardStep || 2,
+        ...data,
+      }, userId);
+      
+      console.log("[DRAFT] Created draft:", chatbot.id, "at step", wizardStep);
+      res.status(201).json(chatbot);
+    } catch (error) {
+      console.error("[DRAFT] Error creating draft:", error);
+      res.status(500).json({ error: "Failed to create draft" });
+    }
+  });
+
+  // Update draft chatbot - saves progress during wizard
+  app.put("/api/chatbots/:id/draft", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const chatbotId = req.params.id;
+      const { wizardStep, ...data } = req.body;
+      
+      console.log("[DRAFT] Updating draft:", chatbotId, "to step", wizardStep);
+      
+      // Verify ownership
+      const existingChatbot = await storage.getChatbot(chatbotId, userId);
+      if (!existingChatbot) {
+        return res.status(404).json({ error: "Chatbot not found" });
+      }
+      
+      // Update with new data
+      const chatbot = await storage.updateChatbot(chatbotId, {
+        ...data,
+        wizardStep: wizardStep || existingChatbot.wizardStep,
+      }, userId);
+      
+      console.log("[DRAFT] Updated draft:", chatbotId);
+      res.json(chatbot);
+    } catch (error) {
+      console.error("[DRAFT] Error updating draft:", error);
+      res.status(500).json({ error: "Failed to update draft" });
+    }
+  });
+
+  // Finalize draft chatbot - marks as complete and triggers indexing
+  app.post("/api/chatbots/:id/finalize", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const chatbotId = req.params.id;
+      const data = req.body;
+      
+      console.log("[FINALIZE] Finalizing chatbot:", chatbotId);
+      
+      // Verify ownership
+      const existingChatbot = await storage.getChatbot(chatbotId, userId);
+      if (!existingChatbot) {
+        return res.status(404).json({ error: "Chatbot not found" });
+      }
+      
+      // Update with final data and mark as not a draft
+      let updateData: any = {
+        ...data,
+        isDraft: "false",
+        wizardStep: 7,
+      };
+      
+      // Process documents if present
+      const hasDocuments = data.documentContent && data.documentContent.trim().length > 0;
+      if (hasDocuments) {
+        console.log(`[FINALIZE] Processing documents...`);
+        try {
+          const { chunkContent } = await import('./chunker');
+          const { embeddingService } = await import('./embedding');
+          
+          const contentChunks = chunkContent(data.documentContent!, {
+            title: data.name || existingChatbot.name,
+          });
+          
+          const chunksWithEmbeddings = await Promise.all(
+            contentChunks.map(async (chunk) => {
+              try {
+                const embedding = await embeddingService.generateEmbedding(chunk.text);
+                return {
+                  chatbotId,
+                  sourceType: 'document' as const,
+                  sourceUrl: data.documents?.[0] || 'Uploaded Documents',
+                  sourceTitle: data.documents?.[0] || 'Documents',
+                  chunkText: chunk.text,
+                  chunkIndex: chunk.index.toString(),
+                  contentHash: chunk.contentHash,
+                  embedding,
+                  metadata: chunk.metadata,
+                };
+              } catch (err) {
+                console.error(`[FINALIZE] Failed to generate embedding:`, err);
+                return {
+                  chatbotId,
+                  sourceType: 'document' as const,
+                  sourceUrl: data.documents?.[0] || 'Uploaded Documents',
+                  sourceTitle: data.documents?.[0] || 'Documents',
+                  chunkText: chunk.text,
+                  chunkIndex: chunk.index.toString(),
+                  contentHash: chunk.contentHash,
+                  embedding: [],
+                  metadata: chunk.metadata,
+                };
+              }
+            })
+          );
+          
+          await storage.createKnowledgeChunks(chunksWithEmbeddings);
+          console.log(`[FINALIZE] Created ${chunksWithEmbeddings.length} document chunks`);
+        } catch (err) {
+          console.error(`[FINALIZE] Failed to process documents:`, err);
+        }
+      }
+      
+      // Handle website URLs - queue async indexing if needed
+      const hasUrls = data.websiteUrls && data.websiteUrls.length > 0;
+      if (hasUrls) {
+        console.log(`[FINALIZE] Queueing URL indexing for ${data.websiteUrls.length} URLs`);
+        updateData.indexingStatus = "pending";
+        
+        // Create the indexing job
+        const job = await storage.createIndexingJob({
+          chatbotId,
+          status: "pending",
+          totalTasks: data.websiteUrls.length,
+          completedTasks: 0,
+          taskDetails: data.websiteUrls.map((url: string) => ({
+            url,
+            status: "pending"
+          })),
+        });
+        
+        updateData.lastIndexingJobId = job.id;
+      }
+      
+      const chatbot = await storage.updateChatbot(chatbotId, updateData, userId);
+      
+      console.log("[FINALIZE] Chatbot finalized:", chatbotId);
+      res.json({
+        ...chatbot,
+        indexingJobId: hasUrls ? chatbot.lastIndexingJobId : undefined,
+      });
+    } catch (error) {
+      console.error("[FINALIZE] Error finalizing chatbot:", error);
+      res.status(500).json({ error: "Failed to finalize chatbot" });
     }
   });
 

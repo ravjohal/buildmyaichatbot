@@ -483,11 +483,20 @@ export default function CreateChatbot() {
           {currentStep < 7 ? (
             <Button
               onClick={handleNext}
-              disabled={!canProceed()}
+              disabled={!canProceed() || isSaving}
               data-testid="button-next-step"
             >
-              Continue
-              <ArrowRight className="w-4 h-4 ml-2" />
+              {isSaving ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  Continue
+                  <ArrowRight className="w-4 h-4 ml-2" />
+                </>
+              )}
             </Button>
           ) : (
             <Button
