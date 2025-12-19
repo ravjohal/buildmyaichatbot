@@ -1,4 +1,4 @@
-import { type Chatbot, type InsertChatbot, chatbots, users, type User, type UpsertUser, type QaCache, type InsertQaCache, qaCache, type ManualQaOverride, type InsertManualQaOverride, manualQaOverrides, type ConversationRating, type InsertConversationRating, conversationRatings, type EmailNotificationSettings, type InsertEmailNotificationSettings, emailNotificationSettings, type ConversationFlow, type InsertConversationFlow, conversationFlows, type KnowledgeChunk, type InsertKnowledgeChunk, knowledgeChunks, type IndexingJob, type InsertIndexingJob, indexingJobs, type IndexingTask, type InsertIndexingTask, indexingTasks, chatbotSuggestedQuestions } from "@shared/schema";
+import { type Chatbot, type InsertChatbot, chatbots, users, type User, type UpsertUser, type QaCache, type InsertQaCache, qaCache, type ManualQaOverride, type InsertManualQaOverride, manualQaOverrides, type ConversationRating, type InsertConversationRating, conversationRatings, type EmailNotificationSettings, type InsertEmailNotificationSettings, emailNotificationSettings, type ConversationFlow, type InsertConversationFlow, conversationFlows, type KnowledgeChunk, type InsertKnowledgeChunk, knowledgeChunks, type IndexingJob, type InsertIndexingJob, indexingJobs, type IndexingTask, type InsertIndexingTask, indexingTasks, chatbotSuggestedQuestions, type AdminNotification, type InsertAdminNotification, adminNotifications } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sql } from "drizzle-orm";
 
@@ -95,8 +95,20 @@ export interface IStorage {
     id: string;
     chunkText: string;
     sourceUrl: string | null;
-    sourceDocument: string | null;
+    sourceType: string | null;
   }>>;
+  
+  // Transactional Indexing operations (for scheduled reindexing)
+  createStagedKnowledgeChunks(chunks: InsertKnowledgeChunk[], batchId: string): Promise<KnowledgeChunk[]>;
+  commitStagedChunks(chatbotId: string, batchId: string): Promise<{ deletedOld: number; committed: number }>;
+  rollbackStagedChunks(batchId: string): Promise<number>;
+  
+  // Admin Notification operations
+  createAdminNotification(notification: InsertAdminNotification): Promise<AdminNotification>;
+  getAdminNotifications(userId: string, limit?: number): Promise<AdminNotification[]>;
+  getUnreadNotificationCount(userId: string): Promise<number>;
+  markNotificationAsRead(notificationId: string): Promise<void>;
+  markAllNotificationsAsRead(userId: string): Promise<void>;
 }
 
 export class DbStorage implements IStorage {
@@ -1227,10 +1239,166 @@ export class DbStorage implements IStorage {
         sourceType: knowledgeChunks.sourceType,
       })
       .from(knowledgeChunks)
-      .where(eq(knowledgeChunks.chatbotId, chatbotId))
+      .where(and(
+        eq(knowledgeChunks.chatbotId, chatbotId),
+        eq(knowledgeChunks.isStaged, "false")
+      ))
       .orderBy(knowledgeChunks.sourceUrl, knowledgeChunks.sourceType);
     
     return result;
+  }
+
+  // Transactional Indexing Operations - for failure-safe scheduled reindexing
+  async createStagedKnowledgeChunks(chunks: InsertKnowledgeChunk[], batchId: string): Promise<KnowledgeChunk[]> {
+    if (chunks.length === 0) {
+      return [];
+    }
+
+    const results: KnowledgeChunk[] = [];
+    
+    for (const chunk of chunks) {
+      if (chunk.embedding && Array.isArray(chunk.embedding)) {
+        const embeddingStr = `[${chunk.embedding.join(',')}]`;
+        const metadataStr = chunk.metadata ? `'${JSON.stringify(chunk.metadata).replace(/'/g, "''")}'::jsonb` : 'NULL';
+        
+        const result = await db.execute(sql.raw(`
+          INSERT INTO knowledge_chunks (
+            chatbot_id, source_type, source_url, source_title, chunk_text, 
+            chunk_index, content_hash, embedding, metadata, staging_batch_id, is_staged, created_at, updated_at
+          )
+          VALUES (
+            '${chunk.chatbotId}',
+            '${chunk.sourceType}',
+            '${chunk.sourceUrl.replace(/'/g, "''")}',
+            ${chunk.sourceTitle ? `'${chunk.sourceTitle.replace(/'/g, "''")}'` : 'NULL'},
+            '${chunk.chunkText.replace(/'/g, "''")}',
+            '${chunk.chunkIndex}',
+            '${chunk.contentHash}',
+            '${embeddingStr}'::vector,
+            ${metadataStr},
+            '${batchId}',
+            'true',
+            NOW(),
+            NOW()
+          )
+          RETURNING *
+        `));
+        
+        if (result.rows[0]) {
+          results.push(result.rows[0] as KnowledgeChunk);
+        }
+      } else {
+        const result = await db
+          .insert(knowledgeChunks)
+          .values({
+            ...chunk,
+            stagingBatchId: batchId,
+            isStaged: "true",
+          })
+          .returning();
+        results.push(result[0]);
+      }
+    }
+    
+    console.log(`[STORAGE] Created ${results.length} staged chunks with batch ID ${batchId}`);
+    return results;
+  }
+
+  async commitStagedChunks(chatbotId: string, batchId: string): Promise<{ deletedOld: number; committed: number }> {
+    console.log(`[STORAGE] Committing staged chunks for chatbot ${chatbotId}, batch ${batchId}`);
+    
+    // Use a transaction to atomically swap chunks
+    return await db.transaction(async (tx) => {
+      // Delete all old production chunks for this chatbot
+      const deleteResult = await tx
+        .delete(knowledgeChunks)
+        .where(and(
+          eq(knowledgeChunks.chatbotId, chatbotId),
+          eq(knowledgeChunks.isStaged, "false")
+        ))
+        .returning({ id: knowledgeChunks.id });
+      
+      const deletedOld = deleteResult.length;
+      console.log(`[STORAGE] Deleted ${deletedOld} old production chunks`);
+      
+      // Promote staged chunks to production
+      const updateResult = await tx
+        .update(knowledgeChunks)
+        .set({
+          isStaged: "false",
+          stagingBatchId: null,
+          updatedAt: new Date(),
+        })
+        .where(and(
+          eq(knowledgeChunks.chatbotId, chatbotId),
+          eq(knowledgeChunks.stagingBatchId, batchId)
+        ))
+        .returning({ id: knowledgeChunks.id });
+      
+      const committed = updateResult.length;
+      console.log(`[STORAGE] Promoted ${committed} staged chunks to production`);
+      
+      return { deletedOld, committed };
+    });
+  }
+
+  async rollbackStagedChunks(batchId: string): Promise<number> {
+    console.log(`[STORAGE] Rolling back staged chunks for batch ${batchId}`);
+    
+    const result = await db
+      .delete(knowledgeChunks)
+      .where(eq(knowledgeChunks.stagingBatchId, batchId))
+      .returning({ id: knowledgeChunks.id });
+    
+    console.log(`[STORAGE] Deleted ${result.length} staged chunks`);
+    return result.length;
+  }
+
+  // Admin Notification Operations
+  async createAdminNotification(notification: InsertAdminNotification): Promise<AdminNotification> {
+    const result = await db
+      .insert(adminNotifications)
+      .values(notification)
+      .returning();
+    return result[0];
+  }
+
+  async getAdminNotifications(userId: string, limit: number = 50): Promise<AdminNotification[]> {
+    const result = await db
+      .select()
+      .from(adminNotifications)
+      .where(eq(adminNotifications.userId, userId))
+      .orderBy(desc(adminNotifications.createdAt))
+      .limit(limit);
+    return result;
+  }
+
+  async getUnreadNotificationCount(userId: string): Promise<number> {
+    const result = await db
+      .select({ count: sql<number>`COUNT(*)` })
+      .from(adminNotifications)
+      .where(and(
+        eq(adminNotifications.userId, userId),
+        eq(adminNotifications.isRead, "false")
+      ));
+    return Number(result[0]?.count || 0);
+  }
+
+  async markNotificationAsRead(notificationId: string): Promise<void> {
+    await db
+      .update(adminNotifications)
+      .set({ isRead: "true" })
+      .where(eq(adminNotifications.id, notificationId));
+  }
+
+  async markAllNotificationsAsRead(userId: string): Promise<void> {
+    await db
+      .update(adminNotifications)
+      .set({ isRead: "true" })
+      .where(and(
+        eq(adminNotifications.userId, userId),
+        eq(adminNotifications.isRead, "false")
+      ));
   }
 }
 

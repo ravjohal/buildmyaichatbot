@@ -154,7 +154,9 @@ export const insertChatbotSchema = createInsertSchema(chatbots).omit({
   reindexScheduleTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format (use HH:MM)").optional(),
   reindexScheduleTimezone: z.string().optional(),
   reindexScheduleDaysOfWeek: z.array(z.enum(["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"])).optional(),
-  reindexScheduleDate: z.string().optional(), // ISO date string for one-time scheduling
+  reindexScheduleDate: z.string().datetime().optional().or(z.literal("")).transform(val => val ? new Date(val) : null), // ISO date string for one-time scheduling
+  nextScheduledReindexAt: z.string().datetime().optional().or(z.literal("")).transform(val => val ? new Date(val) : null),
+  lastScheduledReindexAt: z.string().datetime().optional().or(z.literal("")).transform(val => val ? new Date(val) : null),
 });
 
 export type InsertChatbot = z.infer<typeof insertChatbotSchema>;
@@ -521,6 +523,8 @@ export const knowledgeChunks = pgTable("knowledge_chunks", {
   embedding: vector("embedding", { dimensions: 384 }), // Semantic embedding for retrieval
   searchVector: tsvector("search_vector"), // Full-text search vector for lexical retrieval
   metadata: jsonb("metadata"), // Additional info: { headings: [], keywords: [], etc. }
+  stagingBatchId: varchar("staging_batch_id"), // Batch ID for staged chunks during reindexing
+  isStaged: text("is_staged").notNull().default("false"), // Whether chunk is staged (not yet production)
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
