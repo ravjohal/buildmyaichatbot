@@ -1,0 +1,25 @@
+[UPDATE] No knowledge source changes detected - skipping reindex
+Error updating chatbot: error: new row for relation "chatbots" violates check constraint "chatbots_gemini_model_check"
+    at file:///home/runner/workspace/node_modules/@neondatabase/serverless/index.mjs:1345:74
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async NeonPreparedQuery.execute (/home/runner/workspace/node_modules/src/neon-serverless/session.ts:102:18)
+    at async DbStorage.updateChatbot (/home/runner/workspace/server/storage.ts:345:20)
+    at async <anonymous> (/home/runner/workspace/server/routes.ts:925:23) {
+  length: 1180,
+  severity: 'ERROR',
+  code: '23514',
+  detail: `Failing row contains (03678974-4593-4602-93bb-1fba45e203d2, https://www.rurkahomes.com/, , {}, You are a friendly and helpful customer service assistant for ht..., #e72e0d, #a4c502, , Hello! How can I help you today?, {"Which communities do you serve?"}, 209-123-4567, If you need more help, you can reach our team at {phone} or emai..., 2025-11-17 23:26:43.587056, be6b1ed5-54c0-4c3c-9119-4a22aa36a92a, {https://www.rurkahomes.com/}, 13, true, {name,email,phone,message}, Get in Touch, Leave your contact information and we'll get back to you., after_n_messages, 6, null, null, [], false, 5, Hi! Need any help?, {}, completed, 831cfc9f-1a80-4f57-b7b8-5a1fafbfacae, true, When discussing floor plans, focus only on layouts and room dime..., form, , true, 09:00, 17:00, America/Los_Angeles, {monday,tuesday,wednesday,thursday,friday}, gemini-3.0-flash, How do i speak with a human?, jack@jack.com, false, disabled, 03:00, America/New_York, {monday}, null, null, null, null, null, ).`,
+  hint: undefined,
+  position: undefined,
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: 'public',
+  table: 'chatbots',
+  column: undefined,
+  dataType: undefined,
+  constraint: 'chatbots_gemini_model_check',
+  file: 'execMain.c',
+  line: '2119',
+  routine: 'ExecConstraints'
+}
