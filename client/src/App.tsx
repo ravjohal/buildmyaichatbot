@@ -107,9 +107,11 @@ function ProtectedRouter() {
 function Router() {
   const [location] = useLocation();
   
+  // Widget/chat routes should NOT show cookie consent - they're embedded iframes
+  const isWidgetRoute = location.startsWith('/widget/') || location.startsWith('/chat/');
+  
   // Public routes that don't require authentication
-  const isPublicRoute = location.startsWith('/widget/') || 
-                        location.startsWith('/chat/') ||
+  const isPublicRoute = isWidgetRoute ||
                         location.startsWith('/blog') ||
                         location === '/pricing' || 
                         location === '/login' || 
@@ -121,10 +123,20 @@ function Router() {
                         location === '/acceptable-use-policy';
   
   if (isPublicRoute) {
-    return <PublicRouter />;
+    return (
+      <>
+        <PublicRouter />
+        {!isWidgetRoute && <CookieConsent />}
+      </>
+    );
   }
 
-  return <ProtectedRouter />;
+  return (
+    <>
+      <ProtectedRouter />
+      <CookieConsent />
+    </>
+  );
 }
 
 function App() {
@@ -133,7 +145,6 @@ function App() {
       <TooltipProvider>
         <Toaster />
         <Router />
-        <CookieConsent />
       </TooltipProvider>
     </QueryClientProvider>
   );
