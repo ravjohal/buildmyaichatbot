@@ -755,6 +755,21 @@ export default function ChatWidget() {
     }
   }, [isOpen, isStandalone]);
 
+  // Listen for toggle messages from parent window (for cross-origin click handling)
+  useEffect(() => {
+    if (isStandalone) return;
+    
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data && event.data.type === 'chatbot-widget-toggle') {
+        devLog('[ChatWidget] Received toggle message from parent');
+        setIsOpen(prev => !prev);
+      }
+    };
+    
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, [isStandalone]);
+
   // Proactive chat popup
   useEffect(() => {
     if (!chatbot || isStandalone || chatbot.proactiveChatEnabled !== "true") {
@@ -1331,10 +1346,10 @@ export default function ChatWidget() {
   }
 
   // Render floating widget for iframe embedding
-  // When collapsed, position button at the corner (bottom-2 right-2 = 8px) to fit in 100x100 iframe
-  // When expanded, use more spacing (bottom-5 right-5 = 20px) for better aesthetics
+  // When collapsed, use inset-0 to fill the entire 80x80 iframe area - this ensures the button is clickable
+  // When expanded, use fixed positioning with offsets for the full chat window
   return (
-    <div className={`fixed z-50 pointer-events-auto ${isOpen ? 'bottom-5 right-5' : 'bottom-2 right-2'}`} data-testid="chat-widget">
+    <div className={`fixed z-50 pointer-events-auto ${isOpen ? 'bottom-5 right-5' : 'inset-0 flex items-center justify-center'}`} data-testid="chat-widget">
       {isOpen && (
         <div
           className="w-[400px] h-[600px] bg-background rounded-2xl shadow-2xl flex flex-col overflow-hidden border mb-4 animate-in slide-in-from-bottom-4"

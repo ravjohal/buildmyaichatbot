@@ -31,10 +31,11 @@ export function CookieConsent() {
 
   return (
     <div
-      className="fixed bottom-0 left-0 right-0 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/90 border-t shadow-lg"
+      className="fixed bottom-0 left-0 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/90 border-t shadow-lg"
+      style={{ right: '100px' }}
       data-testid="cookie-consent-banner"
     >
-      <div className="max-w-7xl mx-auto px-6 py-4 pr-28">
+      <div className="max-w-7xl mx-auto px-6 py-4">
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 justify-between">
           <div className="flex items-start gap-3 flex-1">
             <Cookie className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
