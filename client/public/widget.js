@@ -40,10 +40,10 @@
   // CRITICAL: Use the chatbot server's origin, NOT the current page's origin
   iframe.src = `${chatbotServerOrigin}/widget/${chatbotId}`;
   
-  // START COLLAPSED: Small size for just the launcher button area
-  // With a small footprint (100x100), the iframe only covers the button area, not the whole page
+  // START COLLAPSED: Small size for just the launcher button area (80x80 = 64px button + 8px padding each side)
+  // With a small footprint, the iframe only covers the button area, not the whole page
   // pointer-events:auto is needed so the button can be clicked
-  iframe.style.cssText = 'position: fixed; bottom: 0; right: 0; width: 100px; height: 100px; border: none; background: transparent; z-index: 2147483647; pointer-events: auto;';
+  iframe.style.cssText = 'position: fixed; bottom: 0; right: 0; width: 80px; height: 80px; border: none; background: transparent; z-index: 2147483647; pointer-events: auto;';
   iframe.setAttribute('allow', 'clipboard-write');
   iframe.id = 'chatbot-widget-iframe';
   
@@ -76,10 +76,10 @@
         iframe.style.height = '720px';
         console.log('[ChatBot Widget] Expanded to full size');
       } else {
-        // Collapsed: Small area for just the launcher button (100x100)
+        // Collapsed: Small area for just the launcher button (80x80 = 64px button + 8px padding each side)
         // This small footprint only covers the button area, not the whole page
-        iframe.style.width = '100px';
-        iframe.style.height = '100px';
+        iframe.style.width = '80px';
+        iframe.style.height = '80px';
         console.log('[ChatBot Widget] Collapsed to launcher size');
       }
     }

@@ -1331,10 +1331,10 @@ export default function ChatWidget() {
   }
 
   // Render floating widget for iframe embedding
-  // When collapsed, position button closer to corner (bottom-4 right-4 = 16px) to fit in 100x100 iframe
-  // When expanded, use more spacing (bottom-6 right-6 = 24px) for better aesthetics
+  // When collapsed, position button at the corner (bottom-2 right-2 = 8px) to fit in 100x100 iframe
+  // When expanded, use more spacing (bottom-5 right-5 = 20px) for better aesthetics
   return (
-    <div className={`fixed z-50 pointer-events-auto ${isOpen ? 'bottom-6 right-6' : 'bottom-4 right-4'}`} data-testid="chat-widget">
+    <div className={`fixed z-50 pointer-events-auto ${isOpen ? 'bottom-5 right-5' : 'bottom-2 right-2'}`} data-testid="chat-widget">
       {isOpen && (
         <div
           className="w-[400px] h-[600px] bg-background rounded-2xl shadow-2xl flex flex-col overflow-hidden border mb-4 animate-in slide-in-from-bottom-4"
