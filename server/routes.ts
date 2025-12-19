@@ -929,6 +929,7 @@ ${pages.map(page => `  <url>
       res.json(chatbot);
     } catch (error) {
       if (error instanceof ZodError) {
+        console.error("Chatbot update validation error:", JSON.stringify(error.errors, null, 2));
         return res.status(400).json({ error: "Invalid data", details: error.errors });
       }
       console.error("Error updating chatbot:", error);
