@@ -1,7 +1,7 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Shield, Users, MessageSquare, Bot, Trash2, Crown, AlertTriangle, ShieldCheck, ShieldOff, Eye, Settings } from "lucide-react";
+import { Shield, Users, MessageSquare, Bot, Trash2, Crown, AlertTriangle, ShieldCheck, ShieldOff, Eye, Settings, Bell, Activity } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
@@ -301,6 +301,37 @@ export default function Admin() {
               )}
             </CardContent>
           </Card>
+        </div>
+
+        {/* Admin Quick Actions */}
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <Link href="/admin/jobs">
+            <Card className="hover-elevate cursor-pointer" data-testid="card-admin-jobs">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 gap-2">
+                <CardTitle className="text-sm font-medium">Indexing Jobs</CardTitle>
+                <Activity className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground">
+                  Monitor and manage knowledge base indexing jobs
+                </p>
+              </CardContent>
+            </Card>
+          </Link>
+          
+          <Link href="/admin/notifications">
+            <Card className="hover-elevate cursor-pointer" data-testid="card-admin-notifications">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 gap-2">
+                <CardTitle className="text-sm font-medium">Notification Settings</CardTitle>
+                <Bell className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground">
+                  Configure email delivery addresses for notifications
+                </p>
+              </CardContent>
+            </Card>
+          </Link>
         </div>
 
         {/* Users Table */}

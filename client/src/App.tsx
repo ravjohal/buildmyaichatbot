@@ -19,6 +19,7 @@ import Account from "@/pages/Account";
 import Admin from "@/pages/Admin";
 import AdminJobs from "@/pages/AdminJobs";
 import AdminUserDetails from "@/pages/AdminUserDetails";
+import AdminNotificationSettings from "@/pages/AdminNotificationSettings";
 import NotificationSettings from "@/pages/NotificationSettings";
 import TeamManagement from "@/pages/TeamManagement";
 import LiveChats from "@/pages/LiveChats";
@@ -99,6 +100,7 @@ function ProtectedRouter() {
       <Route path="/admin" component={Admin} />
       <Route path="/admin/jobs" component={AdminJobs} />
       <Route path="/admin/users/:userId" component={AdminUserDetails} />
+      <Route path="/admin/notifications" component={AdminNotificationSettings} />
       <Route component={NotFound} />
     </Switch>
   );
