@@ -170,7 +170,7 @@ export default function ViewChatbot() {
     },
     onSuccess: () => {
       toast({ title: "Manual override deleted" });
-      queryClient.invalidateQueries({ queryKey: ["/api/chatbots", chatbotId] });
+      queryClient.invalidateQueries({ queryKey: [`/api/chatbots/${chatbotId}`] });
     },
   });
 
@@ -192,7 +192,7 @@ export default function ViewChatbot() {
         title: "Questions regenerated",
         description: `Successfully generated ${data.count} new suggested questions.`,
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/chatbots", chatbotId] });
+      queryClient.invalidateQueries({ queryKey: [`/api/chatbots/${chatbotId}`] });
     },
     onError: (error: any) => {
       toast({
@@ -617,7 +617,7 @@ export default function ViewChatbot() {
             {chatbot.enableSuggestedQuestions === "true" && (
               <Card>
                 <CardHeader>
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between gap-4">
                     <div>
                       <CardTitle>Suggested Questions</CardTitle>
                       <CardDescription>Quick-start questions for users • {chatbot.suggestedQuestions?.length || 0} questions</CardDescription>
