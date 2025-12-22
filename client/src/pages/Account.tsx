@@ -490,6 +490,16 @@ export default function Account() {
                     </Button>
                   </div>
                 </>
+              ) : account.subscriptionTier !== "free" ? (
+                <>
+                  <Separator />
+                  <div className="text-center py-4">
+                    <Badge variant="default" className="mb-2">Active</Badge>
+                    <p className="text-sm text-muted-foreground">
+                      Your {account.subscriptionTier === "starter" ? "Starter" : account.subscriptionTier === "business" ? "Business" : "Scale"} plan is active.
+                    </p>
+                  </div>
+                </>
               ) : (
                 <>
                   <Separator />
