@@ -120,23 +120,22 @@ export function getEnvironmentConfig(): EnvironmentConfig {
   const isProduction = process.env.NODE_ENV === 'production';
   
   if (isProduction) {
-    // Production: Optimize for reliability and cost-efficiency
-    // Lower concurrency to reduce resource spikes
-    // Higher timeouts to handle slower system Chromium
+    // Production: Match dev settings for consistent results
+    // Increased concurrency and page limits to match dev behavior
     return {
       crawling: {
         maxDepth: 2,
-        maxPages: 150, // Reduced from 200 to prevent resource exhaustion
-        timeout: 20000, // Increased from 15s to account for slower Chromium
-        concurrency: 2, // Reduced from 3 to prevent CPU throttling
+        maxPages: 200, // Match dev to ensure consistent indexing
+        timeout: 25000, // Slightly higher timeout for production stability
+        concurrency: 3, // Increased concurrency for faster crawling
       },
       chunking: {
-        batchSize: 50, // Process in smaller batches to reduce memory pressure
+        batchSize: 100, // Match dev for consistent chunking
       },
       embedding: {
-        batchSize: 10, // Smaller batches for API rate limiting
-        concurrency: 3, // Conservative concurrency for API calls
-        retryDelay: 2000, // Longer delay for production stability
+        batchSize: 15, // Balanced for API rate limiting
+        concurrency: 4, // Increased concurrency for faster embeddings
+        retryDelay: 1500, // Balanced delay
       },
     };
   } else {

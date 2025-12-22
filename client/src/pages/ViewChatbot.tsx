@@ -27,6 +27,7 @@ import {
   Pencil,
   Trash2,
   Brain,
+  RefreshCw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -168,11 +169,37 @@ export default function ViewChatbot() {
       return response.json();
     },
     onSuccess: () => {
-      toast({
-        title: "Override deleted",
-        description: "The chatbot will return to using AI-generated answers for this question.",
+      toast({ title: "Manual override deleted" });
+      queryClient.invalidateQueries({ queryKey: ["/api/chatbots", chatbotId] });
+    },
+  });
+
+  // Regenerate suggested questions mutation
+  const regenerateQuestionsMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch(`/api/chatbots/${chatbotId}/suggested-questions/regenerate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
       });
-      queryClient.invalidateQueries({ queryKey: [`/api/chatbots/${chatbotId}/manual-overrides`] });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to regenerate questions");
+      }
+      return response.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Questions regenerated",
+        description: `Successfully generated ${data.count} new suggested questions.`,
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/chatbots", chatbotId] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to regenerate questions",
+        description: error.message || "Please try again later.",
+        variant: "destructive",
+      });
     },
   });
 
@@ -587,21 +614,48 @@ export default function ViewChatbot() {
               </CardContent>
             </Card>
 
-            {chatbot.suggestedQuestions && chatbot.suggestedQuestions.length > 0 && (
+            {chatbot.enableSuggestedQuestions === "true" && (
               <Card>
                 <CardHeader>
-                  <CardTitle>Suggested Questions</CardTitle>
-                  <CardDescription>Quick-start questions for users • {chatbot.enableSuggestedQuestions === "true" ? "Enabled" : "Disabled"}</CardDescription>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle>Suggested Questions</CardTitle>
+                      <CardDescription>Quick-start questions for users • {chatbot.suggestedQuestions?.length || 0} questions</CardDescription>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => regenerateQuestionsMutation.mutate()}
+                      disabled={regenerateQuestionsMutation.isPending}
+                      data-testid="button-regenerate-questions"
+                    >
+                      {regenerateQuestionsMutation.isPending ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Regenerating...
+                        </>
+                      ) : (
+                        <>
+                          <RefreshCw className="w-4 h-4 mr-2" />
+                          Regenerate
+                        </>
+                      )}
+                    </Button>
+                  </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-2">
-                    {chatbot.suggestedQuestions.map((question, index) => (
-                      <div key={index} className="flex items-start gap-2 p-2 border rounded">
-                        <Badge variant="outline" className="text-xs">{index + 1}</Badge>
-                        <span className="text-sm">{question}</span>
-                      </div>
-                    ))}
-                  </div>
+                  {chatbot.suggestedQuestions && chatbot.suggestedQuestions.length > 0 ? (
+                    <div className="space-y-2">
+                      {chatbot.suggestedQuestions.map((question, index) => (
+                        <div key={index} className="flex items-start gap-2 p-2 border rounded">
+                          <Badge variant="outline" className="text-xs">{index + 1}</Badge>
+                          <span className="text-sm">{question}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">No suggested questions generated yet. Click "Regenerate" to create them.</p>
+                  )}
                 </CardContent>
               </Card>
             )}

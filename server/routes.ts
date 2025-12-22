@@ -3213,6 +3213,124 @@ INCORRECT citation examples (NEVER do this):
     }
   });
 
+  // Regenerate suggested questions for a chatbot (requires authentication)
+  app.post("/api/chatbots/:id/suggested-questions/regenerate", isAuthenticated, async (req: any, res) => {
+    try {
+      const chatbotId = req.params.id;
+      const userId = req.user.id;
+      
+      // Verify chatbot exists and belongs to user
+      const chatbot = await storage.getChatbot(chatbotId, userId);
+      if (!chatbot) {
+        return res.status(404).json({ error: "Chatbot not found" });
+      }
+      
+      // Check if chatbot has suggested questions enabled
+      if (chatbot.enableSuggestedQuestions !== "true") {
+        return res.status(400).json({ error: "Suggested questions are not enabled for this chatbot" });
+      }
+      
+      // Get knowledge chunks
+      const chunkCount = await storage.countChunksForChatbot(chatbotId);
+      if (chunkCount === 0) {
+        return res.status(400).json({ error: "No knowledge chunks available. Please index the website first." });
+      }
+      
+      console.log(`[REGEN-QUESTIONS] Regenerating suggested questions for chatbot ${chatbotId} (${chunkCount} chunks)`);
+      
+      // Generate suggested questions using Gemini
+      const { GoogleGenAI } = await import("@google/genai");
+      const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
+      
+      // Get sample chunks for question generation (don't fetch embeddings)
+      const chunks = await db
+        .select({
+          chunkText: knowledgeChunks.chunkText,
+          sourceTitle: knowledgeChunks.sourceTitle
+        })
+        .from(knowledgeChunks)
+        .where(eq(knowledgeChunks.chatbotId, chatbotId))
+        .limit(100);
+      
+      const contentSummary = chunks
+        .map(chunk => chunk.chunkText)
+        .join('\n\n')
+        .substring(0, 8000);
+      
+      const sourceTitles = Array.from(new Set(chunks.map(chunk => chunk.sourceTitle).filter(Boolean)));
+      
+      const prompt = `You are helping create suggested questions for a customer support chatbot based on website content.
+
+Website Content Overview:
+Sources: ${sourceTitles.length > 0 ? sourceTitles.join(', ') : 'Various pages'}
+Total content chunks analyzed: ${chunks.length}
+
+Content Sample:
+${contentSummary}
+
+Generate EXACTLY 20 frequently asked questions (FAQ-style) that visitors to this website might ask about the content, products, or services described above.
+
+Requirements:
+- Generate EXACTLY 20 questions
+- Each question should be under 90 characters
+- Questions should be diverse, covering different topics and intents from ALL the content
+- Use natural, conversational language
+- Avoid duplicates or very similar questions
+- Do NOT generate follow-up questions - these should be standalone FAQs
+- Focus on what customers would actually want to know
+- Cover a broad range of topics from the content (don't focus on just one area)
+
+Return ONLY a valid JSON array of EXACTLY 20 question strings, nothing else. Example format:
+["Question 1?", "Question 2?", ..., "Question 20?"]`;
+
+      const result = await genAI.models.generateContent({
+        model: chatbot.geminiModel || "gemini-2.5-flash",
+        contents: prompt,
+      });
+      
+      const responseText = result.text?.trim() || "";
+      
+      // Parse JSON response
+      let questions: string[] = [];
+      try {
+        const jsonMatch = responseText.match(/\[[\s\S]*\]/);
+        if (jsonMatch) {
+          questions = JSON.parse(jsonMatch[0]);
+        } else {
+          questions = JSON.parse(responseText);
+        }
+        
+        // Validate and filter questions
+        questions = questions
+          .filter(q => typeof q === 'string' && q.length > 0 && q.length <= 90)
+          .slice(0, 20);
+          
+      } catch (parseError) {
+        console.error("[REGEN-QUESTIONS] Failed to parse Gemini response:", parseError);
+        return res.status(500).json({ error: "Failed to generate questions from AI response" });
+      }
+      
+      if (questions.length === 0) {
+        return res.status(500).json({ error: "No valid questions were generated" });
+      }
+      
+      // Replace existing questions
+      await storage.replaceSuggestedQuestions(chatbotId, questions);
+      
+      console.log(`[REGEN-QUESTIONS] Successfully regenerated ${questions.length} questions for chatbot ${chatbotId}`);
+      
+      res.json({ 
+        success: true, 
+        count: questions.length,
+        questions 
+      });
+      
+    } catch (error) {
+      console.error("Error regenerating suggested questions:", error);
+      res.status(500).json({ error: "Failed to regenerate suggested questions" });
+    }
+  });
+
   // Get knowledge chunks for a chatbot (requires authentication)
   app.get("/api/chatbots/:id/knowledge-chunks", isAuthenticated, async (req: any, res) => {
     try {
