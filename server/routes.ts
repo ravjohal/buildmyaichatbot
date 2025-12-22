@@ -711,21 +711,12 @@ ${pages.map(page => `  <url>
         updateData.indexingStatus = "pending";
         
         // Create the indexing job
-        const job = await storage.createIndexingJob({
-          chatbotId,
-          status: "pending",
-          totalTasks: data.websiteUrls.length,
-          completedTasks: 0,
-          taskDetails: data.websiteUrls.map((url: string) => ({
-            url,
-            status: "pending"
-          })),
-        });
+        const job = await storage.createIndexingJob(chatbotId, data.websiteUrls.length);
         
         updateData.lastIndexingJobId = job.id;
       }
       
-      const chatbot = await storage.updateChatbot(chatbotId, updateData, userId);
+      const chatbot = await storage.updateChatbot(chatbotId, userId, updateData);
       
       console.log("[FINALIZE] Chatbot finalized:", chatbotId);
       res.json({
