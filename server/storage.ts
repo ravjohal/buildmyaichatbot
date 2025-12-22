@@ -1,4 +1,4 @@
-import { type Chatbot, type InsertChatbot, chatbots, users, type User, type UpsertUser, type QaCache, type InsertQaCache, qaCache, type ManualQaOverride, type InsertManualQaOverride, manualQaOverrides, type ConversationRating, type InsertConversationRating, conversationRatings, type EmailNotificationSettings, type InsertEmailNotificationSettings, emailNotificationSettings, type ConversationFlow, type InsertConversationFlow, conversationFlows, type KnowledgeChunk, type InsertKnowledgeChunk, knowledgeChunks, type IndexingJob, type InsertIndexingJob, indexingJobs, type IndexingTask, type InsertIndexingTask, indexingTasks, chatbotSuggestedQuestions, type AdminNotification, type InsertAdminNotification, adminNotifications } from "@shared/schema";
+import { type Chatbot, type InsertChatbot, chatbots, users, type User, type UpsertUser, type QaCache, type InsertQaCache, qaCache, type ManualQaOverride, type InsertManualQaOverride, manualQaOverrides, type ConversationRating, type InsertConversationRating, conversationRatings, type EmailNotificationSettings, type InsertEmailNotificationSettings, emailNotificationSettings, type ConversationFlow, type InsertConversationFlow, conversationFlows, type KnowledgeChunk, type InsertKnowledgeChunk, knowledgeChunks, type IndexingJob, type InsertIndexingJob, indexingJobs, type IndexingTask, type InsertIndexingTask, indexingTasks, chatbotSuggestedQuestions, type AdminNotification, type InsertAdminNotification, adminNotifications, type UserNotificationSettings, type InsertUserNotificationSettings, userNotificationSettings, type NotificationType, NOTIFICATION_TYPES } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sql } from "drizzle-orm";
 
@@ -1421,6 +1421,80 @@ export class DbStorage implements IStorage {
         eq(adminNotifications.userId, userId),
         eq(adminNotifications.isRead, "false")
       ));
+  }
+
+  // User Notification Settings operations (Admin configurable)
+  async getUserNotificationSettings(userId: string): Promise<UserNotificationSettings[]> {
+    return await db
+      .select()
+      .from(userNotificationSettings)
+      .where(eq(userNotificationSettings.userId, userId));
+  }
+
+  async getUserNotificationSettingByType(userId: string, notificationType: NotificationType): Promise<UserNotificationSettings | undefined> {
+    const result = await db
+      .select()
+      .from(userNotificationSettings)
+      .where(and(
+        eq(userNotificationSettings.userId, userId),
+        eq(userNotificationSettings.notificationType, notificationType)
+      ))
+      .limit(1);
+    return result[0];
+  }
+
+  async createUserNotificationSetting(setting: InsertUserNotificationSettings): Promise<UserNotificationSettings> {
+    const result = await db
+      .insert(userNotificationSettings)
+      .values(setting)
+      .returning();
+    return result[0];
+  }
+
+  async updateUserNotificationSetting(id: string, updates: Partial<InsertUserNotificationSettings>): Promise<UserNotificationSettings | undefined> {
+    const result = await db
+      .update(userNotificationSettings)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(userNotificationSettings.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async upsertUserNotificationSetting(userId: string, notificationType: NotificationType, emailAddress: string, enabled: string = "true"): Promise<UserNotificationSettings> {
+    const existing = await this.getUserNotificationSettingByType(userId, notificationType);
+    if (existing) {
+      return (await this.updateUserNotificationSetting(existing.id, { emailAddress, enabled }))!;
+    }
+    return await this.createUserNotificationSetting({ userId, notificationType, emailAddress, enabled });
+  }
+
+  async deleteUserNotificationSetting(id: string): Promise<boolean> {
+    const result = await db
+      .delete(userNotificationSettings)
+      .where(eq(userNotificationSettings.id, id))
+      .returning();
+    return result.length > 0;
+  }
+
+  async getAllUsersWithNotificationSettings(): Promise<{ user: User; settings: UserNotificationSettings[] }[]> {
+    const allUsers = await db.select().from(users);
+    const result: { user: User; settings: UserNotificationSettings[] }[] = [];
+    
+    for (const user of allUsers) {
+      const settings = await this.getUserNotificationSettings(user.id);
+      result.push({ user, settings });
+    }
+    
+    return result;
+  }
+
+  async getNotificationEmailForUser(userId: string, notificationType: NotificationType, defaultEmail: string): Promise<string> {
+    const setting = await this.getUserNotificationSettingByType(userId, notificationType);
+    if (setting && setting.enabled === "true") {
+      return setting.emailAddress;
+    }
+    // If no custom setting or disabled, return default email
+    return defaultEmail;
   }
 }
 
