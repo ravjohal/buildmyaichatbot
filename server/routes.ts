@@ -5207,6 +5207,135 @@ Return ONLY a valid JSON array of EXACTLY 20 question strings, nothing else. Exa
     }
   });
 
+  // ===== ADMIN NOTIFICATION SETTINGS ROUTES =====
+  
+  // Get all users with their notification settings (admin only)
+  app.get('/api/admin/notification-settings', isAdmin, async (req: any, res) => {
+    try {
+      const usersWithSettings = await storage.getAllUsersWithNotificationSettings();
+      res.json(usersWithSettings.map(({ user, settings }) => ({
+        user: sanitizeUser(user),
+        settings,
+      })));
+    } catch (error) {
+      console.error("Error fetching notification settings:", error);
+      res.status(500).json({ error: "Failed to fetch notification settings" });
+    }
+  });
+
+  // Get notification settings for a specific user (admin only)
+  app.get('/api/admin/users/:userId/notification-settings', isAdmin, async (req: any, res) => {
+    try {
+      const { userId } = req.params;
+      
+      const userResult = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+      if (!userResult[0]) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      const settings = await storage.getUserNotificationSettings(userId);
+      res.json({
+        user: sanitizeUser(userResult[0]),
+        settings,
+      });
+    } catch (error) {
+      console.error("Error fetching user notification settings:", error);
+      res.status(500).json({ error: "Failed to fetch notification settings" });
+    }
+  });
+
+  // Create or update a notification setting for a user (admin only)
+  app.post('/api/admin/users/:userId/notification-settings', isAdmin, async (req: any, res) => {
+    try {
+      const { userId } = req.params;
+      const { notificationType, emailAddress, enabled } = req.body;
+
+      const userResult = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+      if (!userResult[0]) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      if (!notificationType || !emailAddress) {
+        return res.status(400).json({ error: "notificationType and emailAddress are required" });
+      }
+
+      const validTypes = ['new_user_signup', 'new_lead', 'unanswered_question', 'weekly_report', 'reindex_failed', 'keyword_alert', 'team_invitation', 'live_chat_request', 'password_reset'];
+      if (!validTypes.includes(notificationType)) {
+        return res.status(400).json({ error: `Invalid notification type. Must be one of: ${validTypes.join(', ')}` });
+      }
+
+      const setting = await storage.upsertUserNotificationSetting(
+        userId,
+        notificationType,
+        emailAddress,
+        enabled ?? "true"
+      );
+
+      res.json(setting);
+    } catch (error) {
+      console.error("Error creating/updating notification setting:", error);
+      res.status(500).json({ error: "Failed to create/update notification setting" });
+    }
+  });
+
+  // Delete a notification setting (admin only)
+  app.delete('/api/admin/notification-settings/:id', isAdmin, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const deleted = await storage.deleteUserNotificationSetting(id);
+      
+      if (!deleted) {
+        return res.status(404).json({ error: "Notification setting not found" });
+      }
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting notification setting:", error);
+      res.status(500).json({ error: "Failed to delete notification setting" });
+    }
+  });
+
+  // Bulk update notification settings for a user (admin only)
+  app.put('/api/admin/users/:userId/notification-settings', isAdmin, async (req: any, res) => {
+    try {
+      const { userId } = req.params;
+      const { settings } = req.body; // Array of { notificationType, emailAddress, enabled }
+
+      const userResult = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+      if (!userResult[0]) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      if (!Array.isArray(settings)) {
+        return res.status(400).json({ error: "settings must be an array" });
+      }
+
+      const validTypes = ['new_user_signup', 'new_lead', 'unanswered_question', 'weekly_report', 'reindex_failed', 'keyword_alert', 'team_invitation', 'live_chat_request', 'password_reset'];
+      
+      const updatedSettings = [];
+      for (const setting of settings) {
+        if (!setting.notificationType || !setting.emailAddress) {
+          continue;
+        }
+        if (!validTypes.includes(setting.notificationType)) {
+          continue;
+        }
+        const updated = await storage.upsertUserNotificationSetting(
+          userId,
+          setting.notificationType,
+          setting.emailAddress,
+          setting.enabled ?? "true"
+        );
+        updatedSettings.push(updated);
+      }
+
+      res.json(updatedSettings);
+    } catch (error) {
+      console.error("Error bulk updating notification settings:", error);
+      res.status(500).json({ error: "Failed to update notification settings" });
+    }
+  });
+
   // Stripe webhook handler for subscription updates
   app.post("/api/stripe-webhook", async (req, res) => {
     if (!stripe) {
