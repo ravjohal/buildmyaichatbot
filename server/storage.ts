@@ -111,6 +111,16 @@ export interface IStorage {
   markNotificationAsRead(notificationId: string): Promise<void>;
   markNotificationAsReadForUser(notificationId: string, userId: string): Promise<boolean>;
   markAllNotificationsAsRead(userId: string): Promise<void>;
+  
+  // User Notification Settings operations (Admin configurable)
+  getUserNotificationSettings(userId: string): Promise<UserNotificationSettings[]>;
+  getUserNotificationSettingByType(userId: string, notificationType: NotificationType): Promise<UserNotificationSettings | undefined>;
+  createUserNotificationSetting(setting: InsertUserNotificationSettings): Promise<UserNotificationSettings>;
+  updateUserNotificationSetting(id: string, updates: Partial<InsertUserNotificationSettings>): Promise<UserNotificationSettings | undefined>;
+  upsertUserNotificationSetting(userId: string, notificationType: NotificationType, emailAddress: string, enabled?: string): Promise<UserNotificationSettings>;
+  deleteUserNotificationSetting(id: string): Promise<boolean>;
+  getAllUsersWithNotificationSettings(): Promise<{ user: User; settings: UserNotificationSettings[] }[]>;
+  getNotificationEmailForUser(userId: string, notificationType: NotificationType, defaultEmail: string): Promise<string>;
 }
 
 export class DbStorage implements IStorage {

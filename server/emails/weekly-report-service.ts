@@ -286,7 +286,10 @@ export async function sendWeeklyReport(userId: string, storage: IStorage): Promi
 
     // Get notification settings for custom email
     const settings = await storage.getEmailNotificationSettings(userId);
-    const recipientEmail = settings?.emailAddress || reportData.userEmail;
+    let recipientEmail = settings?.emailAddress || reportData.userEmail;
+    
+    // Check for admin-configured custom email override
+    recipientEmail = await storage.getNotificationEmailForUser(userId, 'weekly_report', recipientEmail);
 
     const htmlContent = generateWeeklyReportEmail(reportData);
 

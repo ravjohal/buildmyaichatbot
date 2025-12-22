@@ -39,7 +39,7 @@ The backend is built with Express.js, Node.js, and TypeScript, following a RESTf
 *   **Intelligent SPA Crawler:** Dual-mode crawler for JavaScript-heavy SPAs using Playwright.
 *   **Satisfaction Ratings:** Allows visitors to rate chat experiences.
 *   **Proactive Chat Popup:** Customizable popup notification after a delay.
-*   **Email Notifications:** Automated alerts via Resend for new leads, unanswered questions, and performance reports.
+*   **Email Notifications:** Automated alerts via Resend for new leads, unanswered questions, and performance reports. Features admin-configurable notification routing allowing admins to override recipient email addresses on a per-user, per-notification-type basis. Supported notification types: new_user_signup, new_lead, unanswered_question, weekly_report, reindex_failed, keyword_alert, team_invitation, live_chat_request, password_reset. Note: Password reset and team invitation emails bypass admin override for security/functional reasons.
 *   **Async Indexing Pipeline:** Non-blocking chatbot creation with background processing and real-time status updates.
 *   **Live Agent Handoff:** Enables human support requests with real-time WebSocket chat, handoff queue, agent dashboard, and email notifications.
 *   **Team Management System:** Role-based access for team members with invitations and a management dashboard.

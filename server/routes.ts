@@ -2777,13 +2777,16 @@ INCORRECT citation examples (NEVER do this):
                 try {
                   const { getUncachableResendClient } = await import('./emails/resend-client');
                   const { client, fromEmail } = await getUncachableResendClient();
+                  
+                  // Check for admin-configured custom email
+                  const recipientEmail = await storage.getNotificationEmailForUser(owner.id, 'keyword_alert', owner.email);
 
                   const keywordList = detectedKeywords.join(", ");
                   const visitorInfo = lead ? `${lead.name} (${lead.email})` : "Anonymous visitor";
 
                   await client.emails.send({
                     from: fromEmail,
-                    to: owner.email,
+                    to: recipientEmail,
                     subject: `🔔 Keyword Alert: "${detectedKeywords[0]}" detected`,
                     html: `
                       <h2>Keyword Alert Triggered</h2>
@@ -2809,7 +2812,7 @@ INCORRECT citation examples (NEVER do this):
                     `,
                   });
 
-                  console.log(`[KEYWORD-ALERT] Email notification sent to ${owner.email}`);
+                  console.log(`[KEYWORD-ALERT] Email notification sent to ${recipientEmail}`);
                 } catch (emailError) {
                   console.error("[KEYWORD-ALERT] Failed to send email notification:", emailError);
                 }
@@ -3613,7 +3616,10 @@ Return ONLY a valid JSON array of EXACTLY 20 question strings, nothing else. Exa
           const settings = await storage.getEmailNotificationSettings(user.id);
           
           if (settings && settings.enableNewLeadNotifications === "true") {
-            const emailAddress = settings.emailAddress || user.email;
+            // First check for admin-configured custom email, fall back to user settings, then user email
+            let emailAddress = settings.emailAddress || user.email;
+            const customEmail = await storage.getNotificationEmailForUser(user.id, 'new_lead', emailAddress);
+            emailAddress = customEmail;
             
             // Build conversation URL
             const conversationUrl = validatedData.conversationId 
@@ -6168,15 +6174,19 @@ Return ONLY a valid JSON array of EXACTLY 20 question strings, nothing else. Exa
         if (chatbot[0]) {
           const user = await storage.getUser(chatbot[0].userId);
           if (user) {
+            // Get user's notification settings for custom email
             const settings = await storage.getEmailNotificationSettings(user.id);
-            const emailAddress = settings?.emailAddress || user.email;
+            const userEmail = settings?.emailAddress || user.email;
+            
+            // Check for admin-configured override (takes precedence over user settings)
+            const recipientEmail = await storage.getNotificationEmailForUser(user.id, 'live_chat_request', userEmail);
             
             const { getUncachableResendClient } = await import('./emails/resend-client');
             const { client, fromEmail } = await getUncachableResendClient();
             
             await client.emails.send({
               from: fromEmail,
-              to: emailAddress,
+              to: recipientEmail,
               subject: `Live Chat Request for ${chatbot[0].name}`,
               html: `
                 <h2>New Live Chat Request</h2>

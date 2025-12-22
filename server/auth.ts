@@ -162,8 +162,15 @@ export async function setupAuth(app: Express) {
           
           // Send email to each admin
           for (const admin of adminUsers) {
+            // Check for custom notification email setting
+            const emailToUse = await storage.getNotificationEmailForUser(
+              admin.id, 
+              'new_user_signup',
+              admin.email
+            );
+            
             await notificationService.sendNewUserSignupNotification(
-              admin.email,
+              emailToUse,
               {
                 userName: `${newUser.firstName} ${newUser.lastName}`.trim() || 'Unknown',
                 userEmail: newUser.email,
