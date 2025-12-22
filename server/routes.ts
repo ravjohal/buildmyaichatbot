@@ -713,6 +713,18 @@ ${pages.map(page => `  <url>
         // Create the indexing job
         const job = await storage.createIndexingJob(chatbotId, data.websiteUrls.length);
         
+        // Create indexing tasks for each URL
+        const tasks = data.websiteUrls.map((url: string) => ({
+          jobId: job.id,
+          chatbotId,
+          sourceType: 'website' as const,
+          sourceUrl: url,
+          status: 'pending' as const,
+        }));
+        
+        await storage.createIndexingTasks(tasks);
+        console.log(`[FINALIZE] Created ${tasks.length} indexing tasks for job ${job.id}`);
+        
         updateData.lastIndexingJobId = job.id;
       }
       
