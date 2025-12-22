@@ -617,11 +617,11 @@ ${pages.map(page => `  <url>
       }
       
       // Update with new data - spread data first, then enforce wizardStep
-      const chatbot = await storage.updateChatbot(chatbotId, {
+      const chatbot = await storage.updateChatbot(chatbotId, userId, {
         ...data,
         // Always enforce wizardStep last to prevent client override
         wizardStep: Math.max(1, Math.min(7, wizardStep || existingChatbot.wizardStep || 1)),
-      }, userId);
+      });
       
       console.log("[DRAFT] Updated draft:", chatbotId);
       res.json(chatbot);
