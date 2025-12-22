@@ -102,7 +102,7 @@ async function sendFailureEmailNotification(
   
   try {
     await resend.emails.send({
-      from: "BuildMyChatbot.AI <notifications@buildmychatbot.ai>",
+      from: "BuildMyChatbot.AI <support@buildmychatbot.ai>",
       to: notificationEmail,
       subject: `⚠️ Scheduled Reindex Failed for ${chatbotName}`,
       html: `

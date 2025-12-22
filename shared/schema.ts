@@ -759,3 +759,40 @@ export const insertBlogPostSchema = createInsertSchema(blogPosts).omit({
 
 export type BlogPost = typeof blogPosts.$inferSelect;
 export type InsertBlogPost = z.infer<typeof insertBlogPostSchema>;
+
+// Notification Types - all emails the system can send
+export const NOTIFICATION_TYPES = [
+  "new_user_signup",
+  "new_lead",
+  "unanswered_question",
+  "weekly_report",
+  "reindex_failed",
+  "keyword_alert",
+  "team_invitation",
+  "live_chat_request",
+  "password_reset",
+] as const;
+
+export type NotificationType = typeof NOTIFICATION_TYPES[number];
+
+// User Notification Settings - per-user email preferences (admin configurable)
+export const userNotificationSettings = pgTable("user_notification_settings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  notificationType: varchar("notification_type", { 
+    enum: ["new_user_signup", "new_lead", "unanswered_question", "weekly_report", "reindex_failed", "keyword_alert", "team_invitation", "live_chat_request", "password_reset"] 
+  }).notNull(),
+  emailAddress: text("email_address").notNull(), // Where to send this notification type
+  enabled: text("enabled").notNull().default("true"), // Whether this notification is enabled
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertUserNotificationSettingsSchema = createInsertSchema(userNotificationSettings).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type UserNotificationSettings = typeof userNotificationSettings.$inferSelect;
+export type InsertUserNotificationSettings = z.infer<typeof insertUserNotificationSettingsSchema>;
