@@ -118,7 +118,13 @@ function isSameDomain(url1: string, url2: string): boolean {
   try {
     const domain1 = new URL(url1).hostname;
     const domain2 = new URL(url2).hostname;
-    return domain1 === domain2;
+    
+    // Exact match
+    if (domain1 === domain2) return true;
+    
+    // Handle www subdomain variations (www.example.com should match example.com)
+    const stripWww = (domain: string) => domain.replace(/^www\./, '');
+    return stripWww(domain1) === stripWww(domain2);
   } catch {
     return false;
   }
