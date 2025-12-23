@@ -1090,15 +1090,15 @@ export default function ChatWidget() {
                   </div>
                 )}
                 <div
-                  className={`rounded-2xl p-4 max-w-[70%] ${
+                  className={`rounded-2xl p-4 max-w-[70%] break-words ${
                     message.role === "user"
                       ? "text-white rounded-tr-sm"
                       : "bg-muted rounded-tl-sm"
                   }`}
                   style={
                     message.role === "user"
-                      ? { backgroundColor: chatbot.accentColor }
-                      : undefined
+                      ? { backgroundColor: chatbot.accentColor, overflowWrap: 'anywhere' as const }
+                      : { overflowWrap: 'anywhere' as const }
                   }
                 >
                   {message.id === streamingMessageId && !message.content ? (
@@ -1349,10 +1349,10 @@ export default function ChatWidget() {
   // When collapsed, use inset-0 to fill the entire 80x80 iframe area - this ensures the button is clickable
   // When expanded, use fixed positioning with offsets for the full chat window
   return (
-    <div className={`fixed z-50 pointer-events-auto ${isOpen ? 'bottom-5 right-5' : 'inset-0 flex items-center justify-center'}`} data-testid="chat-widget">
+    <div className={`fixed z-50 pointer-events-auto ${isOpen ? 'bottom-2 right-2 left-2 sm:left-auto sm:bottom-5 sm:right-5' : 'inset-0 flex items-center justify-center'}`} data-testid="chat-widget">
       {isOpen && (
         <div
-          className="w-[400px] h-[600px] bg-background rounded-2xl shadow-2xl flex flex-col overflow-hidden border mb-4 animate-in slide-in-from-bottom-4"
+          className="w-[calc(100vw-16px)] sm:w-[400px] h-[calc(100vh-48px)] sm:h-[600px] bg-background rounded-2xl shadow-2xl flex flex-col overflow-hidden border mb-4 animate-in slide-in-from-bottom-4"
           data-testid="chat-window"
         >
           <div
@@ -1405,15 +1405,15 @@ export default function ChatWidget() {
                     </div>
                   )}
                   <div
-                    className={`rounded-2xl p-3 max-w-[80%] ${
+                    className={`rounded-2xl p-3 max-w-[80%] break-words ${
                       message.role === "user"
                         ? "text-white rounded-tr-sm"
                         : "bg-muted rounded-tl-sm"
                     }`}
                     style={
                       message.role === "user"
-                        ? { backgroundColor: chatbot.accentColor }
-                        : undefined
+                        ? { backgroundColor: chatbot.accentColor, overflowWrap: 'anywhere' as const }
+                        : { overflowWrap: 'anywhere' as const }
                     }
                   >
                     {message.id === streamingMessageId && !message.content ? (

@@ -80,10 +80,15 @@
       
       if (data.isOpen) {
         // Expanded: Full chat window size - hide click catcher so user can interact with chat
-        iframe.style.width = '450px';
-        iframe.style.height = '720px';
+        // Make responsive: use min of 450px or viewport width minus padding
+        const maxWidth = Math.min(450, window.innerWidth - 16);
+        const maxHeight = Math.min(720, window.innerHeight - 16);
+        iframe.style.width = maxWidth + 'px';
+        iframe.style.height = maxHeight + 'px';
+        iframe.style.maxWidth = 'calc(100vw - 16px)';
+        iframe.style.maxHeight = 'calc(100vh - 16px)';
         clickCatcher.style.display = 'none';
-        console.log('[ChatBot Widget] Expanded to full size');
+        console.log('[ChatBot Widget] Expanded to size:', maxWidth + 'x' + maxHeight);
       } else {
         // Collapsed: Small area for just the launcher button
         iframe.style.width = '80px';
@@ -99,4 +104,14 @@
   document.body.appendChild(iframe);
   document.body.appendChild(clickCatcher);
   console.log('[ChatBot Widget] Iframe and click catcher appended to body');
+  
+  // Handle window resize while widget is open
+  window.addEventListener('resize', function() {
+    if (isWidgetOpen) {
+      const maxWidth = Math.min(450, window.innerWidth - 16);
+      const maxHeight = Math.min(720, window.innerHeight - 16);
+      iframe.style.width = maxWidth + 'px';
+      iframe.style.height = maxHeight + 'px';
+    }
+  });
 })();
