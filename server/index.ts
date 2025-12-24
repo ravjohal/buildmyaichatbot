@@ -4,6 +4,7 @@ import { setupVite, serveStatic, log } from "./vite";
 import { setupAuth } from "./auth";
 import { checkAndSendWeeklyReports } from "./emails/weekly-report-service";
 import { storage } from "./storage";
+import { securityHeaders } from "./securityHeaders";
 
 const app = express();
 
@@ -14,6 +15,9 @@ app.use('/api/stripe-webhook', express.raw({ type: 'application/json' }));
 // Apply JSON parsing to all other routes
 app.use(express.json({ limit: '50mb' })); // Increased limit for large chatbot configurations
 app.use(express.urlencoded({ extended: false, limit: '50mb' }));
+
+// Security headers middleware - applied early to all routes
+app.use(securityHeaders);
 
 app.use((req, res, next) => {
   const start = Date.now();
