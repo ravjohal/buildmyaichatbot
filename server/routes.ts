@@ -2932,12 +2932,6 @@ INCORRECT citation examples (NEVER do this):
       const userId = req.user.id;
       const chatbotId = req.params.id;
 
-      // Verify user owns this chatbot
-      const chatbot = await storage.getChatbot(chatbotId, userId);
-      if (!chatbot) {
-        return res.status(404).json({ error: "Chatbot not found" });
-      }
-
       // Verify user has Scale tier subscription for analytics access (or is admin)
       const user = await storage.getUser(userId);
       if (!user || (user.subscriptionTier !== "scale" && user.isAdmin !== "true")) {
@@ -2945,6 +2939,18 @@ INCORRECT citation examples (NEVER do this):
           error: "Upgrade required",
           message: "Analytics are only available on the Scale plan. Please upgrade to access this feature."
         });
+      }
+
+      // Get chatbot - admins can view any chatbot, non-admins can only view their own
+      let chatbot;
+      if (user.isAdmin === "true") {
+        chatbot = await storage.getChatbotById(chatbotId);
+      } else {
+        chatbot = await storage.getChatbot(chatbotId, userId);
+      }
+      
+      if (!chatbot) {
+        return res.status(404).json({ error: "Chatbot not found" });
       }
 
       // Get all conversations for this chatbot
