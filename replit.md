@@ -36,7 +36,7 @@ The backend is built with Express.js, Node.js, and TypeScript, following a RESTf
 *   **Admin System:** Full user management, system-wide statistics, and access to all chatbots for administrators.
 *   **Account Management:** Users manage profile, subscription, and billing via an integrated Stripe portal. Includes account deletion with password verification, automatic Stripe subscription cancellation, and CASCADE deletion of all user data.
 *   **Shareable Links & QR Codes:** For chatbot distribution via direct links and full-page chat interfaces.
-*   **Intelligent SPA Crawler:** Dual-mode crawler for JavaScript-heavy SPAs using Playwright.
+*   **Intelligent SPA Crawler:** Dual-mode crawler for JavaScript-heavy SPAs using Playwright. Supports URL exclusion patterns to skip specific paths during indexing (e.g., `/blog`, `/admin`).
 *   **Satisfaction Ratings:** Allows visitors to rate chat experiences.
 *   **Proactive Chat Popup:** Customizable popup notification after a delay.
 *   **Email Notifications:** Automated alerts via Resend for new leads, unanswered questions, and performance reports. Features admin-configurable notification routing allowing admins to override recipient email addresses on a per-user, per-notification-type basis. Supported notification types: new_user_signup, new_lead, unanswered_question, weekly_report, reindex_failed, keyword_alert, team_invitation, live_chat_request, password_reset. Note: Password reset and team invitation emails bypass admin override for security/functional reasons.

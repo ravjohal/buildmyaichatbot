@@ -55,6 +55,7 @@ export const chatbots = pgTable("chatbots", {
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   websiteUrls: text("website_urls").array().default(sql`ARRAY[]::text[]`),
+  excludedUrls: text("excluded_urls").array().default(sql`ARRAY[]::text[]`), // URL patterns to exclude from indexing
   websiteContent: text("website_content"),
   documents: text("documents").array().default(sql`ARRAY[]::text[]`),
   documentContent: text("document_content"),
@@ -123,6 +124,7 @@ export const insertChatbotSchema = createInsertSchema(chatbots).omit({
 }).extend({
   name: z.string().min(1, "Chatbot name is required"),
   websiteUrls: z.array(z.string().url()).optional(),
+  excludedUrls: z.array(z.string()).optional(), // URL patterns to exclude from indexing
   websiteContent: z.string().optional(),
   documents: z.array(z.string()).optional(),
   documentContent: z.string().optional(),

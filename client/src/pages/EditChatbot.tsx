@@ -172,6 +172,7 @@ export default function EditChatbot() {
         ...prev,
         name: chatbot.name,
         websiteUrls: chatbot.websiteUrls || [],
+        excludedUrls: chatbot.excludedUrls || [],
         websiteContent: chatbot.websiteContent || undefined,
         documents: chatbot.documents || [],
         documentMetadata: (chatbot.documentMetadata as DocumentMetadata[]) || [],

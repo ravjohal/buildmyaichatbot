@@ -956,11 +956,16 @@ ${pages.map(page => `  <url>
       if (urlsChanged) {
         console.log(`[UPDATE] Knowledge sources changed - URLs modified`);
         if (validatedData.websiteUrls && validatedData.websiteUrls.length > 0) {
+          const excludedUrls = validatedData.excludedUrls || existingChatbot.excludedUrls || [];
           console.log(`Recursively re-crawling ${validatedData.websiteUrls.length} website(s) (max depth: 2, max pages: 200 per site)...`);
+          if (excludedUrls.length > 0) {
+            console.log(`[UPDATE] Excluding URLs matching patterns: ${excludedUrls.join(', ')}`);
+          }
           const crawlResults = await crawlMultipleWebsitesRecursive(validatedData.websiteUrls, {
             maxDepth: 2,
             maxPages: 200,
             sameDomainOnly: true,
+            excludedUrls,
           });
           
           console.log(`Successfully crawled ${crawlResults.filter(r => !r.error).length} pages`);

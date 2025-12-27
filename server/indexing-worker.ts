@@ -302,13 +302,21 @@ async function processIndexingTask(taskId: string, jobId: string, chatbotId: str
     let title = "";
     
     if (sourceType === "website") {
+      // Get chatbot to retrieve excluded URLs
+      const chatbotForExclusions = await storage.getChatbotById(chatbotId);
+      const excludedUrls = chatbotForExclusions?.excludedUrls || [];
+      
       // Recursively crawl the website with environment-specific limits
       perfMonitor.start('crawling', { maxDepth: config.crawling.maxDepth, maxPages: config.crawling.maxPages });
       console.log(`[WORKER] Recursively crawling website: ${sourceUrl} (max depth: ${config.crawling.maxDepth}, max pages: ${config.crawling.maxPages})`);
+      if (excludedUrls.length > 0) {
+        console.log(`[WORKER] Excluding URLs matching patterns: ${excludedUrls.join(', ')}`);
+      }
       const crawlResults = await crawlMultipleWebsitesRecursive([sourceUrl], {
         maxDepth: config.crawling.maxDepth,
         maxPages: config.crawling.maxPages,
         sameDomainOnly: true,
+        excludedUrls,
       });
       perfMonitor.end('crawling', { pagesFound: crawlResults.length });
       

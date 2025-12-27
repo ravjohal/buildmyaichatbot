@@ -56,6 +56,8 @@ const DAYS_OF_WEEK: { value: DayOfWeekValue; label: string }[] = [
 export function StepKnowledgeBase({ formData, updateFormData }: StepKnowledgeBaseProps) {
   const [newUrl, setNewUrl] = useState("");
   const [urlError, setUrlError] = useState("");
+  const [newExcludedUrl, setNewExcludedUrl] = useState("");
+  const [excludedUrlError, setExcludedUrlError] = useState("");
   const [uploadingDoc, setUploadingDoc] = useState(false);
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const { toast } = useToast();
@@ -112,6 +114,39 @@ export function StepKnowledgeBase({ formData, updateFormData }: StepKnowledgeBas
     const newUrls = [...(formData.websiteUrls || [])];
     newUrls.splice(index, 1);
     updateFormData({ websiteUrls: newUrls });
+  };
+
+  const handleAddExcludedUrl = () => {
+    setExcludedUrlError("");
+    
+    if (!newExcludedUrl.trim()) {
+      setExcludedUrlError("Please enter a URL pattern");
+      return;
+    }
+
+    const currentExcluded = formData.excludedUrls || [];
+    if (currentExcluded.includes(newExcludedUrl.trim())) {
+      setExcludedUrlError("This pattern has already been added");
+      return;
+    }
+
+    updateFormData({ 
+      excludedUrls: [...currentExcluded, newExcludedUrl.trim()] 
+    });
+    setNewExcludedUrl("");
+  };
+
+  const handleRemoveExcludedUrl = (index: number) => {
+    const newExcluded = [...(formData.excludedUrls || [])];
+    newExcluded.splice(index, 1);
+    updateFormData({ excludedUrls: newExcluded });
+  };
+
+  const handleExcludedKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleAddExcludedUrl();
+    }
   };
 
   const handleRemoveDocument = (index: number) => {
@@ -279,6 +314,71 @@ export function StepKnowledgeBase({ formData, updateFormData }: StepKnowledgeBas
                 </Button>
               </div>
             ))}
+          </div>
+        )}
+
+        {/* Excluded URLs Section - Only show if there are website URLs */}
+        {formData.websiteUrls && formData.websiteUrls.length > 0 && (
+          <div className="space-y-3 border-l-2 border-muted pl-4 ml-2">
+            <Label htmlFor="excludedUrl" className="text-base flex items-center gap-2 text-muted-foreground">
+              <X className="w-4 h-4" />
+              Exclude URLs (Optional)
+            </Label>
+            <div className="flex gap-2">
+              <Input
+                id="excludedUrl"
+                type="text"
+                placeholder="/blog or /admin or example.com/private"
+                value={newExcludedUrl}
+                onChange={(e) => {
+                  setNewExcludedUrl(e.target.value);
+                  setExcludedUrlError("");
+                }}
+                onKeyPress={handleExcludedKeyPress}
+                className="h-10 flex-1"
+                data-testid="input-excluded-url"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleAddExcludedUrl}
+                className="h-10"
+                data-testid="button-add-excluded-url"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Exclude
+              </Button>
+            </div>
+            {excludedUrlError && (
+              <p className="text-sm text-destructive">{excludedUrlError}</p>
+            )}
+            <p className="text-sm text-muted-foreground">
+              Add URL patterns to skip during crawling. For example, "/blog" will skip all blog pages, "/admin" will skip admin pages.
+            </p>
+
+            {formData.excludedUrls && formData.excludedUrls.length > 0 && (
+              <div className="space-y-2">
+                <Label className="text-sm font-medium text-muted-foreground">Excluded Patterns</Label>
+                {formData.excludedUrls.map((pattern, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center gap-2 p-2 bg-destructive/10 border border-destructive/20 rounded-lg"
+                    data-testid={`excluded-url-item-${index}`}
+                  >
+                    <X className="w-4 h-4 text-destructive flex-shrink-0" />
+                    <span className="flex-1 text-sm truncate">{pattern}</span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleRemoveExcludedUrl(index)}
+                      data-testid={`button-remove-excluded-url-${index}`}
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 

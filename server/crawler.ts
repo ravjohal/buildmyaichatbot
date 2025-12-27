@@ -21,6 +21,41 @@ export interface RecursiveCrawlOptions {
   sameDomainOnly?: boolean;
   mode?: 'static' | 'javascript' | 'auto';
   maxJsPages?: number;
+  excludedUrls?: string[]; // URL patterns to exclude from indexing
+}
+
+// Check if a URL should be excluded based on exclusion patterns
+function shouldExcludeUrl(url: string, excludedPatterns: string[]): boolean {
+  if (!excludedPatterns || excludedPatterns.length === 0) {
+    return false;
+  }
+  
+  const normalizedUrl = url.toLowerCase();
+  
+  for (const pattern of excludedPatterns) {
+    const normalizedPattern = pattern.toLowerCase().trim();
+    if (!normalizedPattern) continue;
+    
+    // Check if the URL contains the pattern (simple substring matching)
+    // This handles patterns like "/blog", "example.com/blog", etc.
+    if (normalizedUrl.includes(normalizedPattern)) {
+      console.log(`[Crawler] Excluding URL "${url}" - matches pattern "${pattern}"`);
+      return true;
+    }
+    
+    // Also try as path prefix (e.g., "/blog" matches "/blog/post1")
+    try {
+      const urlObj = new URL(url);
+      if (urlObj.pathname.toLowerCase().startsWith(normalizedPattern)) {
+        console.log(`[Crawler] Excluding URL "${url}" - path matches pattern "${pattern}"`);
+        return true;
+      }
+    } catch {
+      // Ignore URL parsing errors
+    }
+  }
+  
+  return false;
 }
 
 async function crawlWithRenderer(
@@ -434,6 +469,7 @@ export async function crawlWebsiteRecursive(
     sameDomainOnly = true,
     mode = 'auto',
     maxJsPages = 20,
+    excludedUrls = [],
   } = options;
 
   const visited = new Set<string>();
@@ -456,6 +492,11 @@ export async function crawlWebsiteRecursive(
       // Skip non-crawlable URLs (images, videos, etc. - but PDFs are crawlable)
       if (!isCrawlableUrl(url)) {
         console.log(`[Crawler] Skipping non-crawlable URL: ${url}`);
+        continue;
+      }
+      
+      // Skip excluded URLs
+      if (shouldExcludeUrl(url, excludedUrls)) {
         continue;
       }
 
