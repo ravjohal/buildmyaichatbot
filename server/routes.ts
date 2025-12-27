@@ -3141,19 +3141,25 @@ INCORRECT citation examples (NEVER do this):
         return res.status(404).json({ error: "Conversation not found" });
       }
 
-      // Verify user owns the chatbot for this conversation
-      const chatbot = await storage.getChatbot(conversation.chatbotId, userId);
-      if (!chatbot) {
-        return res.status(403).json({ error: "Unauthorized" });
-      }
-
-      // Verify user has Scale tier subscription for conversation access (admins bypass this check)
+      // Verify user has Scale tier subscription for conversation access (or is admin)
       const user = await storage.getUser(userId);
       if (!user || (user.subscriptionTier !== "scale" && user.isAdmin !== "true")) {
         return res.status(403).json({ 
           error: "Upgrade required",
           message: "Conversation details are only available on the Scale plan. Please upgrade to access this feature."
         });
+      }
+
+      // Verify user owns the chatbot for this conversation (admins can view any)
+      let chatbot;
+      if (user.isAdmin === "true") {
+        chatbot = await storage.getChatbotById(conversation.chatbotId);
+      } else {
+        chatbot = await storage.getChatbot(conversation.chatbotId, userId);
+      }
+      
+      if (!chatbot) {
+        return res.status(403).json({ error: "Unauthorized" });
       }
 
       // Get all messages for this conversation
@@ -3373,19 +3379,25 @@ Return ONLY a valid JSON array of EXACTLY 20 question strings, nothing else. Exa
       const limit = parseInt(req.query.limit as string) || 50;
       const offset = parseInt(req.query.offset as string) || 0;
 
-      // Verify user owns this chatbot
-      const chatbot = await storage.getChatbot(chatbotId, userId);
-      if (!chatbot) {
-        return res.status(404).json({ error: "Chatbot not found" });
-      }
-
-      // Verify user has Scale tier subscription for analytics access
+      // Verify user has Scale tier subscription for analytics access (or is admin)
       const user = await storage.getUser(userId);
-      if (!user || user.subscriptionTier !== "scale") {
+      if (!user || (user.subscriptionTier !== "scale" && user.isAdmin !== "true")) {
         return res.status(403).json({ 
           error: "Upgrade required",
           message: "Conversation history is only available on the Scale plan. Please upgrade to access this feature."
         });
+      }
+
+      // Verify user owns this chatbot (admins can view any)
+      let chatbot;
+      if (user.isAdmin === "true") {
+        chatbot = await storage.getChatbotById(chatbotId);
+      } else {
+        chatbot = await storage.getChatbot(chatbotId, userId);
+      }
+      
+      if (!chatbot) {
+        return res.status(404).json({ error: "Chatbot not found" });
       }
 
       // Get conversations with pagination
